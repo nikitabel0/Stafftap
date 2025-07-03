@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-import Login from "./Login";
-import Register from "./Register";
-import Profile from "./Profile";
+import Login from "./page/Login";
+import Register from "./page/Register";
+import Profile from "./page/Profile";
 
 function App() {
   const [user, setUser] = useState(null);
