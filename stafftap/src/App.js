@@ -5,6 +5,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./page/login/Login";
 import Register from "./page/registr/Register";
 import Profile from "./page/profile/Profile";
+import Header from "./components/Header/Header";
+import FeedPage from "./page/feed/FeedPage";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -41,9 +43,11 @@ function App() {
 
   return (
         <div style={appStyle}>
+         
       <Router>
+            <Header></Header>
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/profile" /> : <Login onLogin={fetchProfile} />} />
+          <Route path="/login" element={user ? <Navigate to="/profile" /> : <Profile onLogin={fetchProfile} />} />
           <Route path="/register" element={user ? <Navigate to="/profile" /> : <Register onRegister={fetchProfile} />} />
           <Route path="/profile" element={user ? <Profile user={user} onLogout={handleLogout} /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={user ? "/profile" : "/login"} />} />
