@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, me, users, withdrawals
+from app.routes import auth, me, users, withdrawals,jobs,skills
 from app.database import Base, engine
 app = FastAPI()
 from fastapi import FastAPI, Depends
@@ -10,7 +10,7 @@ from app.models.user import User
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # потом заменить на вебапп адрес
+    allow_origins=["http://localhost:3000"],   # потом заменить на вебапп адрес
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,6 +23,8 @@ app.include_router(auth.router)
 app.include_router(me.router)
 app.include_router(users.router)
 app.include_router(withdrawals.router)
+app.include_router(jobs.router)
+app.include_router(skills.router)
 @app.get("/me")
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user

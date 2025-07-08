@@ -1,186 +1,126 @@
+// FeedPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 import './FeedPage.css';
 import FilterPanel from '../../components/FilterPanel/FilterPanel';
 import VacancyCard from '../../components/VacancyCard/VacancyCard';
 
-const FeedPage = () => {
+const FeedPage = ({ user }) => {
   const [vacancies, setVacancies] = useState([]);
-  const [filteredVacancies, setFilteredVacancies] = useState([]);
   const [filters, setFilters] = useState({
     profession: '',
     date: '',
     minRate: '',
-    maxDistance: ''
   });
   const [isLoading, setIsLoading] = useState(true);
-  const location = useLocation();
+  const navigate = useNavigate();
   
-  const role = location.pathname.includes('employer') ? 'employer' : 'worker';
+  const role = user?.role || 'worker';
 
-  const testVacancies = [
-    {
-      id: 1,
-      title: "Бариста на выходные",
-      company: "Кофейня 'Утренний Эспрессо'",
-      description: "Требуется опытный бариста для работы в выходные дни. Обязанности: приготовление кофейных напитков, обслуживание клиентов, поддержание чистоты рабочего места.",
-      profession: "Бариста",
-      date: "2023-10-28",
-      startTime: "08:00",
-      endTime: "16:00",
-      address: "ул. Пушкинская, 15",
-      salary: 2500,
-      experience: "1+ год",
-      requirements: ["Опыт работы от 1 года", "Знание кофейных рецептур", "Аккуратность"],
-      workersNeeded: 2,
-      distance: 1.2,
-      isFavorite: false,
-      companyRating: 4.7
-    },
-    {
-      id: 2,
-      title: "Официант на вечернее мероприятие",
-      company: "Ресторан 'Гастрономика'",
-      description: "Приглашаем официантов для работы на корпоративном мероприятии. Обязанности: обслуживание гостей, сервировка столов, подача блюд.",
-      profession: "Официант",
-      date: "2023-10-30",
-      startTime: "18:00",
-      endTime: "23:00",
-      address: "пр. Мира, 42",
-      salary: 2000,
-      experience: "Без опыта",
-      requirements: ["Опрятный внешний вид", "Коммуникабельность", "Внимательность"],
-      workersNeeded: 5,
-      distance: 3.5,
-      isFavorite: true,
-      companyRating: 4.9
-    },
-    {
-      id: 3,
-      title: "Помощник повара на кухню",
-      company: "Кафе 'Самовар'",
-      description: "Требуется помощник повара для работы на кухне. Обязанности: подготовка ингредиентов, поддержание чистоты, помощь в приготовлении блюд.",
-      profession: "Помощник повара",
-      date: "2023-10-29",
-      startTime: "10:00",
-      endTime: "18:00",
-      address: "ул. Советская, 8",
-      salary: 1800,
-      experience: "Без опыта",
-      requirements: ["Ответственность", "Исполнительность", "Желание учиться"],
-      workersNeeded: 1,
-      distance: 0.8,
-      isFavorite: false,
-      companyRating: 4.5
-    },
-    {
-      id: 4,
-      title: "Мерчендайзер в супермаркет",
-      company: "Сеть супермаркетов 'ФрешМаркет'",
-      description: "Работа по выкладке товара, контроль сроков годности, поддержание товарного вида продукции. Гибкий график.",
-      profession: "Мерчендайзер",
-      date: "2023-10-27",
-      startTime: "09:00",
-      endTime: "15:00",
-      address: "ТЦ 'Галерея', 3 этаж",
-      salary: 1700,
-      experience: "Без опыта",
-      requirements: ["Аккуратность", "Внимательность", "Ответственность"],
-      workersNeeded: 3,
-      distance: 2.1,
-      isFavorite: false,
-      companyRating: 4.3
-    },
-    {
-      id: 5,
-      title: "Промоутер на раздачу листовок",
-      company: "Рекламное агентство 'МедиаВолна'",
-      description: "Приглашаем активных промоутеров для раздачи рекламных материалов в центре города. Работа на улице.",
-      profession: "Промоутер",
-      date: "2023-10-31",
-      startTime: "12:00",
-      endTime: "18:00",
-      address: "пл. Центральная",
-      salary: 1500,
-      experience: "Без опыта",
-      requirements: ["Коммуникабельность", "Вежливость", "Презентабельный внешний вид"],
-      workersNeeded: 10,
-      distance: 1.5,
-      isFavorite: false,
-      companyRating: 4.6
+  const fetchVacancies = async (filters = {}) => {
+    try {
+      const token = localStorage.getItem('token');
+      const params = {
+        skill: filters.profession || undefined,
+        date: filters.date || undefined,
+        min_rate: filters.minRate || undefined,
+      };
+
+      const response = await axios.get('http://localhost:8000/api/jobs', {
+        params,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      return response.data.map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company_name,
+        description: job.description,
+        profession: job.required_skill_name,
+        date: job.work_date,
+        startTime: job.start_time,
+        endTime: job.end_time,
+        address: job.address,
+        salary: job.rate,
+        workersNeeded: job.workers_needed,
+        remainingSlots: job.remaining_slots,
+        postedDate: new Date(job.created_at).toLocaleDateString(),
+        isFavorite: job.is_favorite || false,
+        companyRating: 4.5 
+      }));
+    } catch (error) {
+      console.error('Ошибка при загрузке вакансий:', error);
+      return [];
     }
-  ];
+  };
 
-  // Загрузка тестовых данных (в реальном приложении будет запрос к API)
+  // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      // Имитация загрузки данных
-      setTimeout(() => {
-        setVacancies(testVacancies);
-        setFilteredVacancies(testVacancies);
-        setIsLoading(false);
-      }, 800);
+      const vacanciesData = await fetchVacancies(filters);
+      setVacancies(vacanciesData);
+      setIsLoading(false);
     };
 
     loadData();
-  }, []);
+  }, [filters]);
 
   // Обработка изменения фильтров
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    
-    // Фильтрация вакансий
-    const filtered = vacancies.filter(vacancy => {
-      // Фильтр по профессии
-      if (newFilters.profession && !vacancy.profession.toLowerCase().includes(newFilters.profession.toLowerCase())) {
-        return false;
-      }
-      
-      // Фильтр по дате
-      if (newFilters.date && vacancy.date !== newFilters.date) {
-        return false;
-      }
-      
-      // Фильтр по минимальной ставке
-      if (newFilters.minRate && vacancy.salary < parseInt(newFilters.minRate)) {
-        return false;
-      }
-      
-      // Фильтр по расстоянию
-      if (newFilters.maxDistance && vacancy.distance > parseFloat(newFilters.maxDistance)) {
-        return false;
-      }
-      
-      return true;
-    });
-    
-    setFilteredVacancies(filtered);
   };
 
   // Обработка добавления в избранное
-  const handleToggleFavorite = (id) => {
-    const updatedVacancies = vacancies.map(vacancy => {
-      if (vacancy.id === id) {
-        return { ...vacancy, isFavorite: !vacancy.isFavorite };
-      }
-      return vacancy;
-    });
-    
-    setVacancies(updatedVacancies);
-    setFilteredVacancies(updatedVacancies.filter(v => 
-      v.id === id ? true : filteredVacancies.some(fv => fv.id === v.id)
-    ));
+  const handleToggleFavorite = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const vacancy = vacancies.find(v => v.id === id);
+      const newFavoriteStatus = !vacancy.isFavorite;
+      
+      // Отправляем запрос на сервер
+      await axios.post(
+        `http://localhost:8000/api/jobs/${id}/favorite`,
+        { is_favorite: newFavoriteStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      // Обновляем локальное состояние
+      setVacancies(prev => prev.map(v => 
+        v.id === id ? { ...v, isFavorite: newFavoriteStatus } : v
+      ));
+      
+    } catch (error) {
+      console.error('Ошибка при обновлении избранного:', error);
+    }
+  };
+
+  // Переход на страницу создания вакансии/заявок
+  const handleFloatingButtonClick = () => {
+    if (role === 'employer') {
+      navigate('/create-vacancy');
+    } else {
+      navigate('/my-applications');
+    }
   };
 
   return (
     <div className="feed-page">
       <div className="feed-header">
         <h1>{role === 'worker' ? 'Доступные вакансии' : 'Кандидаты'}</h1>
-        <div className="balance-info">
-          <span>Ваш баланс: 15 400 ₽</span>
-        </div>
+        {user && (
+          <div className="balance-info">
+            <span>Ваш баланс: {user.balance ? user.balance.toLocaleString('ru-RU') : 0} ₽</span>
+          </div>
+        )}
       </div>
 
       <FilterPanel 
@@ -196,8 +136,8 @@ const FeedPage = () => {
         </div>
       ) : (
         <div className="vacancies-list">
-          {filteredVacancies.length > 0 ? (
-            filteredVacancies.map(vacancy => (
+          {vacancies.length > 0 ? (
+            vacancies.map(vacancy => (
               <VacancyCard
                 key={vacancy.id}
                 vacancy={vacancy}
@@ -214,7 +154,10 @@ const FeedPage = () => {
         </div>
       )}
 
-      <div className="floating-button">
+      <div 
+        className="floating-button"
+        onClick={handleFloatingButtonClick}
+      >
         {role === 'employer' ? 'Создать вакансию' : 'Мои заявки'}
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 .profile-page {
   max-width: 1200px;
   margin: 80px auto 0;
@@ -22,11 +23,22 @@
   border-radius: 16px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.error-input {
+  border-color: #e74c3c !important;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 14px;
+  margin-top: 5px;
 }
 
 .profile-avatar {
   position: relative;
   margin-right: 25px;
+  margin-bottom: 15px;
 }
 
 .avatar-placeholder {
@@ -40,6 +52,50 @@
   justify-content: center;
   font-size: 36px;
   font-weight: bold;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.avatar-placeholder.editable:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initials {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 50%;
+}
+
+.avatar-overlay span {
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.camera-icon {
+  font-size: 24px;
 }
 
 .avatar-edit-btn {
@@ -59,6 +115,7 @@
 
 .profile-info {
   flex: 1;
+  min-width: 300px;
 }
 
 .profile-info h1 {
@@ -113,6 +170,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .balance-info span {
@@ -128,11 +187,14 @@
   border-radius: 20px;
   font-weight: 500;
   cursor: pointer;
+  min-width: max-content;
 }
 
 .profile-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
 }
 
 .edit-btn, .save-btn, .cancel-btn {
@@ -146,6 +208,7 @@
   border: 1px solid #2C8161;
   background: white;
   color: #2C8161;
+  min-width: max-content;
 }
 
 .save-btn {
@@ -166,6 +229,7 @@
   overflow: hidden;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -179,6 +243,7 @@
   cursor: pointer;
   color: #666;
   transition: all 0.3s;
+  min-width: 120px;
 }
 
 .tab-btn.active {
@@ -226,6 +291,7 @@
   font-size: 16px;
   font-weight: 500;
   color: #333;
+  min-height: 24px;
 }
 
 .info-item input {
@@ -234,6 +300,11 @@
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 16px;
+  box-sizing: border-box;
+}
+
+.info-item input[type="date"] {
+  padding: 9px;
 }
 
 .full-width {
@@ -297,6 +368,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  flex-wrap: wrap;
 }
 
 .rating-value {
@@ -514,6 +586,16 @@
 }
 
 /* Адаптивность */
+@media (max-width: 992px) {
+  .profile-info {
+    min-width: 250px;
+  }
+  
+  .info-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .profile-banner {
     flex-direction: column;
@@ -538,5 +620,75 @@
   
   .profile-tabs {
     flex-direction: column;
+  }
+  
+  .profile-meta {
+    justify-content: center;
+  }
+  
+  .balance-info {
+    justify-content: center;
+  }
+  
+  .profile-info h1 {
+    font-size: 24px;
+  }
+  
+  .info-item input {
+    padding: 12px;
+    font-size: 16px;
+  }
+  
+  .tab-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-page {
+    padding: 10px;
+    margin-top: 60px;
+  }
+  
+  .profile-banner {
+    padding: 15px;
+  }
+  
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+  }
+  
+  .camera-icon {
+    font-size: 20px;
+  }
+  
+  .avatar-overlay span {
+    font-size: 10px;
+  }
+  
+  .profile-info h1 {
+    font-size: 22px;
+  }
+  
+  .edit-btn, .save-btn, .cancel-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .info-item input {
+    padding: 10px;
+    font-size: 15px;
+  }
+  
+  .section-title {
+    font-size: 18px;
   }
 }

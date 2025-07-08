@@ -1,84 +1,335 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FiPlus, FiFile, FiDownload, FiTrash2, FiCamera } from 'react-icons/fi';
 import './ProfilePage.css';
 import SkillsList from '../../components/SkillsList/SkillsList';
 import AvailabilityCalendar from '../../components/AvailabilityCalendar/AvailabilityCalendar';
-import DocumentsList from '../../components/DocumentsList/DocumentsList';
 import VacancyCards from '../../components/VacancyCards/VacancyCards';
 
-const ProfilePage = () => {
-  const { id } = useParams();
+// Компонент DocumentsList
+const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
+  const safeDocuments = documents || [];
+  
+  const handleAddDocument = () => {
+    const newDocument = {
+      id: Date.now(),
+      type: "ИНН",
+      file_url: "document.pdf",
+      status: "pending"
+    };
+    onDocumentsChange([...safeDocuments, newDocument]);
+  };
+
+  const handleRemoveDocument = (id) => {
+    onDocumentsChange(safeDocuments.filter(doc => doc.id !== id));
+  };
+
+  return (
+    <div className="documents-container">
+      {safeDocuments.map(doc => (
+        <div key={doc.id} className="document-item">
+          <FiFile className="document-icon" />
+          <div className="document-info">
+            <div className="document-type">{doc.type}</div>
+            <div className={`document-status ${doc.status}`}>
+              {doc.status === 'approved' ? 'Подтвержден' : 
+               doc.status === 'rejected' ? 'Отклонен' : 'На проверке'}
+            </div>
+          </div>
+          <div className="document-actions">
+            <button className="download-btn">
+              <FiDownload />
+            </button>
+            {isEditing && (
+              <button 
+                className="remove-btn"
+                onClick={() => handleRemoveDocument(doc.id)}
+              >
+                <FiTrash2 />
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+      
+      {isEditing && (
+        <button className="add-document-btn" onClick={handleAddDocument}>
+          <FiPlus /> Добавить документ
+        </button>
+      )}
+    </div>
+  );
+};
+
+// Функция для преобразования данных пользователя
+const transformUser = (userData) => {
+  if (!userData) return null;
+  
+  const transformedVacancies = userData.active_vacancies?.map(vacancy => ({
+    ...vacancy,
+    startTime: vacancy.start_time,
+    endTime: vacancy.end_time
+  })) || [];
+
+  return {
+    ...userData,
+    balance: userData.balance || 0,
+    skills: userData.skills || [],
+    documents: userData.documents || [],
+    availability: userData.availability || {},
+    active_vacancies: transformedVacancies,
+    rating: userData.rating || 0,
+    reviews_count: userData.reviews_count || 0,
+    company_name: userData.company_name || '',
+    rate_per_shift: userData.rate_per_shift || 0,
+    experience_months: userData.experience_months || 0
+  };
+};
+
+// Функция форматирования телефонного номера
+const formatPhone = (phone) => {
+  if (!phone) return '';
+  
+  // Удаляем все нецифровые символы
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Ограничиваем длину до 11 символов
+  const match = cleaned.match(/^(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})$/);
+  
+  if (!match) return phone;
+  
+  let formatted = '';
+  if (match[1]) formatted = `+7${match[1] ? ` (${match[1]}` : ''}`;
+  if (match[2]) formatted += `${match[2]}${match[3] ? ') ' : ''}`;
+  if (match[3]) formatted += `${match[3]}${match[4] ? '-' : ''}`;
+  if (match[4]) formatted += `${match[4]}${match[5] ? '-' : ''}`;
+  if (match[5]) formatted += match[5];
+  
+  return formatted;
+};
+
+// Основной компонент ProfilePage
+const ProfilePage = ({ user, onSave, onLogout }) => {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
   const [isEditing, setIsEditing] = useState(false);
-  
-  const testProfile = {
-    id: 1,
-    first_name: "гандон",
-    last_name: "пидоров",
-    role: "worker2",
-    phone: "+79123456789",
-    email: "ivan.petrov@example.com",
-    birth_date: "1990-05-15",
-    company_name: "",
-    experience_months: 36,
-    rate_per_shift: 2500,
-    is_verified: true,
-    created_at: "2023-01-10T14:30:00Z",
-    rating: 4.7,
-    reviews_count: 24,
-    balance: 15400,
-    skills: [
-      { id: 1, name: "Бариста" },
-      { id: 2, name: "Официант" },
-      { id: 3, name: "Кассир" }
-    ],
-    availability: [
-      { id: 1, date: "2023-10-28" },
-      { id: 2, date: "2023-10-29" },
-      { id: 3, date: "2023-11-05" }
-    ],
-    documents: [],
-    active_vacancies: [
-      {
-        id: 1,
-        title: "Бариста на выходные",
-        company: "Кофейня 'Утренний Эспрессо'",
-        date: "2023-10-28",
-        startTime: "08:00",
-        endTime: "16:00",
-        address: "ул. Пушкинская, 15",
-        salary: 2500,
-        status: "confirmed"
-      }
-    ]
-  };
+  const [editingProfile, setEditingProfile] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
-  
   useEffect(() => {
-    const loadProfile = async () => {
-      setIsLoading(true);
-      
-      setTimeout(() => {
-        setProfile(testProfile);
-        setIsLoading(false);
-      }, 800);
+    if (user) {
+      setEditingProfile(transformUser(user));
+      setErrors({});
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    }
+  }, [user]);
+
+  // Очистка превью при размонтировании
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
     };
+  }, [avatarPreview]);
 
-    loadProfile();
-  }, [id]);
+  // Валидация полей формы
+  const validateFields = () => {
+    const newErrors = {};
+    let isValid = true;
 
-  
-  const handleSaveProfile = (updatedProfile) => {
-    setProfile(updatedProfile);
-    setIsEditing(false);
-    
+    // Проверка имени
+    if (!editingProfile.first_name?.trim()) {
+      newErrors.first_name = 'Имя обязательно для заполнения';
+      isValid = false;
+    } else if (editingProfile.first_name.length < 2) {
+      newErrors.first_name = 'Имя должно содержать минимум 2 символа';
+      isValid = false;
+    }
+
+    // Проверка фамилии
+    if (!editingProfile.last_name?.trim()) {
+      newErrors.last_name = 'Фамилия обязательна для заполнения';
+      isValid = false;
+    } else if (editingProfile.last_name.length < 2) {
+      newErrors.last_name = 'Фамилия должна содержать минимум 2 символа';
+      isValid = false;
+    }
+
+    // ВАЖНО: УДАЛЕНА ВАЛИДАЦИЯ ТЕЛЕФОНА
+    // Проверка email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!editingProfile.email) {
+      newErrors.email = 'Email обязателен для заполнения';
+      isValid = false;
+    } else if (!emailRegex.test(editingProfile.email)) {
+      newErrors.email = 'Неверный формат email';
+      isValid = false;
+    }
+
+    // Проверка даты рождения
+    if (!editingProfile.birth_date) {
+      newErrors.birth_date = 'Дата рождения обязательна';
+      isValid = false;
+    } else {
+      const birthDate = new Date(editingProfile.birth_date);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 18) {
+        newErrors.birth_date = 'Возраст должен быть не менее 18 лет';
+        isValid = false;
+      }
+    }
+
+    // Валидация для работника
+    if (editingProfile.role === 'worker') {
+      // Проверка ставки за смену
+      if (!editingProfile.rate_per_shift) {
+        newErrors.rate_per_shift = 'Ставка обязательна';
+        isValid = false;
+      } else if (isNaN(Number(editingProfile.rate_per_shift))) {
+        newErrors.rate_per_shift = 'Ставка должна быть числом';
+        isValid = false;
+      } else if (Number(editingProfile.rate_per_shift) <= 0) {
+        newErrors.rate_per_shift = 'Ставка должна быть положительной';
+        isValid = false;
+      }
+
+      // Проверка опыта работы
+      if (!editingProfile.experience_months) {
+        newErrors.experience_months = 'Опыт обязателен';
+        isValid = false;
+      } else if (isNaN(Number(editingProfile.experience_months))) {
+        newErrors.experience_months = 'Опыт должен быть числом';
+        isValid = false;
+      } else if (Number(editingProfile.experience_months) < 0) {
+        newErrors.experience_months = 'Опыт не может быть отрицательным';
+        isValid = false;
+      }
+    }
+
+    // Валидация для работодателя
+    if (editingProfile.role === 'employer') {
+      // Проверка названия компании
+      if (!editingProfile.company_name?.trim()) {
+        newErrors.company_name = 'Название компании обязательно';
+        isValid = false;
+      } else if (editingProfile.company_name.length < 2) {
+        newErrors.company_name = 'Название компании должно содержать минимум 2 символа';
+        isValid = false;
+      }
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
-  if (isLoading) {
+  // Обработчик выбора файла аватара
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Проверка типа файла
+      if (!file.type.match('image.*')) {
+        alert('Пожалуйста, выберите файл изображения');
+        return;
+      }
+
+      // Проверка размера файла (максимум 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Файл слишком большой. Максимальный размер 5MB');
+        return;
+      }
+
+      setAvatarFile(file);
+      
+      // Создание URL для превью
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarPreview(previewUrl);
+    }
+  };
+
+  const handleSaveClick = async () => {
+    if (!onSave || !editingProfile) {
+      setIsEditing(false);
+      return;
+    }
+
+    // Проверка валидации перед сохранением
+    if (!validateFields()) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Подготовка данных для сохранения
+      const dataToSave = {
+        ...editingProfile,
+        // Преобразование числовых полей
+        rate_per_shift: Number(editingProfile.rate_per_shift),
+        experience_months: Number(editingProfile.experience_months),
+        // Добавляем файл аватара
+        avatarFile: avatarFile,
+        // Удаление временных полей
+        active_vacancies: undefined,
+        availability: undefined,
+        documents: undefined,
+        skills: undefined
+      };
+
+      await onSave(dataToSave);
+      setIsEditing(false);
+      setErrors({});
+      // Сбрасываем состояние аватара после сохранения
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    } catch (error) {
+      console.error("Ошибка сохранения:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setEditingProfile(transformUser(user));
+      setErrors({});
+      // Сбрасываем состояние аватара
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    }
+    setIsEditing(false);
+  };
+
+  // Обработчик изменения числовых полей (только цифры)
+  const handleNumericChange = (field, value) => {
+    // Разрешаем только цифры и пустую строку
+    if (value === '' || /^\d+$/.test(value)) {
+      setEditingProfile({
+        ...editingProfile,
+        [field]: value
+      });
+    }
+  };
+
+  // Обработчик клика по области аватара
+  const handleAvatarClick = () => {
+    if (isEditing && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  if (!user || !editingProfile) {
     return (
       <div className="profile-loading">
         <div className="loader"></div>
@@ -87,37 +338,71 @@ const ProfilePage = () => {
     );
   }
 
+  const currentProfile = isEditing ? editingProfile : transformUser(user);
+
+  const formatBalance = (balance) => {
+    return (balance || 0).toLocaleString('ru-RU');
+  };
+
+  const getInitials = () => {
+    const firstNameChar = currentProfile.first_name?.charAt(0) || '';
+    const lastNameChar = currentProfile.last_name?.charAt(0) || '';
+    return `${firstNameChar}${lastNameChar}`;
+  };
+
   return (
     <div className="profile-page">
-      {/* Шапка профиля (не путать с общим хедером приложения) */}
       <div className="profile-banner">
         <div className="profile-avatar">
-          <div className="avatar-placeholder">
-            {profile.first_name.charAt(0)}{profile.last_name.charAt(0)}
+          <div 
+            className={`avatar-placeholder ${isEditing ? 'editable' : ''}`}
+            onClick={handleAvatarClick}
+          >
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="Preview" className="avatar-image" />
+            ) : currentProfile.avatar_url ? (
+              <img src={currentProfile.avatar_url} alt="Profile" className="avatar-image" />
+            ) : (
+              <div className="avatar-initials">{getInitials()}</div>
+            )}
+            
+            {isEditing && (
+              <div className="avatar-overlay">
+                <FiCamera className="camera-icon" />
+                <span>Изменить фото</span>
+              </div>
+            )}
           </div>
+          
           {isEditing && (
-            <button className="avatar-edit-btn">
-              Изменить фото
-            </button>
+            <input 
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
           )}
         </div>
         
         <div className="profile-info">
-          <h1>{profile.first_name} {profile.last_name}</h1>
+          <h1>{currentProfile.first_name || ''} {currentProfile.last_name || ''}</h1>
           <div className="profile-meta">
-            <span className={`role-badge ${profile.role}`}>
-              {profile.role === 'worker' ? 'Сотрудник' : 'Работодатель'}
+            <span className={`role-badge ${currentProfile.role}`}>
+              {currentProfile.role === 'worker' ? 'Сотрудник' : 'Работодатель'}
             </span>
-            {profile.is_verified && (
+            {currentProfile.is_verified && (
               <span className="verified-badge">Подтвержден</span>
             )}
             <span className="member-since">
-              С {new Date(profile.created_at).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+              {currentProfile.created_at ? 
+                `С ${new Date(currentProfile.created_at).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}` : 
+                'Дата регистрации неизвестна'}
             </span>
           </div>
           
           <div className="balance-info">
-            <span>Баланс: {profile.balance.toLocaleString()} ₽</span>
+            <span>Баланс: {formatBalance(currentProfile.balance)} ₽</span>
             <button className="withdraw-btn">Вывести</button>
           </div>
         </div>
@@ -125,17 +410,36 @@ const ProfilePage = () => {
         <div className="profile-actions">
           {isEditing ? (
             <>
-              <button className="cancel-btn" onClick={() => setIsEditing(false)}>
+              <button 
+                className="cancel-btn" 
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
                 Отмена
               </button>
-              <button className="save-btn" onClick={() => handleSaveProfile(profile)}>
-                Сохранить
+              <button 
+                className="save-btn" 
+                onClick={handleSaveClick}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Сохранение...' : 'Сохранить'}
               </button>
             </>
           ) : (
-            <button className="edit-btn" onClick={() => setIsEditing(true)}>
-              Редактировать
-            </button>
+            <>
+              <button 
+                className="edit-btn" 
+                onClick={() => setIsEditing(true)}
+              >
+                Редактировать
+              </button>
+              <button 
+                className="logout-btn" 
+                onClick={onLogout}
+              >
+                Выйти
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -147,215 +451,273 @@ const ProfilePage = () => {
         >
           Информация
         </button>
-        {profile.role === 'worker' && (
+        {currentProfile.role === 'worker' && (
           <button 
             className={`tab-btn ${activeTab === 'availability' ? 'active' : ''}`}
-            onClick={() => setActiveTab('availability')}
-          >
-            Доступность
-          </button>
-        )}
-        <button 
-          className={`tab-btn ${activeTab === 'vacancies' ? 'active' : ''}`}
-          onClick={() => setActiveTab('vacancies')}
+          onClick={() => setActiveTab('availability')}
         >
-          {profile.role === 'worker' ? 'Мои вакансии' : 'Мои вакансии'}
+          Доступность
         </button>
-      </div>
-      
-      <div className="profile-content">
-        {activeTab === 'info' && (
-          <>
-            <div title="Основная информация">
-              <div className="info-grid">
-                <div className="info-item">
-                  <label>Имя</label>
-                  {isEditing ? (
+      )}
+      <button 
+        className={`tab-btn ${activeTab === 'vacancies' ? 'active' : ''}`}
+        onClick={() => setActiveTab('vacancies')}
+      >
+        Мои вакансии
+      </button>
+    </div>
+    
+    <div className="profile-content">
+      {activeTab === 'info' && (
+        <>
+          <div className="section" title="Основная информация">
+            <div className="info-grid">
+              <div className="info-item">
+                <label>Имя</label>
+                {isEditing ? (
+                  <div>
                     <input 
                       type="text" 
-                      value={profile.first_name}
-                      onChange={(e) => setProfile({...profile, first_name: e.target.value})}
+                      value={editingProfile.first_name || ''}
+                      onChange={(e) => setEditingProfile({
+                        ...editingProfile,
+                        first_name: e.target.value
+                      })}
+                      className={errors.first_name ? 'error-input' : ''}
                     />
-                  ) : (
-                    <p>{profile.first_name}</p>
-                  )}
-                </div>
-                
-                <div className="info-item">
-                  <label>Фамилия</label>
-                  {isEditing ? (
+                    {errors.first_name && <div className="error-message">{errors.first_name}</div>}
+                  </div>
+                ) : (
+                  <p>{currentProfile.first_name || 'Не указано'}</p>
+                )}
+              </div>
+              
+              <div className="info-item">
+                <label>Фамилия</label>
+                {isEditing ? (
+                  <div>
                     <input 
                       type="text" 
-                      value={profile.last_name}
-                      onChange={(e) => setProfile({...profile, last_name: e.target.value})}
+                      value={editingProfile.last_name || ''}
+                      onChange={(e) => setEditingProfile({
+                        ...editingProfile,
+                        last_name: e.target.value
+                      })}
+                      className={errors.last_name ? 'error-input' : ''}
                     />
-                  ) : (
-                    <p>{profile.last_name}</p>
-                  )}
-                </div>
-                
-                <div className="info-item">
-                  <label>Телефон</label>
-                  {isEditing ? (
-                    <input 
-                      type="tel" 
-                      value={profile.phone}
-                      onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                    />
-                  ) : (
-                    <p>{profile.phone}</p>
-                  )}
-                </div>
-                
-                <div className="info-item">
-                  <label>Email</label>
-                  {isEditing ? (
+                    {errors.last_name && <div className="error-message">{errors.last_name}</div>}
+                  </div>
+                ) : (
+                  <p>{currentProfile.last_name || 'Не указано'}</p>
+                )}
+              </div>
+              
+              {/* ПОЛЕ ТЕЛЕФОНА ВСЕГДА ТОЛЬКО ДЛЯ ЧТЕНИЯ */}
+              <div className="info-item">
+                <label>Телефон</label>
+                <p>{currentProfile.phone || 'Не указан'}</p>
+              </div>
+              
+              <div className="info-item">
+                <label>Email</label>
+                {isEditing ? (
+                  <div>
                     <input 
                       type="email" 
-                      value={profile.email}
-                      onChange={(e) => setProfile({...profile, email: e.target.value})}
+                      value={editingProfile.email || ''}
+                      onChange={(e) => setEditingProfile({
+                        ...editingProfile,
+                        email: e.target.value
+                      })}
+                      className={errors.email ? 'error-input' : ''}
                     />
-                  ) : (
-                    <p>{profile.email}</p>
-                  )}
-                </div>
-                
-                <div className="info-item">
-                  <label>Дата рождения</label>
-                  {isEditing ? (
+                    {errors.email && <div className="error-message">{errors.email}</div>}
+                  </div>
+                ) : (
+                  <p>{currentProfile.email || 'Не указан'}</p>
+                )}
+              </div>
+              
+              <div className="info-item">
+                <label>Дата рождения</label>
+                {isEditing ? (
+                  <div>
                     <input 
                       type="date" 
-                      value={profile.birth_date}
-                      onChange={(e) => setProfile({...profile, birth_date: e.target.value})}
+                      value={editingProfile.birth_date || ''}
+                      onChange={(e) => setEditingProfile({
+                        ...editingProfile,
+                        birth_date: e.target.value
+                      })}
+                      max={new Date().toISOString().split('T')[0]}
+                      className={errors.birth_date ? 'error-input' : ''}
                     />
-                  ) : (
-                    <p>{new Date(profile.birth_date).toLocaleDateString('ru-RU')}</p>
-                  )}
-                </div>
-                
-                {profile.role === 'worker' && (
-                  <>
-                    <div className="info-item">
-                      <label>Ставка за смену</label>
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          value={profile.rate_per_shift}
-                          onChange={(e) => setProfile({...profile, rate_per_shift: e.target.value})}
-                        />
-                      ) : (
-                        <p>{profile.rate_per_shift.toLocaleString()} ₽</p>
-                      )}
-                    </div>
-                    
-                    <div className="info-item">
-                      <label>Опыт работы</label>
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          value={profile.experience_months}
-                          onChange={(e) => setProfile({...profile, experience_months: e.target.value})}
-                        />
-                      ) : (
-                        <p>{Math.floor(profile.experience_months / 12)} лет {profile.experience_months % 12} месяцев</p>
-                      )}
-                    </div>
-                  </>
+                    {errors.birth_date && <div className="error-message">{errors.birth_date}</div>}
+                  </div>
+                ) : (
+                  <p>{currentProfile.birth_date ? 
+                        new Date(currentProfile.birth_date).toLocaleDateString('ru-RU') : 
+                        'Не указана'}
+                  </p>
                 )}
-                
-                {profile.role === 'employer' && (
-                  <div className="info-item full-width">
-                    <label>Название компании</label>
+              </div>
+              
+              {currentProfile.role === 'worker' && (
+                <>
+                  <div className="info-item">
+                    <label>Ставка за смену</label>
                     {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={profile.company_name}
-                        onChange={(e) => setProfile({...profile, company_name: e.target.value})}
-                      />
+                      <div>
+                        <input 
+                          type="text" 
+                          value={editingProfile.rate_per_shift || ''}
+                          onChange={(e) => handleNumericChange('rate_per_shift', e.target.value)}
+                          className={errors.rate_per_shift ? 'error-input' : ''}
+                        />
+                        {errors.rate_per_shift && <div className="error-message">{errors.rate_per_shift}</div>}
+                      </div>
                     ) : (
-                      <p>{profile.company_name}</p>
+                      <p>{currentProfile.rate_per_shift ? 
+                            currentProfile.rate_per_shift.toLocaleString('ru-RU') : 
+                            '0'} ₽
+                      </p>
                     )}
                   </div>
-                )}
-              </div>
-            </div>
-            
-            <div title={profile.role === 'worker' ? "Навыки" : "Документы"}>
-              {profile.role === 'worker' ? (
-                <SkillsList 
-                  skills={profile.skills} 
-                  isEditing={isEditing}
-                  onSkillsChange={(newSkills) => setProfile({...profile, skills: newSkills})}
-                />
-              ) : (
-                <DocumentsList 
-                  documents={profile.documents} 
-                  isEditing={isEditing}
-                  onDocumentsChange={(newDocs) => setProfile({...profile, documents: newDocs})}
-                />
+                  
+                  <div className="info-item">
+                    <label>Опыт работы (месяцев)</label>
+                    {isEditing ? (
+                      <div>
+                        <input 
+                          type="text" 
+                          value={editingProfile.experience_months || ''}
+                          onChange={(e) => handleNumericChange('experience_months', e.target.value)}
+                          className={errors.experience_months ? 'error-input' : ''}
+                        />
+                        {errors.experience_months && <div className="error-message">{errors.experience_months}</div>}
+                      </div>
+                    ) : (
+                      <p>
+                        {currentProfile.experience_months ? 
+                          `${Math.floor(currentProfile.experience_months / 12)} лет ${currentProfile.experience_months % 12} месяцев` : 
+                          'Без опыта'}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+              
+              {currentProfile.role === 'employer' && (
+                <div className="info-item full-width">
+                  <label>Название компании</label>
+                  {isEditing ? (
+                    <div>
+                      <input 
+                        type="text" 
+                        value={editingProfile.company_name || ''}
+                        onChange={(e) => setEditingProfile({
+                          ...editingProfile,
+                          company_name: e.target.value
+                        })}
+                        className={errors.company_name ? 'error-input' : ''}
+                      />
+                      {errors.company_name && <div className="error-message">{errors.company_name}</div>}
+                    </div>
+                  ) : (
+                    <p>{currentProfile.company_name || 'Не указано'}</p>
+                  )}
+                </div>
               )}
             </div>
-            
-            <div title="Рейтинг и отзывы">
-              <div className="rating-container">
-                <div className="rating-value">{profile.rating}</div>
-                <div className="stars">
-                  {'★'.repeat(Math.floor(profile.rating))}
-                  {'☆'.repeat(5 - Math.floor(profile.rating))}
-                </div>
-                <div className="reviews-count">{profile.reviews_count} отзывов</div>
-              </div>
-              <button 
-                className="view-reviews-btn"
-                onClick={() => navigate(`/profile/${id}/reviews`)}
-              >
-                Посмотреть все отзывы
-              </button>
-            </div>
-          </>
-        )}
-        
-        {activeTab === 'availability' && profile.role === 'worker' && (
-          <div title="Мой график доступности">
-            <AvailabilityCalendar
-              availability={profile.availability}
-              isEditing={isEditing}
-              onAvailabilityChange={(newAvailability) => setProfile({...profile, availability: newAvailability})}
-            />
           </div>
-        )}
-        
-        {activeTab === 'vacancies' && (
-          <div title={profile.role === 'worker' ? "Активные вакансии" : "Мои вакансии"}>
-            {profile.active_vacancies.length > 0 ? (
-              <div className="vacancies-list">
-                {profile.active_vacancies.map(vacancy => (
-                  <VacancyCards
-                    key={vacancy.id}
-                    vacancy={vacancy}
-                    role={profile.role}
-                    onAction={() => console.log("Действие с вакансией", vacancy.id)}
-                  />
-                ))}
-              </div>
+          
+          <div className="section" title={currentProfile.role === 'worker' ? "Навыки" : "Документы"}>
+            {currentProfile.role === 'worker' ? (
+              <SkillsList 
+                skills={isEditing ? editingProfile.skills : currentProfile.skills} 
+                isEditing={isEditing}
+                onSkillsChange={(newSkills) => setEditingProfile({
+                  ...editingProfile,
+                  skills: newSkills
+                })}
+              />
             ) : (
-              <div className="no-vacancies">
-                <p>{profile.role === 'worker' 
-                  ? "У вас пока нет активных вакансий" 
-                  : "Вы еще не создали ни одной вакансии"}</p>
-                <button 
-                  className="create-vacancy-btn"
-                  onClick={() => navigate(profile.role === 'worker' ? '/feed' : '/create-vacancy')}
-                >
-                  {profile.role === 'worker' ? "Найти вакансии" : "Создать вакансию"}
-                </button>
-              </div>
+              <DocumentsList 
+                documents={isEditing ? editingProfile.documents : currentProfile.documents} 
+                isEditing={isEditing}
+                onDocumentsChange={(newDocs) => setEditingProfile({
+                  ...editingProfile,
+                  documents: newDocs
+                })}
+              />
             )}
           </div>
-        )}
-      </div>
+          
+          <div className="section" title="Рейтинг и отзывы">
+            <div className="rating-container">
+              <div className="rating-value">{currentProfile.rating || 0}</div>
+              <div className="stars">
+                {'★'.repeat(Math.floor(currentProfile.rating || 0))}
+                {'☆'.repeat(5 - Math.floor(currentProfile.rating || 0))}
+              </div>
+              <div className="reviews-count">
+                {currentProfile.reviews_count || 0} отзывов
+              </div>
+            </div>
+            <button 
+              className="view-reviews-btn"
+              onClick={() => navigate(`/profile/${currentProfile.id}/reviews`)}
+            >
+              Посмотреть все отзывы
+            </button>
+          </div>
+        </>
+      )}
+      
+      {activeTab === 'availability' && currentProfile.role === 'worker' && (
+        <div className="section" title="Мой график доступности">
+          <AvailabilityCalendar
+            availability={isEditing ? editingProfile.availability : currentProfile.availability}
+            isEditing={isEditing}
+            onAvailabilityChange={(newAvailability) => setEditingProfile({
+              ...editingProfile,
+              availability: newAvailability
+            })}
+          />
+        </div>
+      )}
+      
+      {activeTab === 'vacancies' && (
+        <div className="section" title={currentProfile.role === 'worker' ? "Активные вакансии" : "Мои вакансии"}>
+          {currentProfile.active_vacancies?.length > 0 ? (
+            <div className="vacancies-list">
+              {currentProfile.active_vacancies.map(vacancy => (
+                <VacancyCards
+                  key={vacancy.id}
+                  vacancy={vacancy}
+                  role={currentProfile.role}
+                  onAction={() => console.log("Действие с вакансией", vacancy.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="no-vacancies">
+              <p>{currentProfile.role === 'worker' 
+                ? "У вас пока нет активных вакансий" 
+                : "Вы еще не создали ни одной вакансии"}</p>
+              <button 
+                className="create-vacancy-btn"
+                onClick={() => navigate(currentProfile.role === 'worker' ? '/feed' : '/create-vacancy')}
+              >
+                {currentProfile.role === 'worker' ? "Найти вакансии" : "Создать вакансию"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 };
 
 export default ProfilePage;

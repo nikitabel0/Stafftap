@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, Date, Time, Numeric, DateTime
 from sqlalchemy.sql import func
 from app.database import Base
+from sqlalchemy.orm import relationship
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -20,3 +21,4 @@ class Job(Base):
     workers_needed = Column(Integer, nullable=False, default=1)
     status = Column(String(20), default="moderation")
     created_at = Column(DateTime, server_default=func.now())
+    required_skill = relationship("Skill")

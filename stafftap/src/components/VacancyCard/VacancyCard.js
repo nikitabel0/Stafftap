@@ -14,14 +14,13 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
     address,
     salary,
     experience,
-    requirements,
+    requirements = [],  // Добавлено значение по умолчанию
     workersNeeded,
     distance,
     isFavorite,
     companyRating
   } = vacancy;
 
-  
   const formatDate = (dateString) => {
     const options = { day: 'numeric', month: 'long' };
     return new Date(dateString).toLocaleDateString('ru-RU', options);
@@ -51,7 +50,7 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
         <div className="details-grid">
           <div className="detail-item">
             <FiMapPin className="icon" />
-            <span>{address} ({distance} км)</span>
+            <span>{address} {distance && `(${distance} км)`}</span>
           </div>
           
           <div className="detail-item">
@@ -75,14 +74,16 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
           </div>
         </div>
         
-        <div className="requirements">
-          <strong>Требования:</strong>
-          <ul>
-            {requirements.map((req, index) => (
-              <li key={index}>{req}</li>
-            ))}
-          </ul>
-        </div>
+        {requirements.length > 0 && (
+          <div className="requirements">
+            <strong>Требования:</strong>
+            <ul>
+              {requirements.map((req, index) => (
+                <li key={index}>{req}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="card-footer">
