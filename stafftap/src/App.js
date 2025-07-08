@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "./api";
 import {
   BrowserRouter as Router,
   Routes,
@@ -26,11 +26,7 @@ function App() {
     }
 
     try {
-      const res = await axios.get("http://localhost:8000/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get("/me");
       setUser(res.data);
     } catch (err) {
       console.error("Ошибка загрузки профиля:", err);
@@ -70,16 +66,10 @@ function App() {
       };
 
       // Отправка запроса на сервер
-      const response = await axios.put(
-        `http://localhost:8000/api/users/${user.id}`,
-        dataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await api.put(
+      `/api/users/${user.id}`,
+      dataToSend
+    );
 
       // Обновляем данные пользователя
       await fetchProfile();

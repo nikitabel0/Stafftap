@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import GradientButton from "../../components/GradientButton/GradientButton";
 
@@ -233,8 +233,8 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
         delete payload.profession;
       }
 
-      await axios.post("http://localhost:8000/auth/register", payload);
-      const loginRes = await axios.post("http://localhost:8000/auth/login", {
+      await api.post("/auth/register", payload);
+      const loginRes = await api.post("/auth/login", {
         email: formData.email,
         password: formData.password,
       });

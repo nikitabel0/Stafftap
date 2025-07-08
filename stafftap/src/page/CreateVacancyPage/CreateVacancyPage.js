@@ -1,7 +1,7 @@
 import './CreateVacancyPage.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api';
 
 const CreateVacancyPage = () => {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ const CreateVacancyPage = () => {
   useEffect(() => {
     const fetchSkills = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/skills');
+        const response = await api.get('/api/skills');
         setSkills(response.data);
       } catch (error) {
         console.error('Ошибка при загрузке навыков:', error);
@@ -93,11 +93,7 @@ const CreateVacancyPage = () => {
 
     setIsSubmitting(true);
     try {
-      await axios.post('http://localhost:8000/api/jobs', payload, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await api.post('/api/jobs', payload);
       navigate('/employer-feed'); 
     } catch (error) {
       console.error('Ошибка создания вакансии:', error);

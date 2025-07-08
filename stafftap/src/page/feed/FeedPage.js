@@ -1,7 +1,7 @@
 // FeedPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api';
 
 import './FeedPage.css';
 import FilterPanel from '../../components/FilterPanel/FilterPanel';
@@ -28,12 +28,7 @@ const FeedPage = ({ user }) => {
         min_rate: filters.minRate || undefined,
       };
 
-      const response = await axios.get('http://localhost:8000/api/jobs', {
-        params,
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/api/jobs', { params });
       
       return response.data.map(job => ({
         id: job.id,
@@ -83,15 +78,7 @@ const FeedPage = ({ user }) => {
       const newFavoriteStatus = !vacancy.isFavorite;
       
       // Отправляем запрос на сервер
-      await axios.post(
-        `http://localhost:8000/api/jobs/${id}/favorite`,
-        { is_favorite: newFavoriteStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      await api.post(`/api/jobs/${id}/favorite`, { is_favorite: newFavoriteStatus });
       
       // Обновляем локальное состояние
       setVacancies(prev => prev.map(v => 

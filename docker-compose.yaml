@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:17
+    container_name: stafftap-db
+    ports:
+      - "5433:5432"               
+    env_file:
+      - ./postgres/.env
+    volumes:
+      - ./postgres:/docker-entrypoint-initdb.d  
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./stafftap-backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./stafftap-backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./stafftap
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"                
+    env_file:
+      - ./stafftap/.env
+    depends_on:
+      - backend
