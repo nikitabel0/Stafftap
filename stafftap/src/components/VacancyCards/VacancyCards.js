@@ -1,7 +1,13 @@
 import React from 'react';
 import { FiMapPin, FiClock, FiDollarSign, FiUser } from 'react-icons/fi';
-
+import { useParams, useNavigate } from 'react-router-dom';
 const VacancyCards = ({ vacancy, role }) => {
+
+     const navigate = useNavigate();
+    
+    const handleCardClick = () => {
+        navigate(`/vacancy/${vacancy.id}`);
+    };
   const {
     title,
     company,
@@ -42,7 +48,7 @@ const VacancyCards = ({ vacancy, role }) => {
   };
 
   return (
-    <div className="vacancy-card">
+    <div className="vacancy-card" onClick={handleCardClick} >
       <div className="card-header">
         <h3>{title}</h3>
         <div className="status-badge" style={{ backgroundColor: getStatusColor() }}>

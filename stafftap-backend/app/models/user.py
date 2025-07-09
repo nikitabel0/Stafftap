@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Date, Enum, Boolean, BigInteger,
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class UserRole(str, enum.Enum):
     employer = "employer"
@@ -26,3 +27,4 @@ class User(Base):
     rate_per_shift = Column(Numeric(10, 2), nullable=True)
     is_verified = Column(Boolean, default=False)
     is_blocked = Column(Boolean, default=False)
+    favorite_jobs = relationship("FavoriteJob", back_populates="user", cascade="all, delete-orphan")

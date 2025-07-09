@@ -13,6 +13,9 @@ import Profile from "./page/profile/Profile";
 import Header from "./components/Header/Header";
 import FeedPage from "./page/feed/FeedPage";
 import CreateVacancyPage from "./page/CreateVacancyPage/CreateVacancyPage";
+import VacancyDetailPage from "./page/VacancyDetailPage/VacancyDetailPage";
+import ChatsPage from "./page/ChatsPage/ChatsPage";
+import ChatPage from "./page/ChatPage/ChatPage";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -117,6 +120,10 @@ function App() {
       <Router>
         <Header user={user} onLogout={handleLogout} />
         <Routes>
+        <Route path="/chats" element={<ChatsPage user={user} />} />
+        <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
+        {/* <Route path="/bookings" element={<BookingsPage user={user} />} /> */}
+          <Route path="/vacancy/:id" element={<VacancyDetailPage user={user} />} />
           <Route
             path="/login"
             element={

@@ -1,13 +1,14 @@
-# app/routers/jobs.py
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session, joinedload  # <-- Добавлен joinedload
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
-from datetime import date, time  # <-- Исправлен импорт time
+from datetime import date, time
 from app.database import get_db
-from app.models import Job, Skill, Booking, User
-from app.schemas.job import JobOut, JobCreate  # <-- Исправлен импорт (jobs вместо job)
+from app.models import Job, Skill, Booking, User, Review  
+from app.schemas.job import JobDetail, JobOut, JobCreate
 from fastapi import status
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_current_user_optional 
+from sqlalchemy import func
+from app.models.favorite_job import FavoriteJob
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
@@ -18,7 +19,6 @@ def get_jobs(
     min_rate: Optional[float] = Query(None, alias="min_rate"),
     db: Session = Depends(get_db)
 ):
-    # Добавлена жадная загрузка связанного навыка
     query = db.query(Job).options(joinedload(Job.required_skill)).filter(Job.status == "active")
     
     if skill:
@@ -46,7 +46,6 @@ def get_jobs(
         
         remaining = job.workers_needed - confirmed_count
         
-        # Теперь доступ через отношение работает
         skill_name = job.required_skill.name if job.required_skill else "Не указано"
         
         result.append(JobOut(
@@ -108,3 +107,95 @@ def create_job(
     db.refresh(new_job)
     
     return {"id": new_job.id, "status": "created"}
+
+@router.get("/{job_id}", response_model=JobDetail)
+def get_job_details(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)  # Исправлено здесь
+):
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Вакансия не найдена")
+    
+    employer = db.query(User).filter(User.id == job.employer_id).first()
+    if not employer:
+        raise HTTPException(status_code=404, detail="Работодатель не найден")
+    
+    completed_jobs = db.query(func.count(Job.id)).filter(
+        Job.employer_id == employer.id,
+        Job.status == 'completed'
+    ).scalar()
+    
+    avg_rating = db.query(func.avg(Review.rating)).filter(
+        Review.target_id == employer.id
+    ).scalar() or 0.0
+    
+    is_favorite = False
+    if current_user:
+        favorite = db.query(FavoriteJob).filter(
+            FavoriteJob.user_id == current_user.id,
+            FavoriteJob.job_id == job_id
+        ).first()
+        is_favorite = favorite is not None
+
+    confirmed_count = db.query(Booking).filter(
+        Booking.job_id == job_id,
+        Booking.status == "confirmed"
+    ).count()
+    remaining_slots = job.workers_needed - confirmed_count
+
+    return JobDetail(
+        id=job.id,
+        title=job.title,
+        description=job.description,
+        required_skill_id=job.required_skill_id,
+        required_skill_name=job.required_skill.name if job.required_skill else "Не указано",
+        work_date=job.work_date,
+        start_time=job.start_time,
+        end_time=job.end_time,
+        rate=float(job.rate),
+        address=job.address,
+        workers_needed=job.workers_needed,
+        remaining_slots=remaining_slots,
+        company_name=employer.company_name,
+        employer_id=job.employer_id,
+        created_at=job.created_at,
+        employer_name=employer.company_name,
+        employer_rating=float(avg_rating),
+        completed_jobs=completed_jobs,
+        employer_verified=employer.is_verified,
+        is_favorite=is_favorite
+    )
+
+@router.post("/{job_id}/favorite")
+def toggle_job_favorite(
+    job_id: int,
+    is_favorite: bool = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Требуется авторизация")
+    
+    job = db.query(Job).get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Вакансия не найдена")
+    
+    favorite = db.query(FavoriteJob).filter(
+        FavoriteJob.user_id == current_user.id,
+        FavoriteJob.job_id == job_id
+    ).first()
+    
+    if is_favorite and not favorite:
+        new_fav = FavoriteJob(user_id=current_user.id, job_id=job_id)
+        db.add(new_fav)
+        db.commit()
+        return {"status": "added"}
+    
+    if not is_favorite and favorite:
+        db.delete(favorite)
+        db.commit()
+        return {"status": "removed"}
+    
+    return {"status": "no_change"}
