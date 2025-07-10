@@ -2,7 +2,7 @@ import os
 import uuid
 import shutil
 from typing import List
-
+from sqlalchemy.orm import joinedload
 from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from app.models import (
     User, Skill, UserSkill, WorkerAvailability,
     EmployerDocument, Review, Job, Booking
 )
-from app.schemas.reviews import ReviewOut, ReviewResponse
+from app.schemas.reviews import ReviewOut, ReviewResponse, ReviewCreate
 from app.schemas.user import (
     UserProfileResponse, SkillOut, AvailabilityOut,
     AvailabilityInput, DocumentOut, VacancyOut
@@ -372,4 +372,64 @@ def get_user_reviews(id: int, db: Session = Depends(get_db)):
         rating=rating,
         reviews_count=reviews_count,
         reviews=result
+    )
+
+
+@router.post("/reviews", response_model=ReviewOut)
+def create_review(
+    review_data: ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка существования бронирования
+    booking = db.query(Booking).get(review_data.booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Проверка участия пользователя в бронировании
+    if current_user.id not in [booking.worker_id, booking.employer_id]:
+        raise HTTPException(status_code=403, detail="Not a participant of this booking")
+    
+    # Проверка что отзыв не самому себе
+    if current_user.id == review_data.target_id:
+        raise HTTPException(status_code=400, detail="Cannot review yourself")
+    
+    # Проверка статуса бронирования (должно быть завершено)
+    if booking.status != "completed":
+        raise HTTPException(status_code=400, detail="Booking not completed yet")
+    
+    # Проверка дубликата отзыва
+    existing_review = db.query(Review).filter_by(
+        booking_id=review_data.booking_id,
+        reviewer_id=current_user.id,
+        target_id=review_data.target_id
+    ).first()
+    
+    if existing_review:
+        raise HTTPException(status_code=400, detail="Review already exists for this booking")
+    
+    # Создание отзыва
+    new_review = Review(
+        booking_id=review_data.booking_id,
+        reviewer_id=current_user.id,
+        target_id=review_data.target_id,
+        rating=review_data.rating,
+        comment=review_data.comment
+    )
+    
+    db.add(new_review)
+    db.commit()
+    db.refresh(new_review)
+    
+    # Загрузка данных об авторе
+    review_with_author = db.query(Review).options(
+        joinedload(Review.author)
+    ).filter(Review.id == new_review.id).first()
+    
+    return ReviewOut(
+        id=review_with_author.id,
+        author=f"{review_with_author.author.first_name} {review_with_author.author.last_name}",
+        rating=review_with_author.rating,
+        comment=review_with_author.comment,
+        created_at=review_with_author.created_at
     )

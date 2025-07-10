@@ -20,9 +20,9 @@ const ChatPage = ({ user }) => {
   const messagesEndRef = useRef(null);
   const ws = useRef(null);
 
-  // Функция для стабильной генерации аватарки по имени
+  // Функция для генерации красивой аватарки по имени
   const generateAvatar = useCallback((name) => {
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#2C8161', '#56BD66'];
     const char = name.charAt(0).toUpperCase();
     const colorIndex = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length;
     return (
@@ -37,7 +37,7 @@ const ChatPage = ({ user }) => {
       try {
         const token = localStorage.getItem('token');
         
-        // Загрузка информации о чате и собеседнике через новый эндпоинт
+        // Загрузка информации о чате и собеседнике
         const chatRes = await axios.get(`http://localhost:8000/api/chats/${chatId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -59,7 +59,7 @@ const ChatPage = ({ user }) => {
         setIsLoading(false);
         scrollToBottom();
         
-        // Подключение к WebSocket с обработкой переподключения
+        // Подключение к WebSocket
         const connectWebSocket = () => {
           ws.current = new WebSocket(`ws://localhost:8000/api/chats/ws/${user.id}`);
           
@@ -77,7 +77,6 @@ const ChatPage = ({ user }) => {
           
           ws.current.onerror = (error) => {
             console.error('WebSocket error:', error);
-            // Переподключение через 5 секунд
             setTimeout(() => connectWebSocket(), 5000);
           };
           
@@ -115,7 +114,7 @@ const ChatPage = ({ user }) => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isSending) return;
     
-    let tempMessage; // Объявляем переменную здесь, чтобы она была доступна в catch
+    let tempMessage;
     
     try {
       setIsSending(true);
@@ -150,7 +149,6 @@ const ChatPage = ({ user }) => {
       
     } catch (error) {
       console.error('Ошибка при отправке сообщения:', error);
-      // Если ошибка, помечаем сообщение как неотправленное
       if (tempMessage) {
         setMessages(prev => prev.map(msg => 
           msg.id === tempMessage.id ? { ...msg, error: true } : msg
@@ -187,7 +185,7 @@ const ChatPage = ({ user }) => {
     });
   };
 
-  // Оптимизированная группировка сообщений по дням
+  // Группировка сообщений по дням
   const groupMessagesByDate = () => {
     return messages.reduce((groups, message) => {
       const date = new Date(message.sent_at).toDateString();
@@ -235,16 +233,23 @@ const ChatPage = ({ user }) => {
         {isLoading ? (
           <div className="loading-messages">
             <div className="loader"></div>
+            <p>Загрузка сообщений...</p>
           </div>
         ) : Object.keys(groupedMessages).length === 0 ? (
           <div className="no-messages">
-            <p>Начните общение с {interlocutor.name}</p>
+            <div className="no-messages-icon">
+              <div className="icon-wrapper">
+                <FiSend size={48} />
+              </div>
+            </div>
+            <h3>Начните общение</h3>
+            <p>Отправьте первое сообщение {interlocutor.name}</p>
           </div>
         ) : (
           Object.entries(groupedMessages).map(([date, messages]) => (
             <div key={date} className="message-group">
               <div className="date-divider">
-                {formatDate(date)}
+                <span>{formatDate(date)}</span>
               </div>
               
               {messages.map(message => (
@@ -252,19 +257,6 @@ const ChatPage = ({ user }) => {
                   key={message.id} 
                   className={`message ${message.sender_id === user.id ? 'sent' : 'received'}`}
                 >
-                  {message.sender_id !== user.id && (
-                    <div className="avatar">
-                      {interlocutor.avatar ? (
-                        <img 
-                          src={interlocutor.avatar} 
-                          alt={interlocutor.name} 
-                        />
-                      ) : (
-                        generateAvatar(interlocutor.name)
-                      )}
-                    </div>
-                  )}
-                  
                   <div className="message-content">
                     <div className="message-text">
                       {message.content}
@@ -291,21 +283,23 @@ const ChatPage = ({ user }) => {
 
       {/* Поле ввода */}
       <div className="message-input-container">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Напишите сообщение..."
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-          disabled={isSending}
-        />
-        <button 
-          onClick={handleSendMessage} 
-          disabled={!newMessage.trim() || isSending}
-          className="send-button"
-        >
-          <FiSend size={20} />
-        </button>
+        <div className="input-wrapper">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Напишите сообщение..."
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            disabled={isSending}
+          />
+          <button 
+            onClick={handleSendMessage} 
+            disabled={!newMessage.trim() || isSending}
+            className="send-button"
+          >
+            <FiSend size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );

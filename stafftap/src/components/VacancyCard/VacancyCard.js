@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   FiHeart,
   FiMapPin,
@@ -8,13 +8,15 @@ import {
   FiUser,
   FiStar,
 } from "react-icons/fi";
+import './VacancyCard.css';
 
 const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
   const navigate = useNavigate();
-
+  
   const handleCardClick = () => {
     navigate(`/vacancy/${vacancy.id}`);
   };
+  
   const {
     id,
     title,
@@ -27,7 +29,7 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
     address,
     salary,
     experience,
-    requirements = [], // Добавлено значение по умолчанию
+    requirements = [],
     workersNeeded,
     distance,
     isFavorite,
@@ -39,21 +41,30 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
     return new Date(dateString).toLocaleDateString("ru-RU", options);
   };
 
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    onToggleFavorite(id);
+  };
+
   return (
-    <div  onClick={handleCardClick} className="vacancy-card">
+    <div onClick={handleCardClick} className="vacancy-card">
       <div className="card-header">
         <div className="company-info">
-          <div className="company-logo">{company.charAt(0)}</div>
-          <div>
+          <div className="company-logo">{company?.charAt(0) || 'C'}</div>
+          <div className="header-content">
             <h3>{title}</h3>
             <div className="company-name">{company}</div>
           </div>
         </div>
         <button
           className={`favorite-btn ${isFavorite ? "active" : ""}`}
-          onClick={() => onToggleFavorite(id)}
+          onClick={handleFavoriteClick}
+          aria-label={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
         >
-          <FiHeart />
+          <FiHeart className="favorite-icon" />
+          {isFavorite && (
+            <FiHeart className="filled-heart" />
+          )}
         </button>
       </div>
 
@@ -83,14 +94,16 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
           <div className="detail-item">
             <FiUser className="icon" />
             <span>
-              {profession} • {experience}
+              {profession} {experience && `• ${experience}`}
             </span>
           </div>
 
-          <div className="detail-item">
-            <FiStar className="icon" />
-            <span>Рейтинг компании: {companyRating}</span>
-          </div>
+          {companyRating && (
+            <div className="detail-item">
+              <FiStar className="icon" />
+              <span>Рейтинг: {companyRating}</span>
+            </div>
+          )}
         </div>
 
         {requirements.length > 0 && (

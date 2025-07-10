@@ -1,38 +1,38 @@
-// FeedPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-import './FeedPage.css';
+import { FiSearch, FiPlus, FiList } from 'react-icons/fi';
 import FilterPanel from '../../components/FilterPanel/FilterPanel';
 import VacancyCard from '../../components/VacancyCard/VacancyCard';
+import './FeedPage.css';
 
 const FeedPage = ({ user }) => {
   const [vacancies, setVacancies] = useState([]);
   const [filters, setFilters] = useState({
     profession: '',
     date: '',
-    minRate: '',
+    minRate: ''
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   
   const role = user?.role || 'worker';
 
-  const fetchVacancies = async (filters = {}) => {
+  const fetchVacancies = async (filters = {}, query = '') => {
     try {
       const token = localStorage.getItem('token');
       const params = {
         skill: filters.profession || undefined,
         date: filters.date || undefined,
         min_rate: filters.minRate || undefined,
+        search: query || undefined
       };
 
       const response = await axios.get('http://localhost:8000/api/jobs', {
         params,
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       
       return response.data.map(job => ({
@@ -48,9 +48,13 @@ const FeedPage = ({ user }) => {
         salary: job.rate,
         workersNeeded: job.workers_needed,
         remainingSlots: job.remaining_slots,
-        postedDate: new Date(job.created_at).toLocaleDateString(),
+        postedDate: new Date(job.created_at).toLocaleDateString('ru-RU', {
+          day: 'numeric',
+          month: 'long'
+        }),
         isFavorite: job.is_favorite || false,
-        companyRating: 4.5 
+        employerRating: job.employer_rating || 4.5,
+        employerVerified: job.employer_verified || false
       }));
     } catch (error) {
       console.error('Ошибка при загрузке вакансий:', error);
@@ -58,52 +62,56 @@ const FeedPage = ({ user }) => {
     }
   };
 
-  // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      const vacanciesData = await fetchVacancies(filters);
+      const vacanciesData = await fetchVacancies(filters, searchQuery);
       setVacancies(vacanciesData);
       setIsLoading(false);
     };
 
     loadData();
-  }, [filters]);
+  }, [filters, searchQuery]);
 
-  // Обработка изменения фильтров
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
   };
 
-  // Обработка добавления в избранное
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
   const handleToggleFavorite = async (id) => {
     try {
       const token = localStorage.getItem('token');
       const vacancy = vacancies.find(v => v.id === id);
       const newFavoriteStatus = !vacancy.isFavorite;
       
-      // Отправляем запрос на сервер
-      await axios.post(
-        `http://localhost:8000/api/jobs/${id}/favorite`,
-        { is_favorite: newFavoriteStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      // Обновляем локальное состояние
+      // Оптимистичное обновление UI
       setVacancies(prev => prev.map(v => 
         v.id === id ? { ...v, isFavorite: newFavoriteStatus } : v
       ));
       
+      // Отправка запроса на сервер
+      await axios.post(
+        `http://localhost:8000/api/jobs/${id}/favorite`,
+        { is_favorite: newFavoriteStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
     } catch (error) {
       console.error('Ошибка при обновлении избранного:', error);
+      
+      // Откат изменений в случае ошибки
+      const vacancy = vacancies.find(v => v.id === id);
+      if (vacancy) {
+        setVacancies(prev => prev.map(v => 
+          v.id === id ? { ...v, isFavorite: vacancy.isFavorite } : v
+        ));
+      }
     }
   };
 
-  // Переход на страницу создания вакансии/заявок
   const handleFloatingButtonClick = () => {
     if (role === 'employer') {
       navigate('/create-vacancy');
@@ -112,22 +120,90 @@ const FeedPage = ({ user }) => {
     }
   };
 
+  const formatDate = (dateString) => {
+    const options = { day: 'numeric', month: 'long' };
+    return new Date(dateString).toLocaleDateString('ru-RU', options);
+  };
+
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
   return (
     <div className="feed-page">
       <div className="feed-header">
-        <h1>{role === 'worker' ? 'Доступные вакансии' : 'Кандидаты'}</h1>
-        {user && (
-          <div className="balance-info">
-            <span>Ваш баланс: {user.balance ? user.balance.toLocaleString('ru-RU') : 0} ₽</span>
+        <div className="header-top">
+          <h1>{role === 'worker' ? 'Доступные вакансии' : 'Кандидаты'}</h1>
+          {user && (
+            <div className="balance-info">
+              <span>Баланс: {user.balance?.toLocaleString('ru-RU') || 0} ₽</span>
+            </div>
+          )}
+        </div>
+
+        <div className="search-container">
+          <div className="search-bar">
+            <FiSearch className="search-icon" />
+            <input
+              type="text"
+              placeholder="Поиск вакансий..."
+              value={searchQuery}
+              onChange={handleSearch}
+              className="search-input"
+            />
+            <button className="filter-toggle" onClick={toggleFilters}>
+              Фильтры
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`filter-wrapper ${showFilters ? 'visible' : ''}`}>
+        <FilterPanel 
+          filters={filters} 
+          onFilterChange={handleFilterChange} 
+          role={role}
+          onClose={() => setShowFilters(false)}
+        />
+      </div>
+
+      <div className="filters-info">
+        {(filters.profession || filters.date || filters.minRate) && (
+          <div className="active-filters">
+            <span>Примененные фильтры:</span>
+            {filters.profession && (
+              <div className="filter-tag">
+                Профессия: {filters.profession}
+                <button onClick={() => handleFilterChange({...filters, profession: ''})}>
+                  &times;
+                </button>
+              </div>
+            )}
+            {filters.date && (
+              <div className="filter-tag">
+                Дата: {formatDate(filters.date)}
+                <button onClick={() => handleFilterChange({...filters, date: ''})}>
+                  &times;
+                </button>
+              </div>
+            )}
+            {filters.minRate && (
+              <div className="filter-tag">
+                Мин. оплата: {filters.minRate} ₽
+                <button onClick={() => handleFilterChange({...filters, minRate: ''})}>
+                  &times;
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {!isLoading && vacancies.length > 0 && (
+          <div className="vacancies-count">
+            Найдено вакансий: {vacancies.length}
           </div>
         )}
       </div>
-
-      <FilterPanel 
-        filters={filters} 
-        onFilterChange={handleFilterChange} 
-        role={role}
-      />
 
       {isLoading ? (
         <div className="loading-container">
@@ -147,18 +223,40 @@ const FeedPage = ({ user }) => {
             ))
           ) : (
             <div className="no-results">
+              <div className="no-results-icon">
+                <FiSearch size={48} />
+              </div>
               <h3>Ничего не найдено</h3>
-              <p>Попробуйте изменить параметры фильтра</p>
+              <p>Попробуйте изменить параметры поиска или фильтры</p>
+              <button 
+                className="reset-filters"
+                onClick={() => {
+                  setFilters({ profession: '', date: '', minRate: '' });
+                  setSearchQuery('');
+                }}
+              >
+                Сбросить фильтры
+              </button>
             </div>
           )}
         </div>
       )}
 
       <div 
-        className="floating-button"
+        className={`floating-button ${role}`}
         onClick={handleFloatingButtonClick}
       >
-        {role === 'employer' ? 'Создать вакансию' : 'Мои заявки'}
+        {role === 'employer' ? (
+          <>
+            <FiPlus className="button-icon" />
+            <span className="button-text">Создать</span>
+          </>
+        ) : (
+          <>
+            <FiList className="button-icon" />
+            <span className="button-text">Заявки</span>
+          </>
+        )}
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ import CreateVacancyPage from "./page/CreateVacancyPage/CreateVacancyPage";
 import VacancyDetailPage from "./page/VacancyDetailPage/VacancyDetailPage";
 import ChatsPage from "./page/ChatsPage/ChatsPage";
 import ChatPage from "./page/ChatPage/ChatPage";
-
+import FavoritesPage from './page/FavoritesPage/FavoritesPage';
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -159,6 +159,7 @@ function App() {
             }
           />
           <Route path="/create-vacancy" element={<CreateVacancyPage />} />
+          <Route path="/favorites" element={<FavoritesPage user={user} />} />
          <Route
   path="/feed"
   element={user ? <FeedPage user={user} /> : <Navigate to="/login" />}

@@ -7,9 +7,11 @@ import {
   FiDollarSign, 
   FiUser, 
   FiStar, 
-  FiCheck, 
+  FiCheck,
+  FiBookmark,
+  FiMessageSquare,
   FiBriefcase,
-  FiMessageSquare
+  FiArrowLeft
 } from 'react-icons/fi';
 import './VacancyDetailPage.css';
 
@@ -24,21 +26,21 @@ const VacancyDetailPage = ({ user }) => {
   const [hasApplied, setHasApplied] = useState(false);
   
   const role = user?.role || 'worker';
-    const startChat = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await axios.post(
-      `http://localhost:8000/api/chats/start/${bookingId}`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    
-    // Переходим на страницу чата с полученным ID чата
-    navigate(`/chats/${response.data.id}`);
-  } catch (error) {
-    console.error('Ошибка при создании чата:', error);
-  }
-};
+  
+  const startChat = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `http://localhost:8000/api/chats/start/${bookingId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      navigate(`/chats/${response.data.id}`);
+    } catch (error) {
+      console.error('Ошибка при создании чата:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchVacancy = async () => {
       try {
@@ -71,14 +73,12 @@ const VacancyDetailPage = ({ user }) => {
         
         setIsFavorite(data.is_favorite || false);
         
-        // Проверяем, откликался ли пользователь
         if (user && user.role === 'worker') {
           const bookingsResponse = await axios.get(
             `http://localhost:8000/api/bookings?job_id=${id}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           
-          // Ищем свое бронирование
           const myBooking = bookingsResponse.data.find(b => b.worker_id === user.id);
           if (myBooking) {
             setBookingId(myBooking.id);
@@ -104,7 +104,6 @@ const VacancyDetailPage = ({ user }) => {
         { is_favorite: !isFavorite },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
       setIsFavorite(!isFavorite);
     } catch (error) {
       console.error('Ошибка при обновлении избранного:', error);
@@ -116,9 +115,10 @@ const VacancyDetailPage = ({ user }) => {
       const token = localStorage.getItem('token');
       const response = await axios.post(
         'http://localhost:8000/api/bookings/',
-        { job_id: parseInt(id),
-            worker_id: user.id
-         },
+        { 
+          job_id: parseInt(id),
+          worker_id: user.id
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -159,32 +159,52 @@ const VacancyDetailPage = ({ user }) => {
     <div className="vacancy-detail-page">
       <div className="vacancy-header">
         <button className="back-button" onClick={() => navigate(-1)}>
-          &larr; Назад
+          <FiArrowLeft className="back-icon" />
+          Назад
         </button>
         <h1>{vacancy.title}</h1>
+        <div className="header-actions">
+          <button 
+            className={`favorite-button ${isFavorite ? 'active' : ''}`}
+            onClick={handleToggleFavorite}
+            aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+          >
+            {isFavorite ? (
+              <FiBookmark className="favorite-icon active" />
+            ) : (
+              <FiBookmark className="favorite-icon" />
+            )}
+          </button>
+        </div>
       </div>
 
-      <div className="vacancy-info">
+      <div className="vacancy-info-card">
         <div className="vacancy-meta">
-          <div className="meta-item">
-            <FiBriefcase className="icon" />
-            <span>{vacancy.profession}</span>
+          <div className="meta-row">
+            <div className="meta-item">
+              <FiBriefcase className="icon" />
+              <span>{vacancy.profession}</span>
+            </div>
+            <div className="meta-item salary">
+              <FiDollarSign className="icon" />
+              <span>{vacancy.salary.toLocaleString()} ₽</span>
+            </div>
           </div>
-          <div className="meta-item">
-            <FiClock className="icon" />
-            <span>{formatDate(vacancy.date)}, {vacancy.startTime} - {vacancy.endTime}</span>
+          
+          <div className="meta-row">
+            <div className="meta-item">
+              <FiClock className="icon" />
+              <span>{formatDate(vacancy.date)}, {vacancy.startTime} - {vacancy.endTime}</span>
+            </div>
+            <div className="meta-item">
+              <FiUser className="icon" />
+              <span>{vacancy.remainingSlots}/{vacancy.workersNeeded} мест</span>
+            </div>
           </div>
-          <div className="meta-item">
+          
+          <div className="meta-item address">
             <FiMapPin className="icon" />
             <span>{vacancy.address}</span>
-          </div>
-          <div className="meta-item">
-            <FiDollarSign className="icon" />
-            <span>{vacancy.salary.toLocaleString()} ₽</span>
-          </div>
-          <div className="meta-item">
-            <FiUser className="icon" />
-            <span>Нужно работников: {vacancy.remainingSlots}/{vacancy.workersNeeded}</span>
           </div>
         </div>
 
@@ -192,40 +212,48 @@ const VacancyDetailPage = ({ user }) => {
           <h3>Описание вакансии</h3>
           <p>{vacancy.description}</p>
         </div>
+      </div>
 
+      <div className="employer-card">
+        <h3>Работодатель</h3>
         <div className="employer-info">
-          <h3>Работодатель</h3>
-          <div className="employer-card">
-            <div className="employer-header">
-              <h4>{vacancy.company}</h4>
-              {vacancy.employerVerified && (
-                <span className="verified-badge">
-                  <FiCheck /> Проверен
-                </span>
-              )}
-            </div>
-            <div className="employer-details">
-              <div className="detail-item">
+          <div className="employer-header">
+            <h4>{vacancy.company}</h4>
+            {vacancy.employerVerified && (
+              <span className="verified-badge">
+                <FiCheck /> Проверен
+              </span>
+            )}
+          </div>
+          <div className="employer-stats">
+            <div className="stat-item">
+              <div className="stat-icon">
                 <FiStar className="icon" />
-                <span>Рейтинг: {vacancy.employerRating.toFixed(1)}</span>
               </div>
-              <div className="detail-item">
-                <FiBriefcase className="icon" />
-                <span>Завершено работ: {vacancy.completedJobs}</span>
+              <div>
+                <div className="stat-label">Рейтинг</div>
+                <div className="stat-value">{vacancy.employerRating.toFixed(1)}</div>
               </div>
             </div>
+            
+            <div className="stat-item">
+              <div className="stat-icon">
+                <FiBriefcase className="icon" />
+              </div>
+              <div>
+                <div className="stat-label">Завершено</div>
+                <div className="stat-value">{vacancy.completedJobs} работ</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="employer-contact">
+            <span>{vacancy.employerName}</span>
           </div>
         </div>
       </div>
 
       <div className="vacancy-actions">
-        <button 
-          className={`favorite-button ${isFavorite ? 'active' : ''}`}
-          onClick={handleToggleFavorite}
-        >
-          {isFavorite ? 'В избранном' : 'В избранное'}
-        </button>
-        
         {role === 'worker' && !hasApplied && (
           <button 
             className="apply-button"
@@ -241,7 +269,8 @@ const VacancyDetailPage = ({ user }) => {
             className="message-button"
             onClick={startChat}
           >
-            <FiMessageSquare /> Написать работодателю
+            <FiMessageSquare className="message-icon" /> 
+            <span>Написать работодателю</span>
           </button>
         )}
         
