@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, me, users, withdrawals,jobs,skills,bookings,chats
+from app.routes import auth, me, users, withdrawals,jobs,skills,bookings,chats,notifications
 from app.database import Base, engine
 app = FastAPI()
 from fastapi import FastAPI, Depends
@@ -27,3 +27,5 @@ app.include_router(jobs.router)
 app.include_router(skills.router)
 app.include_router(bookings.router)
 app.include_router(chats.router)
+app.include_router(notifications.router)
+

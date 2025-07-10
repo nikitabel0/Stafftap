@@ -3,10 +3,9 @@ from datetime import datetime
 
 class BookingBase(BaseModel):
     job_id: int
-    worker_id: int
 
 class BookingCreate(BookingBase):
-    pass
+    job_id: int
 
 class BookingOut(BookingBase):
     id: int

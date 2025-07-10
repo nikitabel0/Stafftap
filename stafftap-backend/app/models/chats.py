@@ -11,6 +11,7 @@ class Chat(Base):
     employer_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     worker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+    booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="CASCADE"), unique=True)
     
     # Relationships
     booking = relationship("Booking", back_populates="chat")

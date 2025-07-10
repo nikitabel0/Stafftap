@@ -11,7 +11,8 @@ import {
   FiBookmark,
   FiMessageSquare,
   FiBriefcase,
-  FiArrowLeft
+  FiArrowLeft,
+  FiXCircle
 } from 'react-icons/fi';
 import './VacancyDetailPage.css';
 
@@ -24,6 +25,8 @@ const VacancyDetailPage = ({ user }) => {
   const [applicationStatus, setApplicationStatus] = useState(null);
   const [bookingId, setBookingId] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
+  const [error, setError] = useState('');
+  const [isApplying, setIsApplying] = useState(false);
   
   const role = user?.role || 'worker';
   
@@ -38,6 +41,7 @@ const VacancyDetailPage = ({ user }) => {
       navigate(`/chats/${response.data.id}`);
     } catch (error) {
       console.error('Ошибка при создании чата:', error);
+      setError('Не удалось начать чат. Попробуйте позже.');
     }
   };
 
@@ -83,6 +87,7 @@ const VacancyDetailPage = ({ user }) => {
           if (myBooking) {
             setBookingId(myBooking.id);
             setHasApplied(true);
+            setApplicationStatus(myBooking.status);
           }
         }
         
@@ -90,6 +95,7 @@ const VacancyDetailPage = ({ user }) => {
       } catch (error) {
         console.error('Ошибка при загрузке вакансии:', error);
         setIsLoading(false);
+        setError('Не удалось загрузить вакансию');
       }
     };
 
@@ -107,27 +113,52 @@ const VacancyDetailPage = ({ user }) => {
       setIsFavorite(!isFavorite);
     } catch (error) {
       console.error('Ошибка при обновлении избранного:', error);
+      setError('Не удалось обновить избранное');
     }
   };
 
   const handleApply = async () => {
+    setIsApplying(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
         'http://localhost:8000/api/bookings/',
         { 
-          job_id: parseInt(id),
-          worker_id: user.id
+          job_id: parseInt(id)
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
       setBookingId(response.data.id);
       setHasApplied(true);
-      setApplicationStatus('applied');
+      setApplicationStatus('pending');
     } catch (error) {
       console.error('Ошибка при отправке заявки:', error);
-      setApplicationStatus('error');
+      
+      let errorMessage = 'Не удалось отправить заявку';
+      
+      if (error.response) {
+        if (error.response.data && error.response.data.detail) {
+          if (Array.isArray(error.response.data.detail)) {
+            errorMessage = error.response.data.detail.map(item => 
+              item.msg || item.message || JSON.stringify(item)
+            ).join(', ');
+          } else if (typeof error.response.data.detail === 'string') {
+            errorMessage = error.response.data.detail;
+          } else if (error.response.data.detail && error.response.data.detail.msg) {
+            errorMessage = error.response.data.detail.msg;
+          }
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -178,6 +209,13 @@ const VacancyDetailPage = ({ user }) => {
         </div>
       </div>
 
+      {error && (
+        <div className="error-alert">
+          <FiXCircle className="error-icon" />
+          <span>{error}</span>
+        </div>
+      )}
+
       <div className="vacancy-info-card">
         <div className="vacancy-meta">
           <div className="meta-row">
@@ -187,7 +225,7 @@ const VacancyDetailPage = ({ user }) => {
             </div>
             <div className="meta-item salary">
               <FiDollarSign className="icon" />
-              <span>{vacancy.salary.toLocaleString()} ₽</span>
+              <span>{vacancy.salary.toLocaleString('ru-RU')} ₽</span>
             </div>
           </div>
           
@@ -232,7 +270,9 @@ const VacancyDetailPage = ({ user }) => {
               </div>
               <div>
                 <div className="stat-label">Рейтинг</div>
-                <div className="stat-value">{vacancy.employerRating.toFixed(1)}</div>
+                <div className="stat-value">
+                  {vacancy.employerRating ? vacancy.employerRating.toFixed(1) : '0.0'}
+                </div>
               </div>
             </div>
             
@@ -258,20 +298,36 @@ const VacancyDetailPage = ({ user }) => {
           <button 
             className="apply-button"
             onClick={handleApply}
-            disabled={applicationStatus === 'applied'}
+            disabled={isApplying}
           >
-            {applicationStatus === 'applied' ? 'Заявка отправлена' : 'Откликнуться'}
+            {isApplying ? 'Отправка...' : 'Откликнуться'}
           </button>
         )}
         
         {role === 'worker' && hasApplied && (
-          <button 
-            className="message-button"
-            onClick={startChat}
-          >
-            <FiMessageSquare className="message-icon" /> 
-            <span>Написать работодателю</span>
-          </button>
+          <>
+            {applicationStatus === 'confirmed' && (
+              <button 
+                className="message-button"
+                onClick={startChat}
+              >
+                <FiMessageSquare className="message-icon" /> 
+                <span>Написать работодателю</span>
+              </button>
+            )}
+            
+            {applicationStatus === 'pending' && (
+              <div className="application-pending">
+                <p>Ваша заявка на рассмотрении</p>
+              </div>
+            )}
+            
+            {applicationStatus === 'rejected' && (
+              <div className="application-rejected">
+                <p>Ваша заявка отклонена</p>
+              </div>
+            )}
+          </>
         )}
         
         {role === 'employer' && (

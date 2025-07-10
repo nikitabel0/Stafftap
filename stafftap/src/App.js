@@ -17,6 +17,7 @@ import VacancyDetailPage from "./page/VacancyDetailPage/VacancyDetailPage";
 import ChatsPage from "./page/ChatsPage/ChatsPage";
 import ChatPage from "./page/ChatPage/ChatPage";
 import FavoritesPage from './page/FavoritesPage/FavoritesPage';
+import NotificationsPage from "./page/NotificationsPage/NotificationsPage";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -134,6 +135,7 @@ function App() {
               )
             }
           />
+          <Route path="/notifications" element={<NotificationsPage user={user} />} />
           <Route
             path="/register"
             element={
