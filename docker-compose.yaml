@@ -7,7 +7,8 @@ services:
     env_file:
       - ./postgres/.env
     volumes:
-      - ./postgres:/docker-entrypoint-initdb.d
+      - ./postgres/init:/docker-entrypoint-initdb.d   
+      - ./postgres/data:/var/lib/postgresql/data 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -32,13 +33,15 @@ services:
       context: ./stafftap
       dockerfile: Dockerfile
     container_name: stafftap-frontend
-    env_file:
-      - ./stafftap/.env
+    # env_file:
+    #   - ./stafftap/.env
     depends_on:
       - backend
     volumes:
       - ./stafftap/build:/usr/share/nginx/html:ro
-
+    ports:
+      - "3000:3000"
+      
   nginx:
     image: nginx:stable-alpine
     ports:
