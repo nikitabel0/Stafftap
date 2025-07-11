@@ -1,8 +1,24 @@
-import React from 'react';
-import { FiClock, FiMapPin, FiUsers, FiCalendar, FiDollarSign, FiUser } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { 
+  FiClock, 
+  FiMapPin, 
+  FiUsers, 
+  FiCalendar, 
+  FiDollarSign,
+  FiChevronDown,
+  FiChevronUp,
+  FiPhone
+} from 'react-icons/fi';
+import axios from 'axios';
 
-const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
-  // Защита от отсутствия vacancy
+const VacancyCards = ({ vacancy, role }) => {
+  // Все хуки должны вызываться безусловно в начале компонента
+  const [showWorkers, setShowWorkers] = useState(false);
+  const [workers, setWorkers] = useState([]);
+  const [loadingWorkers, setLoadingWorkers] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Проверка vacancy после хуков
   if (!vacancy) {
     return (
       <div className="vacancy-card error-card">
@@ -17,17 +33,54 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
   // Безопасное извлечение значений с значениями по умолчанию
   const title = vacancy.title || 'Без названия';
   const description = vacancy.description || 'Описание отсутствует';
-  const rate = vacancy.salary ?? 0;
-  const company = vacancy.company || 'Компания не указана';
+  const rate = vacancy.rate ?? 0;
+  const company = vacancy.company_name || 'Компания не указана';
   const address = vacancy.address || 'Адрес не указан';
-  const workDate = vacancy.date ? new Date(vacancy.date) : null;
-  const startTime = vacancy.startTime || '--:--';
-  const endTime = vacancy.endTime || '--:--';
-  const workersNeeded = vacancy.workersNeeded ?? 0;
-  const remainingSlots = vacancy.remainingSlots ?? 0;
-  const confirmedWorkers = vacancy.confirmedWorkers || [];
+  const workDate = vacancy.work_date ? new Date(vacancy.work_date) : null;
+  const startTime = vacancy.start_time || '--:--';
+  const endTime = vacancy.end_time || '--:--';
+  const workersNeeded = vacancy.workers_needed ?? 0;
+  const remainingSlots = vacancy.remaining_slots ?? 0;
+  const jobId = vacancy.id;
 
-  // Форматирование чисел с защитой
+  // Функция для загрузки подтвержденных сотрудников
+  const loadConfirmedWorkers = async () => {
+    setLoadingWorkers(true);
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('Токен авторизации отсутствует');
+      }
+
+      const response = await axios.get(
+        `http://localhost:8000/api/jobs/${jobId}/confirmed_workers`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      setWorkers(response.data.map(item => item.worker));
+    } catch (err) {
+      console.error('Ошибка загрузки сотрудников:', err);
+      setError('Не удалось загрузить список сотрудников');
+    } finally {
+      setLoadingWorkers(false);
+    }
+  };
+
+  // Обработчик переключения отображения сотрудников
+  const toggleWorkersDisplay = () => {
+    if (!showWorkers && workers.length === 0) {
+      loadConfirmedWorkers();
+    }
+    setShowWorkers(!showWorkers);
+  };
+
+  // Форматирование чисел
   const formatNumber = (num) => {
     const number = Number(num);
     return isNaN(number) ? '0' : number.toLocaleString('ru-RU');
@@ -43,36 +96,11 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
     });
   };
 
-  // Обработчик нажатия на карточку
-  const handleCardClick = () => {
-    window.location.href = `/vacancy/${vacancy.id}`;
-  };
-
-  // Обработчик избранного
-  const handleFavoriteClick = (e) => {
-    e.stopPropagation();
-    if (onToggleFavorite) {
-      onToggleFavorite(vacancy.id);
-    }
-  };
-
   return (
-    <div className="vacancy-card" onClick={handleCardClick}>
+    <div className="vacancy-card">
       <div className="vacancy-header">
-        <div>
-          <h3 className="vacancy-title">{title}</h3>
-          <div className="vacancy-company">
-            {company}
-            {vacancy.employerVerified && (
-              <span className="verified-badge">✓ Проверено</span>
-            )}
-          </div>
-        </div>
-        <div className="vacancy-rating">
-          <span className="rating-value">
-            ★ {vacancy.employerRating?.toFixed(1) || '4.5'}
-          </span>
-        </div>
+        <h3 className="vacancy-title">{title}</h3>
+        <div className="vacancy-company">{company}</div>
       </div>
       
       <div className="vacancy-body">
@@ -114,41 +142,82 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
             </span>
           </div>
         </div>
-        
-        {/* Блок с подтвержденными сотрудниками */}
-        {confirmedWorkers.length > 0 && (
-          <div className="confirmed-workers">
-            <h4>Подтвержденные сотрудники:</h4>
-            <div className="workers-list">
-              {confirmedWorkers.map(worker => (
-                <div key={worker.id} className="worker-card">
-                  <FiUser className="worker-icon" />
-                  <div className="worker-info">
-                    <span className="worker-name">{worker.name}</span>
-                    <span className="worker-phone">{worker.phone}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
       
-      <div className="vacancy-footer">
-        <div className="posted-date">
-          Опубликовано: {vacancy.postedDate}
-        </div>
-        <div className="vacancy-actions">
+      {/* Блок сотрудников (только для работодателя) */}
+      {role === 'employer' && (
+        <div className="workers-section">
           <button 
-            className={`favorite-button ${vacancy.isFavorite ? 'active' : ''}`}
-            onClick={handleFavoriteClick}
+            className="toggle-workers-btn"
+            onClick={toggleWorkersDisplay}
           >
-            {vacancy.isFavorite ? '★ В избранном' : '☆ В избранное'}
+            {showWorkers ? (
+              <>
+                <FiChevronUp /> Скрыть сотрудников
+              </>
+            ) : (
+              <>
+                <FiChevronDown /> Показать сотрудников
+              </>
+            )}
           </button>
+          
+          {showWorkers && (
+            <div className="workers-container">
+              <h4>Подтвержденные сотрудники:</h4>
+              
+              {loadingWorkers ? (
+                <div className="loading-workers">
+                  <p>Загрузка данных о сотрудниках...</p>
+                </div>
+              ) : error ? (
+                <div className="workers-error">
+                  <p>{error}</p>
+                </div>
+              ) : workers.length > 0 ? (
+                <div className="workers-list">
+                  {workers.map(worker => (
+                    <div key={worker.id} className="worker-item">
+                      <div className="worker-avatar">
+                        {worker.avatar_url ? (
+                          <img 
+                            src={worker.avatar_url} 
+                            alt={`${worker.first_name} ${worker.last_name}`} 
+                            className="worker-avatar-img"
+                          />
+                        ) : (
+                          <div className="avatar-initials">
+                            {worker.first_name?.[0]}{worker.last_name?.[0]}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="worker-info">
+                        <div className="worker-name">
+                          {worker.first_name} {worker.last_name}
+                        </div>
+                        
+                        {worker.phone && (
+                          <div className="worker-phone">
+                            <FiPhone className="phone-icon" />
+                            <span>{worker.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-workers">
+                  <p>На эту вакансию еще не приняты сотрудники</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
-export default VacancyCard;
+export default VacancyCards;
