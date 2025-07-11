@@ -12,7 +12,7 @@ import {
   FiSettings,
   FiLogOut
 } from "react-icons/fi";
-import './Header.css'; 
+import './Header.css';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,6 +20,7 @@ const Header = () => {
   const [activeTab, setActiveTab] = useState("feed");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -53,25 +54,33 @@ const Header = () => {
 
   // Загрузка количества уведомлений
   useEffect(() => {
-    const fetchNotificationCount = async () => {
+    const fetchCounts = async () => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          const response = await axios.get(
+          // Уведомления
+          const notificationsResponse = await axios.get(
             'http://localhost:8000/api/notifications/unread-count',
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          setNotificationCount(response.data.count);
+          setNotificationCount(notificationsResponse.data.count);
+          
+          // Непрочитанные сообщения
+          const chatsResponse = await axios.get(
+            'http://localhost:8000/api/chats/unread-total',
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setChatUnreadCount(chatsResponse.data.total_unread);
         }
       } catch (error) {
-        console.error('Ошибка при загрузке уведомлений:', error);
+        console.error('Ошибка при загрузке данных:', error);
       }
     };
 
-    fetchNotificationCount();
+    fetchCounts();
     
-    // Обновляем счетчик при смене страниц
-    const interval = setInterval(fetchNotificationCount, 60000); // Каждую минуту
+    // Обновляем счетчики при смене страниц
+    const interval = setInterval(fetchCounts, 60000); // Каждую минуту
     return () => clearInterval(interval);
   }, [location.pathname]);
 
@@ -130,6 +139,7 @@ const Header = () => {
               label="Чаты" 
               active={activeTab === "chats"} 
               onClick={() => navigateTo("/chats")}
+              notification={chatUnreadCount}
             />
             
             <NavItem 
@@ -189,6 +199,7 @@ const Header = () => {
             active={activeTab === "chats"} 
             onClick={() => navigateTo("/chats")}
             mobile
+            notification={chatUnreadCount}
           />
           
           <NavItem 
@@ -233,6 +244,13 @@ const Header = () => {
             />
             
             <MenuItem 
+              icon={<FiMessageSquare />}
+              label="Чаты" 
+              notification={chatUnreadCount}
+              onClick={() => navigateTo("/chats")}
+            />
+            
+            <MenuItem 
               icon={<FiSettings />}
               label="Настройки" 
               onClick={() => navigateTo("/settings")}
@@ -259,7 +277,7 @@ const NavItem = ({ icon, label, active, notification, onClick, mobile }) => (
       {icon}
       {notification > 0 && (
         <div className="notification-badge">
-          {notification}
+          {notification > 9 ? '9+' : notification}
         </div>
       )}
     </div>

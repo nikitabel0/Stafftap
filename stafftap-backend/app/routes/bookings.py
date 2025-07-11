@@ -3,12 +3,13 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 from datetime import datetime
 from typing import List, Optional
+from app.schemas.job import JobOut
 
 from app.database import get_db
 from app.crud.booking import create_booking, get_booking, get_user_bookings, update_booking, delete_booking
-from app.schemas.booking import BookingCreate, BookingOut, BookingUpdate
+from app.schemas.booking import BookingCreate, BookingOut, BookingUpdate,BookingWithJobOut
 from app.dependencies import get_current_user
-from app.models import User, Booking, Job, Notification, Review
+from app.models import User, Booking, Job, Notification, Review,Chat
 from app.schemas.notification import NotificationCreate
 import enum 
 
@@ -142,6 +143,7 @@ def get_booking_by_id(
     
     return booking
 
+
 @router.get("/", response_model=List[BookingOut])
 def get_current_user_bookings(
     job_id: Optional[int] = Query(None),
@@ -243,109 +245,112 @@ def update_booking_status(
         joinedload(Booking.job),
         joinedload(Booking.worker)
     ).filter(Booking.id == booking_id).first()
-
 @router.post("/{booking_id}/confirm", response_model=BookingOut)
 def confirm_booking(
     booking_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    booking = db.query(Booking).get(booking_id)
-    if not booking:
-        raise HTTPException(
-            status_code=404, 
-            detail="Бронирование не найдено"
+    try:
+        booking = db.query(Booking).options(joinedload(Booking.job)).get(booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        if current_user.role != "employer" or current_user.id != booking.job.employer_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        if booking.status != BookingStatus.PENDING:
+            raise HTTPException(status_code=400, detail="Cannot confirm booking in current status")
+        
+        # Проверка доступности мест
+        confirmed_count = db.query(func.count(Booking.id)).filter(
+            Booking.job_id == booking.job_id,
+            Booking.status == BookingStatus.CONFIRMED
+        ).scalar()
+        
+        if confirmed_count >= booking.job.workers_needed:
+            raise HTTPException(status_code=400, detail="All positions are filled")
+        
+        # Начинаем транзакцию
+        booking.status = BookingStatus.CONFIRMED
+        booking.updated_at = datetime.utcnow()
+        
+        # Удаляем уведомление о заявке
+        db.query(Notification).filter(
+            Notification.related_id == booking_id,
+            Notification.type == "booking_request"
+        ).delete()
+        
+        # Создаем чат
+        existing_chat = db.query(Chat).filter(Chat.booking_id == booking_id).first()
+        if not existing_chat:
+            new_chat = Chat(
+                booking_id=booking_id,
+                employer_id=booking.job.employer_id,
+                worker_id=booking.worker_id
+            )
+            db.add(new_chat)
+        
+        # Создаем уведомление для работника
+        notification = Notification(
+            user_id=booking.worker_id,
+            type="booking_confirmed",
+            title="Booking confirmed",
+            message=f"Your booking for job '{booking.job.title}' has been confirmed",
+            related_id=booking_id
         )
-    
-    
-    if current_user.role != "employer" or current_user.id != booking.job.employer_id:
-        raise HTTPException(
-            status_code=403, 
-            detail="Недостаточно прав для подтверждения"
-        )
-    
-    
-    if booking.status != BookingStatus.PENDING:
-        raise HTTPException(
-            status_code=400, 
-            detail="Невозможно подтвердить бронирование в текущем статусе"
-        )
-    
-    
-    confirmed_count = db.query(func.count(Booking.id)).filter(
-        Booking.job_id == booking.job_id,
-        Booking.status == BookingStatus.CONFIRMED
-    ).scalar()
-    
-    if confirmed_count >= booking.job.workers_needed:
-        raise HTTPException(
-            status_code=400,
-            detail="Все места на вакансию уже заняты"
-        )
-    
-    
-    booking.status = BookingStatus.CONFIRMED
-    booking.updated_at = datetime.utcnow()
-    
-    
-    notification = Notification(
-        user_id=booking.worker_id,
-        type="booking_confirmed",
-        title="Ваша заявка подтверждена",
-        message=f"Ваша заявка на вакансию '{booking.job.title}' подтверждена",
-        related_id=booking_id
-    )
-    db.add(notification)
-    
-    db.commit()
-    
-    return booking
-
+        db.add(notification)
+        
+        db.commit()
+        return booking
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 @router.post("/{booking_id}/reject", response_model=BookingOut)
 def reject_booking(
     booking_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    booking = db.query(Booking).get(booking_id)
-    if not booking:
-        raise HTTPException(
-            status_code=404, 
-            detail="Бронирование не найдено"
+    try:
+        booking = db.query(Booking).options(joinedload(Booking.job)).get(booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        if current_user.role != "employer" or current_user.id != booking.job.employer_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        if booking.status != BookingStatus.PENDING:
+            raise HTTPException(status_code=400, detail="Cannot reject booking in current status")
+        
+        # Начинаем транзакцию
+        booking.status = BookingStatus.REJECTED
+        booking.updated_at = datetime.utcnow()
+        
+        # Удаляем уведомление о заявке
+        db.query(Notification).filter(
+            Notification.related_id == booking_id,
+            Notification.type == "booking_request"
+        ).delete()
+        
+        # Создаем уведомление для работника
+        notification = Notification(
+            user_id=booking.worker_id,
+            type="booking_rejected",
+            title="Booking rejected",
+            message=f"Your booking for job '{booking.job.title}' has been rejected",
+            related_id=booking_id
         )
+        db.add(notification)
+        
+        db.commit()
+        return booking
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     
-    
-    if current_user.role != "employer" or current_user.id != booking.job.employer_id:
-        raise HTTPException(
-            status_code=403, 
-            detail="Недостаточно прав для отклонения"
-        )
-    
-    
-    if booking.status != BookingStatus.PENDING:
-        raise HTTPException(
-            status_code=400, 
-            detail="Невозможно отклонить бронирование в текущем статусе"
-        )
-    
-    
-    booking.status = BookingStatus.REJECTED
-    booking.updated_at = datetime.utcnow()
-    
-    
-    notification = Notification(
-        user_id=booking.worker_id,
-        type="booking_rejected",
-        title="Ваша заявка отклонена",
-        message=f"Ваша заявка на вакансию '{booking.job.title}' отклонена",
-        related_id=booking_id
-    )
-    db.add(notification)
-    
-    db.commit()
-    
-    return booking
-
 @router.delete("/{booking_id}")
 def delete_booking_record(
     booking_id: int,
@@ -376,3 +381,88 @@ def delete_booking_record(
     delete_booking(db, booking_id)
     
     return {"message": "Бронирование удалено"}
+
+
+@router.get("/my-applications/", response_model=List[BookingWithJobOut])
+def get_my_applications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "worker":
+        raise HTTPException(
+            status_code=403, 
+            detail="Доступно только работникам"
+        )
+    
+    # Запрос для получения заявок работника с информацией о вакансии
+    bookings = db.query(Booking).options(
+        joinedload(Booking.job).joinedload(Job.required_skill),
+        joinedload(Booking.job).joinedload(Job.employer)
+    ).filter(
+        Booking.worker_id == current_user.id
+    ).order_by(Booking.created_at.desc()).all()
+    
+    if not bookings:
+        return []
+    
+    # Собираем данные о работодателях
+    employer_ids = list(set(booking.job.employer_id for booking in bookings))
+    
+    # Получаем рейтинги работодателей
+    ratings = db.query(
+        Review.target_id,
+        func.avg(Review.rating).label('avg_rating')
+    ).filter(Review.target_id.in_(employer_ids)).group_by(Review.target_id).all()
+    rating_map = {r.target_id: float(r.avg_rating) for r in ratings}
+    
+    # Получаем количество завершенных работ для работодателей
+    completed_jobs = db.query(
+        Job.employer_id,
+        func.count(Job.id).label('completed_count')
+    ).filter(
+        Job.employer_id.in_(employer_ids),
+        Job.status == 'completed'
+    ).group_by(Job.employer_id).all()
+    completed_map = {c.employer_id: c.completed_count for c in completed_jobs}
+    
+    result = []
+    for booking in bookings:
+        job = booking.job
+        employer = job.employer
+        
+        # Получаем количество подтвержденных бронирований для вакансии
+        confirmed_count = db.query(func.count(Booking.id)).filter(
+            Booking.job_id == job.id,
+            Booking.status == "confirmed"
+        ).scalar()
+        remaining_slots = job.workers_needed - confirmed_count
+        
+        job_out = JobOut(
+            id=job.id,
+            title=job.title,
+            description=job.description,
+            required_skill_id=job.required_skill_id,
+            required_skill_name=job.required_skill.name if job.required_skill else "Не указано",
+            work_date=job.work_date,
+            start_time=job.start_time,
+            end_time=job.end_time,
+            rate=float(job.rate),
+            address=job.address,
+            workers_needed=job.workers_needed,
+            remaining_slots=remaining_slots,
+            company_name=employer.company_name,
+            employer_id=job.employer_id,
+            created_at=job.created_at,
+            employer_rating=rating_map.get(job.employer_id, 0.0),
+            employer_verified=employer.is_verified,
+            completed_jobs=completed_map.get(job.employer_id, 0)
+        )
+        
+        result.append(BookingWithJobOut(
+            id=booking.id,
+            status=booking.status,
+            created_at=booking.created_at,
+            job=job_out
+        ))
+    
+    return result

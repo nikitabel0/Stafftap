@@ -28,4 +28,3 @@ app.include_router(skills.router)
 app.include_router(bookings.router)
 app.include_router(chats.router)
 app.include_router(notifications.router)
-

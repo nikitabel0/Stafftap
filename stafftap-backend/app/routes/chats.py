@@ -1,46 +1,71 @@
-import json
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Chat, Message, User, Booking
-from app.schemas.chat import ChatOut, MessageCreate, MessageOut,ChatDetailOut
+from app.schemas.chat import ChatOut, MessageCreate, MessageOut, ChatDetailOut
 from app.dependencies import get_current_user
 from typing import Dict, List
+import json
+from sqlalchemy import func 
+import logging
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
-
+logger = logging.getLogger(__name__)
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[int, WebSocket] = {}
+        self.active_connections: Dict[int, List[WebSocket]] = {}
 
     async def connect(self, user_id: int, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections[user_id] = websocket
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = []
+        self.active_connections[user_id].append(websocket)
 
-    def disconnect(self, user_id: int):
+    def disconnect(self, user_id: int, websocket: WebSocket):
         if user_id in self.active_connections:
-            del self.active_connections[user_id]
+            self.active_connections[user_id] = [
+                ws for ws in self.active_connections[user_id] if ws != websocket
+            ]
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
 
     async def send_personal_message(self, message: dict, user_id: int):
         if user_id in self.active_connections:
-            await self.active_connections[user_id].send_text(json.dumps(message))
+            for websocket in self.active_connections[user_id]:
+                try:
+                    await websocket.send_text(json.dumps(message))
+                except Exception as e:
+                    logger.error(f"Error sending message to user {user_id}: {e}")
+                    self.disconnect(user_id, websocket)
 
 manager = ConnectionManager()
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
-    await manager.connect(user_id, websocket)
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=1008)
+        return
+
     try:
+        
+        
+        await manager.connect(user_id, websocket)
+        logger.info(f"User {user_id} connected via WebSocket")
+        
         while True:
+            data = await websocket.receive_text()
             
-            await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(user_id)
+        logger.info(f"User {user_id} disconnected")
+        manager.disconnect(user_id, websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error for user {user_id}: {e}")
+        await websocket.close(code=1011)
 
 @router.get("/", response_model=List[ChatOut])
 def get_user_chats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    
     chats = db.query(Chat).filter(
         (Chat.employer_id == current_user.id) | 
         (Chat.worker_id == current_user.id)
@@ -48,17 +73,14 @@ def get_user_chats(db: Session = Depends(get_db), current_user: User = Depends(g
     
     result = []
     for chat in chats:
-        
         if chat.employer_id == current_user.id:
             interlocutor = chat.worker
         else:
             interlocutor = chat.employer
         
-        
         last_message = db.query(Message).filter(
             Message.chat_id == chat.id
         ).order_by(Message.sent_at.desc()).first()
-        
         
         unread_count = db.query(Message).filter(
             Message.chat_id == chat.id,
@@ -78,7 +100,6 @@ def get_user_chats(db: Session = Depends(get_db), current_user: User = Depends(g
             unread_count=unread_count
         ))
     
-    
     result.sort(key=lambda x: x.last_message_time, reverse=True)
     return result
 
@@ -88,7 +109,6 @@ def get_chat_messages(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
-    
     chat = db.query(Chat).get(chat_id)
     if not chat or (chat.employer_id != current_user.id and chat.worker_id != current_user.id):
         raise HTTPException(status_code=403, detail="Access denied")
@@ -100,7 +120,6 @@ def get_chat_messages(
         Message.is_read == False
     ).update({"is_read": True})
     db.commit()
-    
     
     messages = db.query(Message).filter(
         Message.chat_id == chat_id
@@ -115,11 +134,9 @@ async def send_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    
     chat = db.query(Chat).get(chat_id)
     if not chat or (chat.employer_id != current_user.id and chat.worker_id != current_user.id):
         raise HTTPException(status_code=403, detail="Access denied")
-    
     
     new_message = Message(
         chat_id=chat_id,
@@ -145,7 +162,6 @@ async def send_message(
         sent_at=new_message.sent_at
     )
     
-    
     await manager.send_personal_message(message_out.dict(), receiver_id)
     
     return message_out
@@ -156,11 +172,9 @@ def start_chat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    
     booking = db.query(Booking).get(booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    
     
     if current_user.id != booking.job.employer_id and current_user.id != booking.worker_id:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -196,28 +210,25 @@ def get_chat_detail(
     if not chat:
         raise HTTPException(status_code=404, detail="Чат не найден")
     
-    
     if current_user.id not in [chat.employer_id, chat.worker_id]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
-    
     
     if current_user.id == chat.employer_id:
         interlocutor = chat.worker
     else:
         interlocutor = chat.employer
     
-    return {
-        "id": chat.id,
-        "booking_id": chat.booking_id,
-        "employer_id": chat.employer_id,
-        "worker_id": chat.worker_id,
-        "created_at": chat.created_at,
-        "interlocutor_id": interlocutor.id,
-        "interlocutor_name": f"{interlocutor.first_name} {interlocutor.last_name}",
-        "avatar": "avata",
-        "status": "online"  
-    }
-
+    return ChatDetailOut(
+        id=chat.id,
+        booking_id=chat.booking_id,
+        employer_id=chat.employer_id,
+        worker_id=chat.worker_id,
+        created_at=chat.created_at,
+        interlocutor_id=interlocutor.id,
+        interlocutor_name=f"{interlocutor.first_name} {interlocutor.last_name}",
+  
+        status="online"  
+    )
 
 @router.get("/by-booking/{booking_id}", response_model=ChatDetailOut)
 def get_chat_by_booking(
@@ -225,30 +236,48 @@ def get_chat_by_booking(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    
     chat = db.query(Chat).filter(Chat.booking_id == booking_id).first()
     
     if not chat:
         raise HTTPException(status_code=404, detail="Чат не найден")
     
-    
     if current_user.id not in [chat.employer_id, chat.worker_id]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
-    
     
     if current_user.id == chat.employer_id:
         interlocutor = chat.worker
     else:
         interlocutor = chat.employer
     
-    return {
-        "id": chat.id,
-        "booking_id": chat.booking_id,
-        "employer_id": chat.employer_id,
-        "worker_id": chat.worker_id,
-        "created_at": chat.created_at,
-        "interlocutor_id": interlocutor.id,
-        "interlocutor_name": f"{interlocutor.first_name} {interlocutor.last_name}",
-        "avatar": interlocutor.avatar_url or "default_avatar_url",
-        "status": "online"  
-    }
+    return ChatDetailOut(
+        id=chat.id,
+        booking_id=chat.booking_id,
+        employer_id=chat.employer_id,
+        worker_id=chat.worker_id,
+        created_at=chat.created_at,
+        interlocutor_id=interlocutor.id,
+        interlocutor_name=f"{interlocutor.first_name} {interlocutor.last_name}",
+     
+        status="online"
+    )
+
+
+@router.get("/unread-total", response_model=dict)
+def get_total_unread_messages(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    
+    chat_ids = db.query(Chat.id).filter(
+        (Chat.employer_id == current_user.id) | 
+        (Chat.worker_id == current_user.id)
+    ).subquery()
+
+    
+    total = db.query(func.count(Message.id)).filter(
+        Message.chat_id.in_(chat_ids),
+        Message.is_read == False,
+        Message.sender_id != current_user.id
+    ).scalar()
+
+    return {"total_unread": total or 0}

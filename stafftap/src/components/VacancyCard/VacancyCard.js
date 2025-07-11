@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import {
   FiHeart,
@@ -7,16 +7,28 @@ import {
   FiDollarSign,
   FiUser,
   FiStar,
+  FiCheck
 } from "react-icons/fi";
+import axios from 'axios';
 import './VacancyCard.css';
 
-const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
+const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
   const navigate = useNavigate();
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyError, setApplyError] = useState(null);
   
-  const handleCardClick = () => {
-    navigate(`/vacancy/${vacancy.id}`);
-  };
-  
+  // Состояние для заявки (используем localStorage)
+  const [hasApplied, setHasApplied] = useState(() => {
+    const appliedJobs = JSON.parse(localStorage.getItem('appliedJobs') || '{}');
+    return appliedJobs[vacancy.id] || false;
+  });
+
+  // Состояние для избранного (используем localStorage)
+  const [isFavoriteLocal, setIsFavoriteLocal] = useState(() => {
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    return favorites[vacancy.id] || false;
+  });
+
   const {
     id,
     title,
@@ -32,22 +44,116 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
     requirements = [],
     workersNeeded,
     distance,
-    isFavorite,
     companyRating,
+    remainingSlots
   } = vacancy;
+
+  // Синхронизация состояний при изменении вакансии
+  useEffect(() => {
+    // Для заявок
+    const appliedJobs = JSON.parse(localStorage.getItem('appliedJobs') || '{}');
+    setHasApplied(appliedJobs[id] || false);
+    
+    // Для избранного
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    setIsFavoriteLocal(favorites[id] || false);
+  }, [id]);
 
   const formatDate = (dateString) => {
     const options = { day: "numeric", month: "long" };
     return new Date(dateString).toLocaleDateString("ru-RU", options);
   };
 
-  const handleFavoriteClick = (e) => {
+  const handleFavoriteClick = async (e) => {
     e.stopPropagation();
-    onToggleFavorite(id);
+    
+    const newFavoriteStatus = !isFavoriteLocal;
+    
+    // Оптимистичное обновление UI
+    setIsFavoriteLocal(newFavoriteStatus);
+    
+    // Сохраняем в localStorage
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    favorites[id] = newFavoriteStatus;
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    
+    try {
+      // Вызываем функцию родителя для синхронизации с сервером
+      await onToggleFavorite(id);
+    } catch (error) {
+      console.error('Ошибка при обновлении избранного:', error);
+      
+      // Откатываем изменения в случае ошибки
+      setIsFavoriteLocal(!newFavoriteStatus);
+      
+      // Восстанавливаем предыдущее состояние в localStorage
+      const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+      favorites[id] = !newFavoriteStatus;
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+    }
+  };
+
+  const handleApplyClick = async (e) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user.role !== 'worker') {
+      setApplyError('Только работники могут откликаться на вакансии');
+      return;
+    }
+    
+    if (remainingSlots <= 0) {
+      setApplyError('Все места уже заняты');
+      return;
+    }
+    
+    setIsApplying(true);
+    setApplyError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'http://localhost:8000/api/bookings/',
+        { job_id: id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Обновляем состояние и localStorage
+      setHasApplied(true);
+      
+      // Сохраняем в localStorage
+      const appliedJobs = JSON.parse(localStorage.getItem('appliedJobs') || '{}');
+      appliedJobs[id] = true;
+      localStorage.setItem('appliedJobs', JSON.stringify(appliedJobs));
+      
+      // Обновляем количество оставшихся мест
+      vacancy.remainingSlots = vacancy.remainingSlots - 1;
+    } catch (error) {
+      console.error('Ошибка при отклике на вакансию:', error);
+      
+      let errorMessage = 'Не удалось отправить отклик';
+      if (error.response) {
+        if (error.response.data && error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.status === 400) {
+          errorMessage = 'Вы уже откликались на эту вакансию';
+        } else if (error.response.status === 403) {
+          errorMessage = 'Только работники могут откликаться';
+        }
+      }
+      
+      setApplyError(errorMessage);
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
-    <div onClick={handleCardClick} className="vacancy-card">
+    <div onClick={() => navigate(`/vacancy/${id}`)} className="vacancy-card">
       <div className="card-header">
         <div className="company-info">
           <div className="company-logo">{company?.charAt(0) || 'C'}</div>
@@ -57,12 +163,12 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
           </div>
         </div>
         <button
-          className={`favorite-btn ${isFavorite ? "active" : ""}`}
+          className={`favorite-btn ${isFavoriteLocal ? "active" : ""}`}
           onClick={handleFavoriteClick}
-          aria-label={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
+          aria-label={isFavoriteLocal ? "Удалить из избранного" : "Добавить в избранное"}
         >
           <FiHeart className="favorite-icon" />
-          {isFavorite && (
+          {isFavoriteLocal && (
             <FiHeart className="filled-heart" />
           )}
         </button>
@@ -116,22 +222,42 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role }) => {
             </ul>
           </div>
         )}
+        
+        {applyError && (
+          <div className="apply-error">
+            {applyError}
+          </div>
+        )}
       </div>
 
       <div className="card-footer">
         <div className="workers-needed">
-          Требуется: {workersNeeded}{" "}
-          {workersNeeded === 1
-            ? "сотрудник"
-            : workersNeeded > 1 && workersNeeded < 5
-            ? "сотрудника"
-            : "сотрудников"}
+          {remainingSlots > 0 ? (
+            `Осталось мест: ${remainingSlots}/${workersNeeded}`
+          ) : (
+            "Все места заняты"
+          )}
         </div>
-        <button
-          className={`apply-btn ${role === "employer" ? "employer" : ""}`}
-        >
-          {role === "worker" ? "Я готов!" : "Забронировать"}
-        </button>
+        
+        {role === "worker" ? (
+          hasApplied ? (
+            <button className="apply-btn applied" disabled>
+              <FiCheck className="icon" /> Отправлено
+            </button>
+          ) : (
+            <button
+              className={`apply-btn ${isApplying ? "sending" : ""}`}
+              onClick={handleApplyClick}
+              disabled={isApplying || remainingSlots <= 0}
+            >
+              {isApplying ? "Отправка..." : "Я готов!"}
+            </button>
+          )
+        ) : (
+          <button className={`apply-btn ${role === "employer" ? "employer" : ""}`}>
+            {role === "worker" ? "Я готов!" : "Забронировать"}
+          </button>
+        )}
       </div>
     </div>
   );

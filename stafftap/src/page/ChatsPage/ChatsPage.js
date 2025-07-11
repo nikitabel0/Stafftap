@@ -1,29 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { FiMessageSquare, FiSearch } from 'react-icons/fi';
-import './ChatsPage.css';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { FiMessageSquare, FiSearch } from "react-icons/fi";
+import "./ChatsPage.css";
 
 const ChatsPage = ({ user }) => {
   const [chats, setChats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const headerRef = useRef(null);
 
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:8000/api/chats', {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:8000/api/chats", {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
         setChats(response.data);
         setIsLoading(false);
       } catch (error) {
-        console.error('Ошибка загрузки чатов:', error);
+        console.error("Ошибка загрузки чатов:", error);
         setIsLoading(false);
       }
     };
@@ -33,28 +33,28 @@ const ChatsPage = ({ user }) => {
 
   const formatTime = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const today = new Date();
-    
+
     if (date.toDateString() === today.toDateString()) {
-      return 'Сегодня';
+      return "Сегодня";
     }
-    
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     if (date.toDateString() === yesterday.toDateString()) {
-      return 'Вчера';
+      return "Вчера";
     }
-    
-    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+
+    return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
   };
 
-  const filteredChats = chats.filter(chat => 
+  const filteredChats = chats.filter((chat) =>
     chat.interlocutor_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -87,29 +87,35 @@ const ChatsPage = ({ user }) => {
         ) : (
           <div className="chats-list">
             {filteredChats.length > 0 ? (
-              filteredChats.map(chat => (
-                <div 
-                  key={chat.id} 
+              filteredChats.map((chat) => (
+                <div
+                  key={chat.id}
                   className="chat-item"
                   onClick={() => navigate(`/chats/${chat.id}`)}
                 >
                   <div className="avatar-container">
                     <div className="avatar-placeholder">
-                      {chat.interlocutor_name.split(' ').map(n => n[0]).join('')}
+                      {chat.interlocutor_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </div>
                   </div>
-                  
+
                   <div className="message-info">
                     <div className="sender-row">
-                      <div className="sender-name">{chat.interlocutor_name}</div>
+                      <div className="sender-name">
+                        {chat.interlocutor_name}
+                      </div>
                       <div className="message-time">
-                        {formatDate(chat.last_message_time)} • {formatTime(chat.last_message_time)}
+                        {formatDate(chat.last_message_time)} •{" "}
+                        {formatTime(chat.last_message_time)}
                       </div>
                     </div>
-                    
+
                     <div className="preview-row">
                       <div className="message-preview">
-                        {chat.last_message || 'Нет сообщений'}
+                        {chat.last_message || "Нет сообщений"}
                       </div>
                       {chat.unread_count > 0 && (
                         <div className="unread-count">{chat.unread_count}</div>

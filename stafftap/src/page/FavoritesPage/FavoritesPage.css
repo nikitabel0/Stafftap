@@ -1,3 +1,4 @@
+/* FavoritesPage.css */
 .favorites-page {
   max-width: 800px;
   margin: 0 auto;
@@ -5,26 +6,44 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.favorites-page h1 {
-    margin-top: 60px;
-  color: #2c8161;
-  font-size: 2.2rem;
+.favorites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 30px;
-  text-align: center;
-  position: relative;
-  padding-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 60px;
 }
 
-.favorites-page h1::after {
+.favorites-header h1 {
+  color: #2c8161;
+  font-size: 2.2rem;
+  margin: 0;
+  position: relative;
+  padding-bottom: 15px;
+  flex-grow: 1;
+}
+
+.favorites-header h1::after {
   content: '';
   position: absolute;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 80px;
   height: 4px;
   background: linear-gradient(135deg, #2c8161 0%, #3ab48a 100%);
   border-radius: 2px;
+}
+
+.favorites-count {
+  background: #e8f5f0;
+  color: #2c8161;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-size: 1.1rem;
+  box-shadow: 0 3px 10px rgba(44, 129, 97, 0.15);
 }
 
 .favorites-loading {
@@ -58,6 +77,23 @@
   border-radius: 20px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
   border: 2px dashed rgba(44, 129, 97, 0.3);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.empty-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 80px;
+  height: 80px;
+  background: rgba(44, 129, 97, 0.08);
+  border-radius: 50%;
+  margin-bottom: 25px;
+}
+
+.empty-icon svg {
+  color: #2c8161;
 }
 
 .no-favorites p {
@@ -66,7 +102,7 @@
   margin-bottom: 25px;
 }
 
-.no-favorites button {
+.find-vacancies-btn {
   background: linear-gradient(135deg, #2c8161 0%, #3ab48a 100%);
   color: white;
   border: none;
@@ -79,7 +115,7 @@
   box-shadow: 0 4px 15px rgba(44, 129, 97, 0.3);
 }
 
-.no-favorites button:hover {
+.find-vacancies-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 7px 20px rgba(44, 129, 97, 0.4);
 }
@@ -99,6 +135,7 @@
   border: 1px solid #e8e1df;
   cursor: pointer;
   position: relative;
+  padding-top: 10px;
 }
 
 .job-card:hover {
@@ -118,7 +155,7 @@
 }
 
 .job-header {
-  padding: 25px 25px 15px 30px;
+  padding: 15px 25px 15px 30px;
   border-bottom: 1px solid #f0f7f4;
 }
 
@@ -129,6 +166,7 @@
   font-weight: 700;
   position: relative;
   padding-left: 35px;
+  margin-top: 5px;
 }
 
 .job-header h3::before {
@@ -146,6 +184,7 @@
   align-items: center;
   gap: 15px;
   padding-left: 35px;
+  flex-wrap: wrap;
 }
 
 .company {
@@ -216,6 +255,50 @@
   color: #3ab48a;
 }
 
+/* Стили для кнопки удаления */
+.remove-favorite-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #f9fbfa;
+  border: 1px solid #e8e1df;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.remove-favorite-btn:hover {
+  background-color: #fff5f5;
+  border-color: #ffcccc;
+  color: #ff6b6b;
+}
+
+.remove-favorite-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.remove-favorite-btn.removing {
+  background-color: #fff5f5;
+  border-color: #ffcccc;
+}
+
+/* Стили для спиннера */
+.spinner {
+  border: 3px solid rgba(44, 129, 97, 0.1);
+  border-top: 3px solid #2c8161;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -243,9 +326,19 @@
     padding: 20px 15px;
   }
   
-  .favorites-page h1 {
+  .favorites-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .favorites-header h1 {
     font-size: 1.8rem;
-    margin-bottom: 25px;
+    padding-bottom: 12px;
+  }
+  
+  .favorites-header h1::after {
+    width: 60px;
+    height: 3px;
   }
   
   .detail-row {
@@ -255,7 +348,7 @@
   }
   
   .job-header {
-    padding: 20px 20px 15px 25px;
+    padding: 15px 20px 10px 25px;
   }
   
   .job-header h3 {
@@ -270,15 +363,26 @@
   .job-footer {
     padding: 12px 25px;
   }
+  
+  .remove-favorite-btn {
+    width: 34px;
+    height: 34px;
+  }
 }
 
 @media (max-width: 480px) {
-  .favorites-page h1 {
+  .favorites-header h1 {
     font-size: 1.6rem;
+    padding-bottom: 10px;
+  }
+  
+  .favorites-count {
+    font-size: 1rem;
+    padding: 6px 14px;
   }
   
   .job-header {
-    padding: 18px 15px 12px 20px;
+    padding: 12px 15px 10px 20px;
   }
   
   .job-header h3 {
@@ -297,8 +401,28 @@
     padding: 12px 20px;
   }
   
-  .no-favorites button {
+  .no-favorites {
+    padding: 30px 15px;
+  }
+  
+  .no-favorites p {
+    font-size: 1.1rem;
+  }
+  
+  .find-vacancies-btn {
     width: 100%;
     padding: 12px;
+  }
+  
+  .remove-favorite-btn {
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .spinner {
+    width: 18px;
+    height: 18px;
   }
 }

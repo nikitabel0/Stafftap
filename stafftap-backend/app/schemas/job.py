@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from pydantic import BaseModel, Field  
 from datetime import date, time, datetime
 from typing import Optional
+from typing import Optional, List,Dict
 class JobBase(BaseModel):
     title: str
     description: str
@@ -43,9 +44,16 @@ class JobOut(BaseModel):
     class Config:
         orm_mode = True
 
+class ConfirmedWorker(BaseModel):
+    id: int
+    name: str
+    phone: str
 class JobDetail(JobOut):
     employer_name: str
     employer_rating: float
     completed_jobs: int
     employer_verified: bool
     is_favorite: bool
+    confirmed_workers: List[ConfirmedWorker] = []
+
+

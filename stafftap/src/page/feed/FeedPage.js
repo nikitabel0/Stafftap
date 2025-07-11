@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FiSearch, FiPlus, FiList } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiList, FiX, FiUser } from 'react-icons/fi';
 import FilterPanel from '../../components/FilterPanel/FilterPanel';
 import VacancyCard from '../../components/VacancyCard/VacancyCard';
 import './FeedPage.css';
@@ -16,6 +16,9 @@ const FeedPage = ({ user }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showApplicationsModal, setShowApplicationsModal] = useState(false);
+  const [applications, setApplications] = useState([]);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(false);
   const navigate = useNavigate();
   
   const role = user?.role || 'worker';
@@ -27,7 +30,8 @@ const FeedPage = ({ user }) => {
         skill: filters.profession || undefined,
         date: filters.date || undefined,
         min_rate: filters.minRate || undefined,
-        search: query || undefined
+        search: query || undefined,
+        include_confirmed: true // Важное добавление для получения подтвержденных сотрудников
       };
 
       const response = await axios.get('http://localhost:8000/api/jobs', {
@@ -54,7 +58,8 @@ const FeedPage = ({ user }) => {
         }),
         isFavorite: job.is_favorite || false,
         employerRating: job.employer_rating || 4.5,
-        employerVerified: job.employer_verified || false
+        employerVerified: job.employer_verified || false,
+        confirmedWorkers: job.confirmed_workers || [] // Добавлено получение подтвержденных сотрудников
       }));
     } catch (error) {
       console.error('Ошибка при загрузке вакансий:', error);
@@ -116,13 +121,68 @@ const FeedPage = ({ user }) => {
     if (role === 'employer') {
       navigate('/create-vacancy');
     } else {
-      navigate('/my-applications');
+      // Вместо перехода на страницу открываем модальное окно
+      fetchUserApplications();
+      setShowApplicationsModal(true);
+    }
+  };
+
+  const fetchUserApplications = async () => {
+    if (!user) return;
+    
+    setIsLoadingApplications(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        'http://localhost:8000/api/bookings/my-applications/', 
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      setApplications(response.data);
+    } catch (error) {
+      console.error('Ошибка при загрузке заявок:', error);
+    } finally {
+      setIsLoadingApplications(false);
     }
   };
 
   const formatDate = (dateString) => {
     const options = { day: 'numeric', month: 'long' };
     return new Date(dateString).toLocaleDateString('ru-RU', options);
+  };
+
+  const formatDateTime = (dateString) => {
+    const options = { 
+      day: 'numeric', 
+      month: 'long', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    };
+    return new Date(dateString).toLocaleString('ru-RU', options);
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'pending': return 'На рассмотрении';
+      case 'confirmed': return 'Подтверждена';
+      case 'rejected': return 'Отклонена';
+      case 'completed': return 'Завершена';
+      case 'canceled': return 'Отменена';
+      default: return status;
+    }
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'pending': return 'status-pending';
+      case 'confirmed': return 'status-confirmed';
+      case 'rejected': return 'status-rejected';
+      case 'completed': return 'status-completed';
+      case 'canceled': return 'status-canceled';
+      default: return '';
+    }
   };
 
   const toggleFilters = () => {
@@ -174,7 +234,7 @@ const FeedPage = ({ user }) => {
             {filters.profession && (
               <div className="filter-tag">
                 Профессия: {filters.profession}
-                <button onClick={() => handleFilterChange({...filters, profession: ''})}>
+                <button onClick={() => handleFilterChange({...filters, profession: ''})>
                   &times;
                 </button>
               </div>
@@ -182,7 +242,7 @@ const FeedPage = ({ user }) => {
             {filters.date && (
               <div className="filter-tag">
                 Дата: {formatDate(filters.date)}
-                <button onClick={() => handleFilterChange({...filters, date: ''})}>
+                <button onClick={() => handleFilterChange({...filters, date: ''})>
                   &times;
                 </button>
               </div>
@@ -190,7 +250,7 @@ const FeedPage = ({ user }) => {
             {filters.minRate && (
               <div className="filter-tag">
                 Мин. оплата: {filters.minRate} ₽
-                <button onClick={() => handleFilterChange({...filters, minRate: ''})}>
+                <button onClick={() => handleFilterChange({...filters, minRate: ''})>
                   &times;
                 </button>
               </div>
@@ -219,6 +279,7 @@ const FeedPage = ({ user }) => {
                 vacancy={vacancy}
                 onToggleFavorite={handleToggleFavorite}
                 role={role}
+                user={user}
               />
             ))
           ) : (
@@ -258,6 +319,100 @@ const FeedPage = ({ user }) => {
           </>
         )}
       </div>
+
+      {/* Модальное окно заявок */}
+      {showApplicationsModal && (
+        <div className="applications-modal">
+          <div className="modal-overlay" onClick={() => setShowApplicationsModal(false)}></div>
+          
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Мои заявки</h2>
+              <button 
+                className="close-button"
+                onClick={() => setShowApplicationsModal(false)}
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {isLoadingApplications ? (
+                <div className="loading-applications">
+                  <div className="loader"></div>
+                  <p>Загрузка ваших заявок...</p>
+                </div>
+              ) : (
+                applications.length === 0 ? (
+                  <div className="no-applications">
+                    <div className="empty-icon">
+                      <FiList size={48} />
+                    </div>
+                    <h3>У вас пока нет заявок</h3>
+                    <p>Найдите подходящую вакансию и отправьте заявку</p>
+                  </div>
+                ) : (
+                  <div className="applications-list">
+                    {applications.map(application => (
+                      <div 
+                        key={application.id} 
+                        className="application-card"
+                        onClick={() => {
+                          setShowApplicationsModal(false);
+                          navigate(`/vacancy/${application.job.id}`);
+                        }}
+                      >
+                        <div className="application-header">
+                          <h3>{application.job.title}</h3>
+                          <div className={`application-status ${getStatusClass(application.status)}`}>
+                            <span>{getStatusText(application.status)}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="application-details">
+                          <div className="detail-row">
+                            <div className="detail-item">
+                              <span className="detail-label">Компания:</span>
+                              <span>{application.job.company_name}</span>
+                            </div>
+                            <div className="detail-item">
+                              <span className="detail-label">Оплата:</span>
+                              <span>{application.job.rate.toLocaleString('ru-RU')} ₽</span>
+                            </div>
+                          </div>
+                          
+                          <div className="detail-row">
+                            <div className="detail-item">
+                              <span className="detail-label">Дата:</span>
+                              <span>
+                                {formatDate(application.job.work_date)}, {application.job.start_time} - {application.job.end_time}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="detail-row">
+                            <div className="detail-item">
+                              <span className="detail-label">Адрес:</span>
+                              <span>{application.job.address}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="detail-row">
+                            <div className="detail-item">
+                              <span className="detail-label">Подана:</span>
+                              <span>{formatDateTime(application.created_at)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

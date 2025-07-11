@@ -5,6 +5,8 @@ from app.models import Notification, User
 from app.schemas.notification import NotificationOut, NotificationUpdate
 from app.dependencies import get_current_user
 from typing import List
+
+from sqlalchemy import func 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
 @router.get("/", response_model=List[NotificationOut])

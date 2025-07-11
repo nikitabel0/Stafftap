@@ -16,7 +16,7 @@ import CreateVacancyPage from "./page/CreateVacancyPage/CreateVacancyPage";
 import VacancyDetailPage from "./page/VacancyDetailPage/VacancyDetailPage";
 import ChatsPage from "./page/ChatsPage/ChatsPage";
 import ChatPage from "./page/ChatPage/ChatPage";
-import FavoritesPage from './page/FavoritesPage/FavoritesPage';
+import FavoritesPage from "./page/FavoritesPage/FavoritesPage";
 import NotificationsPage from "./page/NotificationsPage/NotificationsPage";
 function App() {
   const [user, setUser] = useState(null);
@@ -121,10 +121,17 @@ function App() {
       <Router>
         <Header user={user} onLogout={handleLogout} />
         <Routes>
-        <Route path="/chats" element={<ChatsPage user={user} />} />
-        <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
-        {/* <Route path="/bookings" element={<BookingsPage user={user} />} /> */}
-          <Route path="/vacancy/:id" element={<VacancyDetailPage user={user} />} />
+          <Route path="/chats" element={<ChatsPage user={user} />} />
+          <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
+          <Route
+            path="/chats/by-booking/:bookingId"
+            element={<ChatPage user={user} />}
+          />
+          {/* <Route path="/bookings" element={<BookingsPage user={user} />} /> */}
+          <Route
+            path="/vacancy/:id"
+            element={<VacancyDetailPage user={user} />}
+          />
           <Route
             path="/login"
             element={
@@ -135,7 +142,10 @@ function App() {
               )
             }
           />
-          <Route path="/notifications" element={<NotificationsPage user={user} />} />
+          <Route
+            path="/notifications"
+            element={<NotificationsPage user={user} />}
+          />
           <Route
             path="/register"
             element={
@@ -162,10 +172,10 @@ function App() {
           />
           <Route path="/create-vacancy" element={<CreateVacancyPage />} />
           <Route path="/favorites" element={<FavoritesPage user={user} />} />
-         <Route
-  path="/feed"
-  element={user ? <FeedPage user={user} /> : <Navigate to="/login" />}
-/>
+          <Route
+            path="/feed"
+            element={user ? <FeedPage user={user} /> : <Navigate to="/login" />}
+          />
           <Route
             path="*"
             element={<Navigate to={user ? "/profile" : "/login"} />}

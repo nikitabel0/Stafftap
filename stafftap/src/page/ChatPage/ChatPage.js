@@ -77,6 +77,7 @@ const ChatPage = ({ user }) => {
           
           ws.current.onerror = (error) => {
             console.error('WebSocket error:', error);
+            // Переподключение через 5 секунд
             setTimeout(() => connectWebSocket(), 5000);
           };
           
@@ -90,6 +91,7 @@ const ChatPage = ({ user }) => {
       } catch (error) {
         console.error('Ошибка при загрузке чата:', error);
         setIsLoading(false);
+        alert('Не удалось загрузить чат. Попробуйте позже.');
       }
     };
 
@@ -154,6 +156,7 @@ const ChatPage = ({ user }) => {
           msg.id === tempMessage.id ? { ...msg, error: true } : msg
         ));
       }
+      alert('Не удалось отправить сообщение. Проверьте соединение.');
     } finally {
       setIsSending(false);
     }
