@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FiSearch, FiPlus, FiList, FiX, FiUser } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiList, FiX } from 'react-icons/fi';
 import FilterPanel from '../../components/FilterPanel/FilterPanel';
 import VacancyCard from '../../components/VacancyCard/VacancyCard';
 import './FeedPage.css';
@@ -30,8 +30,7 @@ const FeedPage = ({ user }) => {
         skill: filters.profession || undefined,
         date: filters.date || undefined,
         min_rate: filters.minRate || undefined,
-        search: query || undefined,
-        include_confirmed: true // Важное добавление для получения подтвержденных сотрудников
+        search: query || undefined
       };
 
       const response = await axios.get('http://localhost:8000/api/jobs', {
@@ -58,8 +57,7 @@ const FeedPage = ({ user }) => {
         }),
         isFavorite: job.is_favorite || false,
         employerRating: job.employer_rating || 4.5,
-        employerVerified: job.employer_verified || false,
-        confirmedWorkers: job.confirmed_workers || [] // Добавлено получение подтвержденных сотрудников
+        employerVerified: job.employer_verified || false
       }));
     } catch (error) {
       console.error('Ошибка при загрузке вакансий:', error);
@@ -234,7 +232,7 @@ const FeedPage = ({ user }) => {
             {filters.profession && (
               <div className="filter-tag">
                 Профессия: {filters.profession}
-                <button onClick={() => handleFilterChange({...filters, profession: ''})>
+                <button onClick={() => handleFilterChange({...filters, profession: ''})}>
                   &times;
                 </button>
               </div>
@@ -242,7 +240,7 @@ const FeedPage = ({ user }) => {
             {filters.date && (
               <div className="filter-tag">
                 Дата: {formatDate(filters.date)}
-                <button onClick={() => handleFilterChange({...filters, date: ''})>
+                <button onClick={() => handleFilterChange({...filters, date: ''})}>
                   &times;
                 </button>
               </div>
@@ -250,7 +248,7 @@ const FeedPage = ({ user }) => {
             {filters.minRate && (
               <div className="filter-tag">
                 Мин. оплата: {filters.minRate} ₽
-                <button onClick={() => handleFilterChange({...filters, minRate: ''})>
+                <button onClick={() => handleFilterChange({...filters, minRate: ''})}>
                   &times;
                 </button>
               </div>
