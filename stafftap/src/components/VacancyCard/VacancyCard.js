@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import axios from 'axios';
 import './VacancyCard.css';
+import API_BASE_URL from '../../apiConfig';
 
 const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
   const navigate = useNavigate();
@@ -117,7 +118,7 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:8000/api/bookings/',
+        `${API_BASE_URL}/api/bookings/`,
         { job_id: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );

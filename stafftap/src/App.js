@@ -18,6 +18,8 @@ import ChatsPage from "./page/ChatsPage/ChatsPage";
 import ChatPage from "./page/ChatPage/ChatPage";
 import FavoritesPage from "./page/FavoritesPage/FavoritesPage";
 import NotificationsPage from "./page/NotificationsPage/NotificationsPage";
+import API_BASE_URL from "./apiConfig";
+import JobDetailPage from "./page/JobDetailPage/JobDetailPage";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ function App() {
     }
 
     try {
-      const res = await axios.get("http://localhost:8000/me", {
+      const res = await axios.get(`${API_BASE_URL}/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -123,6 +125,7 @@ function App() {
         <Routes>
           <Route path="/chats" element={<ChatsPage user={user} />} />
           <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
+          <Route path="/job/:jobId" element={<JobDetailPage user={user} />} />
           <Route
             path="/chats/by-booking/:bookingId"
             element={<ChatPage user={user} />}

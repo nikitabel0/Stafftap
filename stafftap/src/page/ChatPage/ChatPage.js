@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FiSend, FiChevronLeft, FiMoreVertical } from 'react-icons/fi';
 import './ChatPage.css';
+import API_BASE_URL from '../../apiConfig';
 
 const ChatPage = ({ user }) => {
   const { chatId } = useParams();
@@ -38,7 +39,7 @@ const ChatPage = ({ user }) => {
         const token = localStorage.getItem('token');
         
         // Загрузка информации о чате и собеседнике
-        const chatRes = await axios.get(`http://localhost:8000/api/chats/${chatId}`, {
+        const chatRes = await axios.get(` ${API_BASE_URL}/api/chats/${chatId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -51,7 +52,7 @@ const ChatPage = ({ user }) => {
         });
         
         // Загрузка сообщений
-        const messagesRes = await axios.get(`http://localhost:8000/api/chats/${chatId}/messages`, {
+        const messagesRes = await axios.get(` ${API_BASE_URL}/api/chats/${chatId}/messages`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessages(messagesRes.data);
@@ -139,7 +140,7 @@ const ChatPage = ({ user }) => {
       
       // Отправка сообщения через API
       const response = await axios.post(
-        `http://localhost:8000/api/chats/${chatId}/messages`, 
+        ` ${API_BASE_URL}/api/chats/${chatId}/messages`, 
         { content: newMessage },
         { headers: { Authorization: `Bearer ${token}` }}
       );

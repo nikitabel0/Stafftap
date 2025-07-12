@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FiMessageSquare, FiSearch } from "react-icons/fi";
 import "./ChatsPage.css";
+import API_BASE_URL from '../../apiConfig';
 
 const ChatsPage = ({ user }) => {
   const [chats, setChats] = useState([]);
@@ -15,7 +16,7 @@ const ChatsPage = ({ user }) => {
     const fetchChats = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:8000/api/chats", {
+        const response = await axios.get(`${API_BASE_URL}/api/chats`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

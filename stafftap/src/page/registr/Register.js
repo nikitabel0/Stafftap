@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import GradientButton from "../../components/GradientButton/GradientButton";
-
+import API_BASE_URL from '../../apiConfig';
 // Компонент для шага выбора роли
 const RoleSelectionStep = ({ onNext, selectedRole, setSelectedRole }) => {
   const handleRoleSelect = (role) => {
@@ -233,8 +233,8 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
         delete payload.profession;
       }
 
-      await axios.post("http://localhost:8000/auth/register", payload);
-      const loginRes = await axios.post("http://localhost:8000/auth/login", {
+      await axios.post(`${API_BASE_URL}/auth/register`, payload);
+      const loginRes = await axios.post(`${API_BASE_URL}/auth/login`, {
         email: formData.email,
         password: formData.password,
       });

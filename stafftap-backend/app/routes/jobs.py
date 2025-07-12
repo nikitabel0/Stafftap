@@ -6,8 +6,9 @@ from app.database import get_db
 from app.models import Job, Skill, Booking, User, Review  
 from app.schemas.job import JobDetail, JobOut, JobCreate, ConfirmedWorker
 from app.schemas.booking import BookingWithJobOut
-
-
+import logging
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session, joinedload
 from fastapi import status
 from app.dependencies import get_current_user, get_current_user_optional 
 from sqlalchemy import func
@@ -15,7 +16,12 @@ from app.models.favorite_job import FavoriteJob
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
-
+logger = logging.getLogger("confirmed_workers")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 @router.get("/", response_model=List[JobOut])
 def get_jobs(
     skill: Optional[str] = Query(None, alias="skill"),
@@ -151,11 +157,13 @@ def create_job(
 def get_job_details(
     job_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)  # Исправлено здесь
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
+    
+    # Получаем подтвержденных работников
     confirmed_workers = db.query(Booking).options(
         joinedload(Booking.worker)
     ).filter(
@@ -190,6 +198,21 @@ def get_job_details(
     ).count()
     remaining_slots = job.workers_needed - confirmed_count
 
+    # Формируем список подтвержденных работников в новом формате
+    workers_list = []
+    for worker_booking in confirmed_workers:
+        worker = worker_booking.worker
+        workers_list.append(ConfirmedWorker(
+            id=worker.id,
+            first_name=worker.first_name,
+            last_name=worker.last_name,
+            phone=worker.phone,
+            avatar_url=worker.avatar_url,
+            # Для этого эндпоинта не загружаем рейтинг и смены (опционально)
+            rating=None,
+            completed_shifts=None
+        ))
+
     return JobDetail(
         id=job.id,
         title=job.title,
@@ -201,7 +224,6 @@ def get_job_details(
         end_time=job.end_time,
         rate=float(job.rate),
         address=job.address,
-        
         workers_needed=job.workers_needed,
         remaining_slots=remaining_slots,
         company_name=employer.company_name,
@@ -212,15 +234,8 @@ def get_job_details(
         completed_jobs=completed_jobs,
         employer_verified=employer.is_verified,
         is_favorite=is_favorite,
-        confirmed_workers=[
-            ConfirmedWorker(
-                id=w.worker.id,
-                name=f"{w.worker.first_name} {w.worker.last_name}",
-                phone=w.worker.phone
-            ) for w in confirmed_workers
-        ]
+        confirmed_workers=workers_list  # Используем новый формат
     )
-
     
 
 @router.post("/{job_id}/favorite")
@@ -342,37 +357,100 @@ def get_favorite_jobs(
     return result
 
 
-@router.get("/{job_id}/confirmed_workers", response_model=List[BookingWithJobOut])
+@router.get("/{job_id}/confirmed_workers", response_model=List[ConfirmedWorker])
 def get_confirmed_workers_for_job(
     job_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Старт запроса
+    logger.info(f"Request for confirmed workers for job {job_id} from user {current_user.id} ({current_user.email})")
+    
+    # Поиск вакансии
     job = db.query(Job).get(job_id)
     if not job:
+        logger.warning(f"Job not found: {job_id}")
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
     
+    logger.info(f"Job found: ID={job.id}, Title='{job.title}', Employer={job.employer_id}")
+    
+    # Проверка прав доступа
     if job.employer_id != current_user.id:
+        logger.warning(
+            f"Access denied: User {current_user.id} is not owner of job {job_id}. "
+            f"Job owner is {job.employer_id}"
+        )
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    bookings = db.query(Booking).options(
-        joinedload(Booking.worker)
-    ).filter(
-        Booking.job_id == job_id,
-        Booking.status == "confirmed"
-    ).all()
-    
-    if not bookings:
-        return []
-    
-    return [BookingWithJobOut(
-        id=booking.id,
-        status=booking.status,
-        created_at=booking.created_at,
-        job=None,  # Не передаем job, чтобы избежать циклической зависимости
-        worker=booking.worker
-    ) for booking in bookings]
-
+    # Поиск подтвержденных бронирований
+    try:
+        bookings = db.query(Booking).options(
+            joinedload(Booking.worker)
+        ).filter(
+            Booking.job_id == job_id,
+            Booking.status == "confirmed"
+        ).all()
+        
+        logger.info(f"Found {len(bookings)} confirmed bookings for job {job_id}")
+        
+        if not bookings:
+            logger.info("No confirmed bookings found. Possible reasons: "
+                        "1. No applications for this job "
+                        "2. Applications not confirmed yet "
+                        "3. All bookings in other statuses")
+            return []
+        
+        # Собираем ID всех работников для массовой загрузки данных
+        worker_ids = [b.worker_id for b in bookings]
+        
+        # Загружаем рейтинги работников
+        ratings_query = db.query(
+            Review.target_id,
+            func.avg(Review.rating).label('avg_rating')
+        ).filter(
+            Review.target_id.in_(worker_ids)
+        ).group_by(Review.target_id)
+        
+        rating_map = {r.target_id: float(r.avg_rating) for r in ratings_query.all()}
+        
+        # Загружаем количество завершенных смен
+        completed_shifts_query = db.query(
+            Booking.worker_id,
+            func.count(Booking.id).label('completed_count')
+        ).filter(
+            Booking.worker_id.in_(worker_ids),
+            Booking.status == 'completed'
+        ).group_by(Booking.worker_id)
+        
+        completed_map = {c.worker_id: c.completed_count for c in completed_shifts_query.all()}
+        
+        result = []
+        for booking in bookings:
+            worker = booking.worker
+            
+            # Получаем данные для текущего работника
+            rating = rating_map.get(worker.id, 0.0)
+            completed_shifts = completed_map.get(worker.id, 0)
+            
+            result.append(ConfirmedWorker(
+                id=worker.id,
+                first_name=worker.first_name,
+                last_name=worker.last_name,
+                phone=worker.phone,
+                avatar_url=worker.avatar_url,
+                rating=rating,
+                completed_shifts=completed_shifts
+            ))
+        
+        logger.info(f"Returning {len(result)} confirmed workers")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error fetching confirmed workers: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail="Internal server error"
+        )
 
 @router.get("/employer/{employer_id}", response_model=List[JobOut])
 def get_jobs_by_employer(

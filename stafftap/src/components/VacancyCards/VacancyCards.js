@@ -1,83 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   FiClock, 
   FiMapPin, 
   FiUsers, 
   FiCalendar, 
-  FiDollarSign,
-  FiChevronDown,
-  FiChevronUp,
-  FiPhone
+  FiDollarSign
 } from 'react-icons/fi';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const VacancyCards = ({ vacancy, role }) => {
-  // Все хуки должны вызываться безусловно в начале компонента
-  const [showWorkers, setShowWorkers] = useState(false);
-  const [workers, setWorkers] = useState([]);
-  const [loadingWorkers, setLoadingWorkers] = useState(false);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  
+  // Извлекаем свойства вакансии с проверкой
+  const title = vacancy?.title || 'Без названия';
+  const description = vacancy?.description || 'Описание отсутствует';
+  const rate = vacancy?.rate ?? 0;
+  const company = vacancy?.company_name || 'Компания не указана';
+  const address = vacancy?.address || 'Адрес не указан';
+  const workDate = vacancy?.work_date ? new Date(vacancy.work_date) : null;
+  const startTime = vacancy?.start_time || '--:--';
+  const endTime = vacancy?.end_time || '--:--';
+  const workersNeeded = vacancy?.workers_needed ?? 0;
+  const remainingSlots = vacancy?.remaining_slots ?? 0;
 
-  // Проверка vacancy после хуков
-  if (!vacancy) {
-    return (
-      <div className="vacancy-card error-card">
-        <div className="vacancy-error">
-          <h3>Ошибка загрузки вакансии</h3>
-          <p>Информация о вакансии недоступна</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Безопасное извлечение значений с значениями по умолчанию
-  const title = vacancy.title || 'Без названия';
-  const description = vacancy.description || 'Описание отсутствует';
-  const rate = vacancy.rate ?? 0;
-  const company = vacancy.company_name || 'Компания не указана';
-  const address = vacancy.address || 'Адрес не указан';
-  const workDate = vacancy.work_date ? new Date(vacancy.work_date) : null;
-  const startTime = vacancy.start_time || '--:--';
-  const endTime = vacancy.end_time || '--:--';
-  const workersNeeded = vacancy.workers_needed ?? 0;
-  const remainingSlots = vacancy.remaining_slots ?? 0;
-  const jobId = vacancy.id;
-
-  // Функция для загрузки подтвержденных сотрудников
-  const loadConfirmedWorkers = async () => {
-    setLoadingWorkers(true);
-    setError(null);
-    
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('Токен авторизации отсутствует');
-      }
-
-      const response = await axios.get(
-        `http://localhost:8000/api/jobs/${jobId}/confirmed_workers`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      setWorkers(response.data.map(item => item.worker));
-    } catch (err) {
-      console.error('Ошибка загрузки сотрудников:', err);
-      setError('Не удалось загрузить список сотрудников');
-    } finally {
-      setLoadingWorkers(false);
-    }
-  };
-
-  // Обработчик переключения отображения сотрудников
-  const toggleWorkersDisplay = () => {
-    if (!showWorkers && workers.length === 0) {
-      loadConfirmedWorkers();
-    }
-    setShowWorkers(!showWorkers);
+  // Обработчик клика по вакансии
+  const handleVacancyClick = () => {
+    navigate(`/job/${vacancy.id}`);
   };
 
   // Форматирование чисел
@@ -97,7 +45,7 @@ const VacancyCards = ({ vacancy, role }) => {
   };
 
   return (
-    <div className="vacancy-card">
+    <div className="vacancy-card" onClick={handleVacancyClick}>
       <div className="vacancy-header">
         <h3 className="vacancy-title">{title}</h3>
         <div className="vacancy-company">{company}</div>
@@ -143,79 +91,6 @@ const VacancyCards = ({ vacancy, role }) => {
           </div>
         </div>
       </div>
-      
-      {/* Блок сотрудников (только для работодателя) */}
-      {role === 'employer' && (
-        <div className="workers-section">
-          <button 
-            className="toggle-workers-btn"
-            onClick={toggleWorkersDisplay}
-          >
-            {showWorkers ? (
-              <>
-                <FiChevronUp /> Скрыть сотрудников
-              </>
-            ) : (
-              <>
-                <FiChevronDown /> Показать сотрудников
-              </>
-            )}
-          </button>
-          
-          {showWorkers && (
-            <div className="workers-container">
-              <h4>Подтвержденные сотрудники:</h4>
-              
-              {loadingWorkers ? (
-                <div className="loading-workers">
-                  <p>Загрузка данных о сотрудниках...</p>
-                </div>
-              ) : error ? (
-                <div className="workers-error">
-                  <p>{error}</p>
-                </div>
-              ) : workers.length > 0 ? (
-                <div className="workers-list">
-                  {workers.map(worker => (
-                    <div key={worker.id} className="worker-item">
-                      <div className="worker-avatar">
-                        {worker.avatar_url ? (
-                          <img 
-                            src={worker.avatar_url} 
-                            alt={`${worker.first_name} ${worker.last_name}`} 
-                            className="worker-avatar-img"
-                          />
-                        ) : (
-                          <div className="avatar-initials">
-                            {worker.first_name?.[0]}{worker.last_name?.[0]}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="worker-info">
-                        <div className="worker-name">
-                          {worker.first_name} {worker.last_name}
-                        </div>
-                        
-                        {worker.phone && (
-                          <div className="worker-phone">
-                            <FiPhone className="phone-icon" />
-                            <span>{worker.phone}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-workers">
-                  <p>На эту вакансию еще не приняты сотрудники</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

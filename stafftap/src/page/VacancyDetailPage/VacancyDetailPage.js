@@ -15,6 +15,7 @@ import {
   FiXCircle
 } from 'react-icons/fi';
 import './VacancyDetailPage.css';
+import API_BASE_URL from '../../apiConfig';
 
 const VacancyDetailPage = ({ user }) => {
   const { id } = useParams();
@@ -34,7 +35,7 @@ const VacancyDetailPage = ({ user }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `http://localhost:8000/api/chats/start/${bookingId}`,
+        ` ${API_BASE_URL}/api/chats/start/${bookingId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -50,7 +51,7 @@ const VacancyDetailPage = ({ user }) => {
       try {
         const token = localStorage.getItem('token');
         const vacancyResponse = await axios.get(
-          `http://localhost:8000/api/jobs/${id}`,
+           `${API_BASE_URL}/api/jobs/${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
@@ -79,7 +80,7 @@ const VacancyDetailPage = ({ user }) => {
         
         if (user && user.role === 'worker') {
           const bookingsResponse = await axios.get(
-            `http://localhost:8000/api/bookings?job_id=${id}`,
+            `${API_BASE_URL}/api/bookings?job_id=${id}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           
@@ -106,7 +107,7 @@ const VacancyDetailPage = ({ user }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:8000/api/jobs/${id}/favorite`,
+          `${API_BASE_URL}/api/jobs/${id}/favorite`,
         { is_favorite: !isFavorite },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -123,7 +124,7 @@ const VacancyDetailPage = ({ user }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:8000/api/bookings/',
+        `${API_BASE_URL}/api/bookings/`,
         { 
           job_id: parseInt(id)
         },

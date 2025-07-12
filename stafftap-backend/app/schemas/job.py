@@ -1,13 +1,23 @@
 from datetime import date, time, datetime
-from pydantic import BaseModel
-from pydantic import BaseModel, Field  
-from datetime import date, time, datetime
-from typing import Optional
-from typing import Optional, List,Dict
+from pydantic import BaseModel, Field
+from typing import Optional, List
+
+class ConfirmedWorker(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    rating: Optional[float] = None
+    completed_shifts: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
 class JobBase(BaseModel):
     title: str
     description: str
-    required_skill_id: int | None = None
+    required_skill_id: Optional[int] = None
     work_date: date
     start_time: time
     end_time: time
@@ -35,8 +45,6 @@ class JobOut(BaseModel):
     company_name: str
     employer_id: int
     created_at: datetime
-    
-    # Новые поля
     employer_rating: float = Field(..., description="Рейтинг работодателя")
     employer_verified: bool = Field(..., description="Верифицирован ли работодатель")
     completed_jobs: int = Field(..., description="Количество завершенных работ")
@@ -44,16 +52,7 @@ class JobOut(BaseModel):
     class Config:
         orm_mode = True
 
-class ConfirmedWorker(BaseModel):
-    id: int
-    name: str
-    phone: str
 class JobDetail(JobOut):
     employer_name: str
-    employer_rating: float
-    completed_jobs: int
-    employer_verified: bool
     is_favorite: bool
     confirmed_workers: List[ConfirmedWorker] = []
-
-

@@ -13,6 +13,7 @@ import {
   FiHeart
 } from "react-icons/fi";
 import "./FavoritesPage.css";
+import API_BASE_URL from '../../apiConfig';
 
 const FavoritesPage = ({ user }) => {
   const [favoriteJobs, setFavoriteJobs] = useState([]);
@@ -25,7 +26,7 @@ const FavoritesPage = ({ user }) => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          "http://localhost:8000/api/jobs/favorites/",
+          ` ${API_BASE_URL}/api/jobs/favorites/`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -59,7 +60,7 @@ const FavoritesPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:8000/api/jobs/${jobId}/favorite`,
+        ` ${API_BASE_URL}/api/jobs/${jobId}/favorite`,
         { is_favorite: false },
         { headers: { Authorization: `Bearer ${token}` }}
       );

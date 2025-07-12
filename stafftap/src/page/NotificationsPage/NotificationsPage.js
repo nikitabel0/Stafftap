@@ -8,6 +8,7 @@ import {
   FiClock,
   FiMessageSquare,
 } from "react-icons/fi";
+import API_BASE_URL from '../../apiConfig';
 
 const NotificationsPage = ({ user }) => {
   const [notifications, setNotifications] = useState([]);
@@ -19,7 +20,7 @@ const NotificationsPage = ({ user }) => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          "http://localhost:8000/api/notifications",
+          ` ${API_BASE_URL}/api/notifications`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setNotifications(response.data);
@@ -37,7 +38,7 @@ const NotificationsPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:8000/api/notifications/${id}/read`,
+        ` ${API_BASE_URL}/api/notifications/${id}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -53,7 +54,7 @@ const NotificationsPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:8000/api/bookings/${bookingId}/confirm`,
+        ` ${API_BASE_URL}/api/bookings/${bookingId}/confirm`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -70,7 +71,7 @@ const NotificationsPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `http://localhost:8000/api/bookings/${bookingId}/reject`,
+        ` ${API_BASE_URL}/api/bookings/${bookingId}/reject`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -87,7 +88,7 @@ const NotificationsPage = ({ user }) => {
       const token = localStorage.getItem("token");
       // Используем POST запрос для создания/получения чата
       const response = await axios.post(
-        `http://localhost:8000/api/chats/start/${bookingId}`,
+        ` ${API_BASE_URL}/api/chats/start/${bookingId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

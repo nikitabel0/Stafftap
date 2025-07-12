@@ -13,6 +13,7 @@ import {
   FiLogOut
 } from "react-icons/fi";
 import './Header.css';
+import API_BASE_URL from '../../apiConfig';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -60,14 +61,14 @@ const Header = () => {
         if (token) {
           // Уведомления
           const notificationsResponse = await axios.get(
-            'http://localhost:8000/api/notifications/unread-count',
+            ' ${API_BASE_URL}/api/notifications/unread-count',
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setNotificationCount(notificationsResponse.data.count);
           
           // Непрочитанные сообщения
           const chatsResponse = await axios.get(
-            'http://localhost:8000/api/chats/unread-total',
+            `${API_BASE_URL}/api/chats/unread-total`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setChatUnreadCount(chatsResponse.data.total_unread);

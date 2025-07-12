@@ -5,6 +5,7 @@ import { FiSearch, FiPlus, FiList, FiX } from 'react-icons/fi';
 import FilterPanel from '../../components/FilterPanel/FilterPanel';
 import VacancyCard from '../../components/VacancyCard/VacancyCard';
 import './FeedPage.css';
+import API_BASE_URL from '../../apiConfig';
 
 const FeedPage = ({ user }) => {
   const [vacancies, setVacancies] = useState([]);
@@ -33,7 +34,7 @@ const FeedPage = ({ user }) => {
         search: query || undefined
       };
 
-      const response = await axios.get('http://localhost:8000/api/jobs', {
+      const response = await axios.get(`${API_BASE_URL}/api/jobs`, {
         params,
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -97,7 +98,7 @@ const FeedPage = ({ user }) => {
       
       // Отправка запроса на сервер
       await axios.post(
-        `http://localhost:8000/api/jobs/${id}/favorite`,
+        ` ${API_BASE_URL}/api/jobs/${id}/favorite`,
         { is_favorite: newFavoriteStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -132,7 +133,7 @@ const FeedPage = ({ user }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:8000/api/bookings/my-applications/', 
+        ' ${API_BASE_URL}/api/bookings/my-applications/', 
         {
           headers: { Authorization: `Bearer ${token}` }
         }
