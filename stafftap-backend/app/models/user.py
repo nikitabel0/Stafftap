@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Date, Enum, Boolean, BigInteger,
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class UserRole(str, enum.Enum):
     employer = "employer"
@@ -16,6 +17,7 @@ class User(Base):
     last_name = Column(String, nullable=False)
     phone = Column(String, nullable=False, unique=True)
     birth_date = Column(Date, nullable=False)
+    avatar_url = Column(String, nullable=True, default=None)
     email = Column(String, nullable=False, unique=True)
     password_hash = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
@@ -26,3 +28,5 @@ class User(Base):
     rate_per_shift = Column(Numeric(10, 2), nullable=True)
     is_verified = Column(Boolean, default=False)
     is_blocked = Column(Boolean, default=False)
+    favorite_jobs = relationship("FavoriteJob", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")

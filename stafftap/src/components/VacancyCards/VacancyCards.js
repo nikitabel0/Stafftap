@@ -1,84 +1,95 @@
 import React from 'react';
-import { FiMapPin, FiClock, FiDollarSign, FiUser } from 'react-icons/fi';
+import { 
+  FiClock, 
+  FiMapPin, 
+  FiUsers, 
+  FiCalendar, 
+  FiDollarSign
+} from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 
 const VacancyCards = ({ vacancy, role }) => {
-  const {
-    title,
-    company,
-    date,
-    startTime,
-    endTime,
-    address,
-    salary,
-    status
-  } = vacancy;
-
+  const navigate = useNavigate();
   
-  const formatDate = (dateString) => {
-    const options = { day: 'numeric', month: 'long' };
-    return new Date(dateString).toLocaleDateString('ru-RU', options);
+  // Извлекаем свойства вакансии с проверкой
+  const title = vacancy?.title || 'Без названия';
+  const description = vacancy?.description || 'Описание отсутствует';
+  const rate = vacancy?.rate ?? 0;
+  const company = vacancy?.company_name || 'Компания не указана';
+  const address = vacancy?.address || 'Адрес не указан';
+  const workDate = vacancy?.work_date ? new Date(vacancy.work_date) : null;
+  const startTime = vacancy?.start_time || '--:--';
+  const endTime = vacancy?.end_time || '--:--';
+  const workersNeeded = vacancy?.workers_needed ?? 0;
+  const remainingSlots = vacancy?.remaining_slots ?? 0;
+
+  // Обработчик клика по вакансии
+  const handleVacancyClick = () => {
+    navigate(`/job/${vacancy.id}`);
   };
 
-  
-  const getStatusColor = () => {
-    switch (status) {
-      case 'pending': return '#3498db';
-      case 'confirmed': return '#2C8161';
-      case 'completed': return '#27ae60';
-      case 'canceled': return '#e74c3c';
-      default: return '#7f8c8d';
-    }
+  // Форматирование чисел
+  const formatNumber = (num) => {
+    const number = Number(num);
+    return isNaN(number) ? '0' : number.toLocaleString('ru-RU');
   };
 
-  
-  const getStatusText = () => {
-    switch (status) {
-      case 'pending': return 'Ожидает подтверждения';
-      case 'confirmed': return 'Подтверждена';
-      case 'completed': return 'Завершена';
-      case 'canceled': return 'Отменена';
-      default: return '';
-    }
+  // Форматирование даты
+  const formatDate = (date) => {
+    if (!date) return 'Дата не указана';
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
   };
 
   return (
-    <div className="vacancy-card">
-      <div className="card-header">
-        <h3>{title}</h3>
-        <div className="status-badge" style={{ backgroundColor: getStatusColor() }}>
-          {getStatusText()}
-        </div>
+    <div className="vacancy-card" onClick={handleVacancyClick}>
+      <div className="vacancy-header">
+        <h3 className="vacancy-title">{title}</h3>
+        <div className="vacancy-company">{company}</div>
       </div>
       
-      <div className="company-name">{company}</div>
-      
-      <div className="card-details">
-        <div className="detail-item">
-          <FiMapPin className="icon" />
-          <span>{address}</span>
-        </div>
+      <div className="vacancy-body">
+        <p className="vacancy-description">{description}</p>
         
-        <div className="detail-item">
-          <FiClock className="icon" />
-          <span>{formatDate(date)}, {startTime} - {endTime}</span>
+        <div className="vacancy-meta">
+          <div className="meta-item">
+            <FiDollarSign className="meta-icon" />
+            <span>{formatNumber(rate)} ₽</span>
+          </div>
+          
+          <div className="meta-item">
+            <FiCalendar className="meta-icon" />
+            <span>{formatDate(workDate)}</span>
+          </div>
+          
+          <div className="meta-item">
+            <FiClock className="meta-icon" />
+            <span>{startTime} - {endTime}</span>
+          </div>
+          
+          <div className="meta-item">
+            <FiMapPin className="meta-icon" />
+            <span>{address}</span>
+          </div>
+          
+          <div className="meta-item">
+            <FiUsers className="meta-icon" />
+            <span>
+              {remainingSlots > 0 ? (
+                <span className="slots-available">
+                  Осталось мест: {remainingSlots}/{workersNeeded}
+                </span>
+              ) : (
+                <span className="slots-full">
+                  Все места заполнены
+                </span>
+              )}
+            </span>
+          </div>
         </div>
-        
-        <div className="detail-item">
-          <FiDollarSign className="icon" />
-          <span>{salary.toLocaleString()} ₽</span>
-        </div>
-      </div>
-      
-      <div className="card-footer">
-        {role === 'worker' ? (
-          <button className="action-btn">
-            {status === 'confirmed' ? 'Подтвердить выход' : 'Подробнее'}
-          </button>
-        ) : (
-          <button className="action-btn">
-            {status === 'pending' ? 'Просмотреть отклики' : 'Управлять'}
-          </button>
-        )}
       </div>
     </div>
   );

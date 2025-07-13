@@ -13,3 +13,4 @@ from .chats import Chat, Message
 from .employer_documents import EmployerDocument
 from .disputes import Dispute
 from .admin_actions import AdminAction
+from .notification import Notification

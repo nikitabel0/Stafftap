@@ -3,13 +3,14 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from app.database import get_db
 from sqlalchemy.orm import Session
-from app.crud.user import get_user_by_id  # Импортируем существующую функцию
+from app.crud.user import get_user_by_id
 import os
+from typing import Optional
+from app.models import User
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 
-# Используем OAuth2PasswordBearer для автоматической обработки Bearer токенов
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 async def get_current_user(
@@ -22,22 +23,20 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    print(f"Received token: {token}")  # Логируем полученный токен
+    print(f"Received token: {token}")
     
     try:
-        # Убедимся, что токен не содержит префикс "Bearer "
         if token.startswith("Bearer "):
             token = token.split(" ")[1]
             
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"Decoded payload: {payload}")  # Логируем декодированные данные
+        print(f"Decoded payload: {payload}")
         
         user_id = payload.get("sub")
         if not user_id:
             print("User ID not found in token")
             raise credentials_exception
             
-        # Используем существующую функцию get_user_by_id
         user = get_user_by_id(db, int(user_id))
         if not user:
             print(f"User not found with ID: {user_id}")
@@ -52,3 +51,13 @@ async def get_current_user(
     except ValueError as e:
         print(f"Invalid user ID format: {str(e)}")
         raise credentials_exception
+
+# Новая зависимость для необязательной аутентификации
+async def get_current_user_optional(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> Optional[User]:  # Убедитесь, что импортировали Optional и User
+    try:
+        return await get_current_user(token, db)
+    except HTTPException:
+        return None

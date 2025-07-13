@@ -6,6 +6,7 @@ from typing import Optional, List,Dict
 class UserRole(str, Enum):
     employer = "employer"
     worker = "worker"
+    admin = "admin" 
 
 
 class UserCreate(BaseModel):

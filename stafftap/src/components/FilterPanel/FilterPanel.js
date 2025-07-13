@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { FiFilter, FiX } from 'react-icons/fi';
+import './FilterPanel.css'; // Импорт стилей
 
-const FilterPanel = ({ filters, onFilterChange, role }) => {
+const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
   
@@ -18,6 +19,7 @@ const FilterPanel = ({ filters, onFilterChange, role }) => {
   const applyFilters = () => {
     onFilterChange(localFilters);
     setIsExpanded(false);
+    if (onClose) onClose();
   };
 
   const resetFilters = () => {
@@ -30,11 +32,17 @@ const FilterPanel = ({ filters, onFilterChange, role }) => {
     setLocalFilters(reset);
     onFilterChange(reset);
     setIsExpanded(false);
+    if (onClose) onClose();
+  };
+
+  const handleExpand = () => {
+    setIsExpanded(!isExpanded);
+    if (isExpanded && onClose) onClose();
   };
 
   return (
     <div className={`filter-panel ${isExpanded ? 'expanded' : ''}`}>
-      <div className="filter-header" onClick={() => setIsExpanded(!isExpanded)}>
+      <div className="filter-header" onClick={handleExpand}>
         <FiFilter className="filter-icon" />
         <span>Фильтры</span>
         <div className="active-filters-count">
@@ -44,7 +52,7 @@ const FilterPanel = ({ filters, onFilterChange, role }) => {
       
       {isExpanded && (
         <div className="filter-content">
-          <button className="close-filters" onClick={() => setIsExpanded(false)}>
+          <button className="close-filters" onClick={handleExpand}>
             <FiX />
           </button>
           

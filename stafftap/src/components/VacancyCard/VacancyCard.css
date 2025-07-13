@@ -1,0 +1,581 @@
+.vacancy-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 20px;
+  border: 1px solid #eaeaea;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vacancy-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  position: relative;
+}
+
+.company-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  flex: 1;
+}
+
+.header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.company-logo {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.card-header h3 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.company-name {
+  font-size: 14px;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.favorite-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: white;
+  flex-shrink: 0;
+  margin-left: 10px;
+  position: relative;
+}
+
+.favorite-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.favorite-icon {
+  font-size: 18px;
+  transition: opacity 0.3s;
+}
+
+.filled-heart {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ff9800;
+  fill: #ff9800;
+  font-size: 18px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.favorite-btn.active .favorite-icon {
+  opacity: 0;
+}
+
+.favorite-btn.active .filled-heart {
+  opacity: 1;
+}
+
+.card-content {
+  padding: 20px;
+  background: #fff;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.description {
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  font-size: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+  flex: 1;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: #444;
+  min-height: 24px;
+}
+
+.detail-item .icon {
+  color: #2C8161;
+  font-size: 16px;
+  min-width: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.requirements {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.requirements strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.requirements ul {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.requirements li {
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #555;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f9f9f9;
+  border-top: 1px solid #eee;
+  gap: 15px;
+  flex-shrink: 0;
+}
+
+.workers-needed {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apply-btn {
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(44, 129, 97, 0.2);
+  flex-shrink: 0;
+  min-width: 120px;
+  text-align: center;
+}
+
+.apply-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(44, 129, 97, 0.3);
+}
+
+.apply-btn.employer {
+  background: linear-gradient(to right, #3498DB, #4AA9E2);
+  box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+}
+
+.apply-btn.employer:hover {
+  box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+  }
+  
+  .favorite-btn {
+    position: static;
+    margin-left: 0;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .workers-needed {
+    text-align: center;
+    white-space: normal;
+    margin-bottom: 5px;
+  }
+  
+  .apply-btn {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .company-info {
+    gap: 10px;
+  }
+  
+  .company-logo {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  .card-header h3 {
+    font-size: 16px;
+  }
+  
+  .description {
+    font-size: 14px;
+  }
+  
+  .detail-item {
+    font-size: 13px;
+  }
+  
+  .apply-btn {
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+}
+
+/* Добавляем эти стили в конец файла VacancyCard.css */
+
+.apply-btn {
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(44, 129, 97, 0.2);
+  flex-shrink: 0;
+  min-width: 120px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.apply-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(44, 129, 97, 0.3);
+}
+
+.apply-btn:disabled {
+  background: #cccccc;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.apply-btn.applied {
+  background: linear-gradient(to right, #3498DB, #4AA9E2);
+  box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+}
+
+.apply-btn.applied:hover:not(:disabled) {
+  box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+}
+
+.apply-btn .icon {
+  font-size: 16px;
+  margin: 0;
+}
+
+.apply-error {
+  color: #e74c3c;
+  background-color: #ffebee;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 10px;
+  border: 1px solid #ffcdd2;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Для состояния "Отправка..." */
+.apply-btn.sending {
+  opacity: 0.8;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.8; }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .workers-needed {
+    text-align: center;
+    white-space: normal;
+    margin-bottom: 5px;
+  }
+  
+  .apply-btn {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .apply-btn {
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+  
+  .apply-error {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+/* VacancyCard.css - Дополнения */
+.apply-btn {
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(44, 129, 97, 0.2);
+  flex-shrink: 0;
+  min-width: 120px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.apply-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(44, 129, 97, 0.3);
+}
+
+.apply-btn:disabled {
+  background: #cccccc;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.apply-btn.applied {
+  background: linear-gradient(to right, #3498DB, #4AA9E2);
+  box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2);
+}
+
+.apply-btn.applied:hover:not(:disabled) {
+  box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+}
+
+.apply-btn .icon {
+  font-size: 16px;
+  margin: 0;
+}
+
+.apply-btn.sending {
+  opacity: 0.8;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.8; }
+}
+
+.apply-error {
+  color: #e74c3c;
+  background-color: #ffebee;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 10px;
+  border: 1px solid #ffcdd2;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .workers-needed {
+    text-align: center;
+    white-space: normal;
+    margin-bottom: 5px;
+  }
+  
+  .apply-btn {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .apply-btn {
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+  
+  .apply-error {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+/* VacancyCard.css - Дополнения для избранного */
+.favorite-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: white;
+  flex-shrink: 0;
+  margin-left: 10px;
+  position: relative;
+}
+
+.favorite-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.favorite-icon {
+  font-size: 18px;
+  transition: opacity 0.3s;
+}
+
+.filled-heart {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ff9800;
+  font-size: 18px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.favorite-btn.active .favorite-icon {
+  opacity: 0;
+}
+
+.favorite-btn.active .filled-heart {
+  opacity: 1;
+  color: #ff9800;
+}
+
+/* Анимация для активного состояния */
+.favorite-btn.active {
+  animation: heartBeat 0.6s ease;
+}
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(0.9); }
+  75% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
