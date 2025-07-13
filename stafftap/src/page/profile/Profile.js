@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiPlus, FiFile, FiDownload, FiTrash2, FiCamera, FiCheckCircle, FiXCircle, FiUser, FiLock, FiUnlock } from 'react-icons/fi';
+import { 
+  FiPlus, FiFile, FiDownload, FiTrash2, FiCamera, FiCheckCircle, FiXCircle, 
+  FiUser, FiLock, FiUnlock, FiBarChart2, FiFileText, FiCheck, FiX, FiSearch 
+} from 'react-icons/fi';
 import './ProfilePage.css';
 import SkillsList from '../../components/SkillsList/SkillsList';
 import AvailabilityCalendar from '../../components/AvailabilityCalendar/AvailabilityCalendar';
@@ -89,6 +92,92 @@ const transformUser = (userData) => {
   };
 };
 
+// Компонент статистики платформы
+const PlatformStatistics = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_BASE_URL}/api/admin/statistics`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setStats(response.data);
+      } catch (err) {
+        setError('Ошибка загрузки статистики');
+        console.error('Ошибка загрузки статистики:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return <div className="admin-loading">Загрузка статистики...</div>;
+  }
+
+  if (error) {
+    return <div className="admin-error">{error}</div>;
+  }
+
+  return (
+    <div className="platform-statistics">
+      <h2>Статистика платформы</h2>
+      
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon"><FiUser /></div>
+          <div className="stat-value">{stats.total_users}</div>
+          <div className="stat-label">Пользователей</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon"><FiBarChart2 /></div>
+          <div className="stat-value">{stats.active_jobs}</div>
+          <div className="stat-label">Активных вакансий</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon"><FiCheckCircle /></div>
+          <div className="stat-value">{stats.completed_jobs}</div>
+          <div className="stat-label">Завершенных смен</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon"><FiFileText /></div>
+          <div className="stat-value">{stats.pending_documents}</div>
+          <div className="stat-label">Документов на проверке</div>
+        </div>
+      </div>
+      
+      <div className="stats-charts">
+        <div className="chart-container">
+          <h3>Регистрации пользователей</h3>
+          <div className="chart-placeholder">
+            {/* Здесь будет график */}
+            <p>График регистраций по дням</p>
+          </div>
+        </div>
+        
+        <div className="chart-container">
+          <h3>Распределение по ролям</h3>
+          <div className="chart-placeholder">
+            {/* Здесь будет круговая диаграмма */}
+            <p>Круговая диаграмма: {stats.workers} работников, {stats.employers} работодателей</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Компонент модерации вакансий для администратора
 const AdminJobsModeration = () => {
   const [jobs, setJobs] = useState([]);
@@ -99,7 +188,7 @@ const AdminJobsModeration = () => {
     const fetchJobs = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/jobs/moderation`, {
+        const response = await axios.get(`${API_BASE_URL}/api/admin/jobs/moderation`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -119,7 +208,7 @@ const AdminJobsModeration = () => {
   const handleStatusChange = async (jobId, status) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`${API_BASE_URL}/api/jobs/${jobId}/status`, 
+      await axios.patch(`${API_BASE_URL}/api/admin/jobs/${jobId}/status`, 
         { status },
         {
           headers: {
@@ -227,38 +316,50 @@ const AdminUsersManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10;
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/api/admin/users`, {
+        params: {
+          page: currentPage,
+          page_size: pageSize,
+          search: searchTerm
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      setUsers(response.data.users || []);
+      setTotalPages(response.data.total_pages || 1);
+      setError(null);
+    } catch (err) {
+      setError('Ошибка загрузки пользователей');
+      console.error('Ошибка загрузки пользователей:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/admin/users`, {
-          params: {
-            page: currentPage,
-            page_size: pageSize,
-            search: searchTerm
-          },
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        
-        setUsers(response.data.users);
-        setTotalPages(response.data.total_pages);
-      } catch (err) {
-        setError('Ошибка загрузки пользователей');
-        console.error('Ошибка загрузки пользователей:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchUsers();
   }, [currentPage, searchTerm]);
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const handleBlockToggle = async (userId, isBlocked) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`${API_BASE_URL}/api/admin/users/${userId}/block`, 
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/users/${userId}/block`,
         { is_blocked: !isBlocked },
         {
           headers: {
@@ -266,10 +367,7 @@ const AdminUsersManagement = () => {
           }
         }
       );
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_blocked: !isBlocked } : user
-      ));
+      fetchUsers(); // Перезагружаем данные
     } catch (err) {
       console.error('Ошибка изменения статуса блокировки:', err);
       setError('Не удалось изменить статус блокировки');
@@ -279,7 +377,8 @@ const AdminUsersManagement = () => {
   const handleVerifyToggle = async (userId, isVerified) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`${API_BASE_URL}/api/admin/users/${userId}/verify`, 
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/users/${userId}/verify`,
         { is_verified: !isVerified },
         {
           headers: {
@@ -287,10 +386,7 @@ const AdminUsersManagement = () => {
           }
         }
       );
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_verified: !isVerified } : user
-      ));
+      fetchUsers(); // Перезагружаем данные
     } catch (err) {
       console.error('Ошибка изменения статуса верификации:', err);
       setError('Не удалось изменить статус верификации');
@@ -300,7 +396,8 @@ const AdminUsersManagement = () => {
   const handleRoleChange = async (userId, newRole) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`${API_BASE_URL}/api/admin/users/${userId}/role`, 
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/users/${userId}/role`,
         { role: newRole },
         {
           headers: {
@@ -308,23 +405,11 @@ const AdminUsersManagement = () => {
           }
         }
       );
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
+      fetchUsers(); // Перезагружаем данные
     } catch (err) {
       console.error('Ошибка изменения роли:', err);
       setError('Не удалось изменить роль пользователя');
     }
-  };
-
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
   };
 
   if (loading) {
@@ -340,6 +425,7 @@ const AdminUsersManagement = () => {
       <h2>Управление пользователями</h2>
       
       <div className="admin-search">
+        <FiSearch className="search-icon" />
         <input
           type="text"
           placeholder="Поиск по email, имени или компании..."
@@ -399,13 +485,15 @@ const AdminUsersManagement = () => {
                     className={`action-btn ${user.is_verified ? 'unverify' : 'verify'}`}
                     onClick={() => handleVerifyToggle(user.id, user.is_verified)}
                   >
-                    {user.is_verified ? 'Снять верификацию' : 'Верифицировать'}
+                    {user.is_verified ? <FiX /> : <FiCheck />}
+                    {user.is_verified ? ' Снять верификацию' : ' Верифицировать'}
                   </button>
                   <button
                     className={`action-btn ${user.is_blocked ? 'unblock' : 'block'}`}
                     onClick={() => handleBlockToggle(user.id, user.is_blocked)}
                   >
-                    {user.is_blocked ? 'Разблокировать' : 'Заблокировать'}
+                    {user.is_blocked ? <FiUnlock /> : <FiLock />}
+                    {user.is_blocked ? ' Разблокировать' : ' Заблокировать'}
                   </button>
                 </td>
               </tr>
@@ -425,6 +513,122 @@ const AdminUsersManagement = () => {
             >
               {page}
             </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Компонент модерации документов
+const AdminDocumentsModeration = () => {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_BASE_URL}/api/admin/documents`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setDocuments(response.data);
+      } catch (err) {
+        setError('Ошибка загрузки документов');
+        console.error('Ошибка загрузки документов:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDocuments();
+  }, []);
+
+  const handleStatusChange = async (docId, status) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch(`${API_BASE_URL}/api/admin/documents/${docId}/status`, 
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      setDocuments(documents.filter(doc => doc.id !== docId));
+    } catch (err) {
+      console.error('Ошибка изменения статуса документа:', err);
+      setError('Не удалось изменить статус');
+    }
+  };
+
+  if (loading) {
+    return <div className="admin-loading">Загрузка документов...</div>;
+  }
+
+  if (error) {
+    return <div className="admin-error">{error}</div>;
+  }
+
+  return (
+    <div className="admin-documents-moderation">
+      <h2>Документы на проверке</h2>
+      
+      {documents.length === 0 ? (
+        <div className="no-documents">
+          <p>Нет документов для проверки</p>
+        </div>
+      ) : (
+        <div className="documents-list">
+          {documents.map(doc => (
+            <div key={doc.id} className="moderation-doc-card">
+              <div className="doc-header">
+                <h3>{doc.document_type}</h3>
+                <span className="user">От: {doc.user.first_name} {doc.user.last_name}</span>
+              </div>
+              
+              <div className="doc-details">
+                <div className="detail">
+                  <strong>Компания:</strong>
+                  <span>{doc.user.company_name}</span>
+                </div>
+                
+                <div className="detail">
+                  <strong>Загружено:</strong>
+                  <span>{new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}</span>
+                </div>
+              </div>
+              
+              <div className="doc-preview">
+                <a 
+                  href={doc.file_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="preview-link"
+                >
+                  <FiFile className="file-icon" />
+                  <span>Просмотреть документ</span>
+                </a>
+              </div>
+              
+              <div className="doc-actions">
+                <button 
+                  className="approve-btn"
+                  onClick={() => handleStatusChange(doc.id, 'approved')}
+                >
+                  <FiCheck /> Одобрить
+                </button>
+                <button 
+                  className="reject-btn"
+                  onClick={() => handleStatusChange(doc.id, 'rejected')}
+                >
+                  <FiX /> Отклонить
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -809,16 +1013,28 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         {isAdmin ? (
           <>
             <button 
+              className={`tab-btn ${activeTab === 'admin-stats' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin-stats')}
+            >
+              <FiBarChart2 /> Статистика
+            </button>
+            <button 
               className={`tab-btn ${activeTab === 'admin-jobs' ? 'active' : ''}`}
               onClick={() => setActiveTab('admin-jobs')}
             >
-              Модерация вакансий
+              <FiFileText /> Вакансии
             </button>
             <button 
               className={`tab-btn ${activeTab === 'admin-users' ? 'active' : ''}`}
               onClick={() => setActiveTab('admin-users')}
             >
-              Управление пользователями
+              <FiUser /> Пользователи
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'admin-docs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin-docs')}
+            >
+              <FiFile /> Документы
             </button>
           </>
         ) : (
@@ -1137,12 +1353,20 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           </div>
         )}
         
+        {isAdmin && activeTab === 'admin-stats' && (
+          <PlatformStatistics />
+        )}
+        
         {isAdmin && activeTab === 'admin-jobs' && (
           <AdminJobsModeration />
         )}
         
         {isAdmin && activeTab === 'admin-users' && (
           <AdminUsersManagement />
+        )}
+        
+        {isAdmin && activeTab === 'admin-docs' && (
+          <AdminDocumentsModeration />
         )}
       </div>
     </div>
