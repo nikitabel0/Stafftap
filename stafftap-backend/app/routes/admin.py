@@ -1,0 +1,333 @@
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, status
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+from typing import List, Optional
+from app.models import Notification
+from app.database import get_db
+from app.models import User, Job, EmployerDocument, Booking
+from app.schemas.job import JobOut 
+from app.schemas.admin import StatisticsResponse 
+from app.dependencies import get_current_user
+
+router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+# Зависимость для проверки администратора
+def get_current_admin_user(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для выполнения операции"
+        )
+    return current_user
+
+@router.get("/statistics", response_model=StatisticsResponse)
+def get_platform_statistics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    # Общая статистика
+    total_users = db.query(func.count(User.id)).scalar()
+    workers = db.query(func.count(User.id)).filter(User.role == "worker").scalar()
+    employers = db.query(func.count(User.id)).filter(User.role == "employer").scalar()
+    
+    # Статистика по вакансиям
+    active_jobs = db.query(func.count(Job.id)).filter(Job.status == "active").scalar()
+    completed_jobs = db.query(func.count(Job.id)).filter(Job.status == "completed").scalar()
+    
+    # Документы на проверке
+    pending_documents = db.query(func.count(EmployerDocument.id)).filter(
+        EmployerDocument.status == "pending"
+    ).scalar()
+    
+    return {
+        "total_users": total_users,
+        "workers": workers,
+        "employers": employers,
+        "active_jobs": active_jobs,
+        "completed_jobs": completed_jobs,
+        "pending_documents": pending_documents
+    }
+
+@router.get("/users")
+def get_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    search: str = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    # Вычисляем смещение
+    offset = (page - 1) * page_size
+    
+    # Формируем запрос
+    query = db.query(User)
+    
+    if search:
+        # Ищем по email, имени, фамилии или компании
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            User.email.ilike(search_pattern) |
+            User.first_name.ilike(search_pattern) |
+            User.last_name.ilike(search_pattern) |
+            User.company_name.ilike(search_pattern)
+        )
+    
+    total_users = query.count()
+    total_pages = (total_users + page_size - 1) // page_size
+    
+    users = query.offset(offset).limit(page_size).all()
+    
+    return {
+        "users": users,
+        "total_pages": total_pages
+    }
+
+@router.patch("/users/{user_id}/block")
+def toggle_user_block(
+    user_id: int,
+    is_blocked: bool = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    user.is_blocked = is_blocked
+    db.commit()
+    return {"status": "blocked" if is_blocked else "unblocked"}
+
+@router.patch("/users/{user_id}/verify")
+def toggle_user_verify(
+    user_id: int,
+    is_verified: bool = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    user.is_verified = is_verified
+    db.commit()
+    return {"status": "verified" if is_verified else "unverified"}
+
+@router.patch("/users/{user_id}/role")
+def change_user_role(
+    user_id: int,
+    role: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    if role not in ["worker", "employer", "admin"]:
+        raise HTTPException(status_code=400, detail="Недопустимая роль")
+    
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    user.role = role
+    db.commit()
+    return {"status": "role updated"}
+
+@router.get("/documents")
+def get_documents_for_moderation(
+    status: str = Query("pending", description="Статус документов"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    documents = db.query(EmployerDocument).options(
+        joinedload(EmployerDocument.user)
+    ).filter(
+        EmployerDocument.status == status
+    ).all()
+    
+    return [
+        {
+            "id": doc.id,
+            "document_type": doc.document_type,
+            "file_url": doc.file_url,
+            "status": doc.status,
+            "uploaded_at": doc.uploaded_at,
+            "user": {
+                "id": doc.user.id,
+                "first_name": doc.user.first_name,
+                "last_name": doc.user.last_name,
+                "company_name": doc.user.company_name
+            }
+        }
+        for doc in documents
+    ]
+
+@router.patch("/documents/{doc_id}/status")
+def update_document_status(
+    doc_id: int,
+    status: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    valid_statuses = ["pending", "approved", "rejected"]
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Недопустимый статус. Допустимые значения: {', '.join(valid_statuses)}"
+        )
+    
+    document = db.query(EmployerDocument).get(doc_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+    
+    document.status = status
+    db.commit()
+    
+    # Если документ одобрен, помечаем пользователя как верифицированного
+    if status == "approved":
+        user = db.query(User).get(document.user_id)
+        if user and not user.is_verified:
+            user.is_verified = True
+            db.commit()
+    
+    return {"status": "updated"}
+@router.get("/jobs/moderation", response_model=List[JobOut])
+def get_jobs_for_moderation(
+    status: str = Query("moderation", description="Статус вакансий"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    # Проверка валидности статуса
+    valid_statuses = ["moderation", "active", "rejected", "completed", "canceled"]
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Недопустимый статус. Допустимые значения: {', '.join(valid_statuses)}"
+        )
+    
+    # Подзапрос для подсчета подтвержденных бронирований
+    confirmed_subq = db.query(
+        Booking.job_id,
+        func.count(Booking.id).label('confirmed_count')
+    ).filter(
+        Booking.status == "confirmed"
+    ).group_by(Booking.job_id).subquery()
+
+    # Основной запрос
+    query = db.query(
+        Job,
+        func.coalesce(confirmed_subq.c.confirmed_count, 0).label('confirmed_count')
+    ).options(
+        joinedload(Job.required_skill),
+        joinedload(Job.employer)
+    ).outerjoin(confirmed_subq, Job.id == confirmed_subq.c.job_id) \
+     .filter(Job.status == status)
+
+    results = query.all()
+    
+    if not results:
+        return []
+    
+    # Формирование результата
+    result = []
+    for job, confirmed_count in results:
+        employer = job.employer
+        company_name = employer.company_name if employer else "Компания не указана"
+        
+        remaining = job.workers_needed - confirmed_count
+        skill_name = job.required_skill.name if job.required_skill else "Не указано"
+        
+        # Конвертация времени в строку
+        start_time_str = job.start_time.strftime("%H:%M") if job.start_time else ""
+        end_time_str = job.end_time.strftime("%H:%M") if job.end_time else ""
+        
+        result.append(JobOut(
+            id=job.id,
+            title=job.title,
+            description=job.description,
+            required_skill_id=job.required_skill_id,
+            required_skill_name=skill_name,
+            work_date=job.work_date,
+            start_time=start_time_str,
+            end_time=end_time_str,
+            rate=float(job.rate),
+            address=job.address,
+            workers_needed=job.workers_needed,
+            remaining_slots=remaining,
+            company_name=company_name,
+            employer_id=job.employer_id,
+            created_at=job.created_at,
+            employer_rating=0.0,  # Для модерации не обязательно
+            employer_verified=employer.is_verified if employer else False,
+            completed_jobs=0  # Для модерации не обязательно
+        ))
+    
+    return result
+
+@router.patch("/jobs/{job_id}/status")
+def update_job_status(
+    job_id: int,
+    new_status: str = Body(..., embed=True, alias="status"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    valid_statuses = ["moderation", "active", "rejected", "completed", "canceled"]
+    if new_status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Недопустимый статус. Допустимые значения: {', '.join(valid_statuses)}"
+        )
+    
+    job = db.query(Job).get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Вакансия не найдена")
+    
+    # Получаем пользователя-работодателя
+    employer = db.query(User).get(job.employer_id)
+    if not employer:
+        raise HTTPException(status_code=404, detail="Работодатель не найден")
+    
+    # Если меняем статус на активный, проверяем, что вакансия была на модерации
+    if new_status == "active" and job.status != "moderation":
+        raise HTTPException(
+            status_code=400,
+            detail="Можно активировать только вакансии на модерации"
+        )
+    
+    job.status = new_status
+    db.commit()
+    
+    # Если вакансия отклонена или отменена, отменяем все бронирования
+    if new_status in ["rejected", "canceled"]:
+        bookings = db.query(Booking).filter(
+            Booking.job_id == job_id,
+            Booking.status.in_(["pending", "confirmed"])
+        ).all()
+        
+        for booking in bookings:
+            booking.status = "canceled"
+        
+        db.commit()
+    
+    # Создаем уведомление для работодателя
+    notification = None
+    
+    if new_status == "active":
+        notification = Notification(
+            user_id=job.employer_id,
+            type="job_moderation",
+            title="Вакансия прошла модерацию",
+            message=f'Ваша вакансия "{job.title}" прошла модерацию и теперь активна',
+            related_id=job_id
+        )
+    elif new_status == "rejected":
+        notification = Notification(
+            user_id=job.employer_id,
+            type="job_moderation",
+            title="Вакансия отклонена",
+            message=f'Ваша вакансия "{job.title}" отклонена модератором',
+            related_id=job_id
+        )
+    
+    if notification:
+        db.add(notification)
+        db.commit()
+    
+    return {"status": "updated", "new_status": new_status}

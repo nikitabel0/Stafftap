@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship
 class UserRole(str, enum.Enum):
     employer = "employer"
     worker = "worker"
+    admin = "admin" 
 
 class User(Base):
     __tablename__ = "users"
@@ -30,3 +31,4 @@ class User(Base):
     is_blocked = Column(Boolean, default=False)
     favorite_jobs = relationship("FavoriteJob", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+

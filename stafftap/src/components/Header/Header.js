@@ -61,7 +61,7 @@ const Header = () => {
         if (token) {
           // Уведомления
           const notificationsResponse = await axios.get(
-            ' ${API_BASE_URL}/api/notifications/unread-count',
+            `${API_BASE_URL}/api/notifications/unread-count`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setNotificationCount(notificationsResponse.data.count);

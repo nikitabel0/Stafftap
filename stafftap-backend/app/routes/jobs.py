@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Job, Skill, Booking, User, Review  
 from app.schemas.job import JobDetail, JobOut, JobCreate, ConfirmedWorker
 from app.schemas.booking import BookingWithJobOut
+from datetime import datetime, time
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -133,14 +134,17 @@ def create_job(
                 detail="Invalid skill ID"
             )
     
+    # УБИРАЕМ РУЧНОЙ ПАРСИНГ ВРЕМЕНИ
+    # Используем время напрямую из валидированных данных
+    
     new_job = Job(
         employer_id=current_user.id,
         title=job_data.title,
         description=job_data.description,
         required_skill_id=job_data.required_skill_id,
         work_date=job_data.work_date,
-        start_time=time.fromisoformat(job_data.start_time),
-        end_time=time.fromisoformat(job_data.end_time),
+        start_time=job_data.start_time,  # Используем напрямую из схемы
+        end_time=job_data.end_time,      # Используем напрямую из схемы
         address=job_data.address,
         rate=job_data.rate,
         workers_needed=job_data.workers_needed,
@@ -198,7 +202,7 @@ def get_job_details(
     ).count()
     remaining_slots = job.workers_needed - confirmed_count
 
-    # Формируем список подтвержденных работников в новом формате
+    # Формируем список подтвержденных работников
     workers_list = []
     for worker_booking in confirmed_workers:
         worker = worker_booking.worker
@@ -208,7 +212,6 @@ def get_job_details(
             last_name=worker.last_name,
             phone=worker.phone,
             avatar_url=worker.avatar_url,
-            # Для этого эндпоинта не загружаем рейтинг и смены (опционально)
             rating=None,
             completed_shifts=None
         ))
@@ -220,8 +223,8 @@ def get_job_details(
         required_skill_id=job.required_skill_id,
         required_skill_name=job.required_skill.name if job.required_skill else "Не указано",
         work_date=job.work_date,
-        start_time=job.start_time,
-        end_time=job.end_time,
+        start_time=job.start_time,  # Используем объект времени напрямую
+        end_time=job.end_time,      # Используем объект времени напрямую
         rate=float(job.rate),
         address=job.address,
         workers_needed=job.workers_needed,
@@ -234,9 +237,9 @@ def get_job_details(
         completed_jobs=completed_jobs,
         employer_verified=employer.is_verified,
         is_favorite=is_favorite,
-        confirmed_workers=workers_list  # Используем новый формат
+        confirmed_workers=workers_list
     )
-    
+
 
 @router.post("/{job_id}/favorite")
 def toggle_job_favorite(
