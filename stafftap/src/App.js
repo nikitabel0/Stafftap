@@ -77,7 +77,7 @@ function App() {
 
       // Отправка запроса на сервер
       const response = await axios.put(
-        `http://localhost:8000/api/users/${user.id}`,
+        `${API_BASE_URL}/api/users/${user.id}`,
         dataToSend,
         {
           headers: {

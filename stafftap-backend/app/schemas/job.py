@@ -1,5 +1,6 @@
+# app/schemas/job.py
 from datetime import date, time, datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 
 class ConfirmedWorker(BaseModel):
@@ -13,34 +14,29 @@ class ConfirmedWorker(BaseModel):
 
     class Config:
         orm_mode = True
-
 class JobBase(BaseModel):
     title: str
     description: str
     required_skill_id: Optional[int] = None
     work_date: date
-    start_time: time
-    end_time: time
+    start_time: str  # Изменено на str
+    end_time: str    # Изменено на str
     rate: float
     address: str
     workers_needed: int
+
+    @field_validator('start_time', 'end_time', mode='before')
+    def parse_time(cls, value):
+        if isinstance(value, time):
+            return value.strftime("%H:%M:%S")
+        return value
 
 class JobCreate(JobBase):
-    start_time: str  # в формате "HH:MM:SS"
-    end_time: str    # в формате "HH:MM:SS"
-
-class JobOut(BaseModel):
+    # Теперь использует строки напрямую
+    pass
+class JobOut(JobBase):
     id: int
-    title: str
-    description: str
-    required_skill_id: Optional[int]
     required_skill_name: str
-    work_date: date
-    start_time: time
-    end_time: time
-    rate: float
-    address: str
-    workers_needed: int
     remaining_slots: int
     company_name: str
     employer_id: int

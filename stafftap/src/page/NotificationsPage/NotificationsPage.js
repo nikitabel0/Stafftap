@@ -7,8 +7,13 @@ import {
   FiXCircle,
   FiClock,
   FiMessageSquare,
+  FiFileText,
+  FiAlertCircle,
+  FiUserPlus
 } from "react-icons/fi";
 import API_BASE_URL from '../../apiConfig';
+import './NotificationsPage.css';
+
 
 const NotificationsPage = ({ user }) => {
   const [notifications, setNotifications] = useState([]);
@@ -20,7 +25,7 @@ const NotificationsPage = ({ user }) => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          ` ${API_BASE_URL}/api/notifications`,
+          `${API_BASE_URL}/api/notifications`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setNotifications(response.data);
@@ -38,7 +43,7 @@ const NotificationsPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        ` ${API_BASE_URL}/api/notifications/${id}/read`,
+        `${API_BASE_URL}/api/notifications/${id}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -54,7 +59,7 @@ const NotificationsPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        ` ${API_BASE_URL}/api/bookings/${bookingId}/confirm`,
+        `${API_BASE_URL}/api/bookings/${bookingId}/confirm`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -71,7 +76,7 @@ const NotificationsPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        ` ${API_BASE_URL}/api/bookings/${bookingId}/reject`,
+        `${API_BASE_URL}/api/bookings/${bookingId}/reject`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -88,7 +93,7 @@ const NotificationsPage = ({ user }) => {
       const token = localStorage.getItem("token");
       // Используем POST запрос для создания/получения чата
       const response = await axios.post(
-        ` ${API_BASE_URL}/api/chats/start/${bookingId}`,
+        `${API_BASE_URL}/api/chats/start/${bookingId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -101,6 +106,10 @@ const NotificationsPage = ({ user }) => {
     }
   };
 
+  const handleViewJob = (jobId) => {
+    navigate(`/job/${jobId}`);
+  };
+
   const formatDateTime = (dateString) => {
     const options = {
       day: "numeric",
@@ -109,6 +118,22 @@ const NotificationsPage = ({ user }) => {
       minute: "2-digit",
     };
     return new Date(dateString).toLocaleDateString("ru-RU", options);
+  };
+
+  // Функция для получения иконки по типу уведомления
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "job_moderation":
+        return <FiFileText className="notification-icon job-moderation" />;
+      case "booking_request":
+        return <FiUserPlus className="notification-icon booking-request" />;
+      case "booking_confirmed":
+        return <FiCheckCircle className="notification-icon booking-confirmed" />;
+      case "job_canceled":
+        return <FiAlertCircle className="notification-icon job-canceled" />;
+      default:
+        return <FiBell className="notification-icon" />;
+    }
   };
 
   if (isLoading) {
@@ -142,6 +167,7 @@ const NotificationsPage = ({ user }) => {
               }`}
             >
               <div className="notification-header">
+                {getNotificationIcon(notification.type)}
                 <h3>{notification.title}</h3>
                 <span className="notification-time">
                   <FiClock /> {formatDateTime(notification.created_at)}
@@ -187,6 +213,17 @@ const NotificationsPage = ({ user }) => {
                       }
                     >
                       <FiMessageSquare /> Перейти в чат
+                    </button>
+                  </div>
+                )}
+                
+                {(notification.type === "job_moderation" || notification.type === "job_canceled") && (
+                  <div className="notification-actions">
+                    <button
+                      className="view-job-button"
+                      onClick={() => handleViewJob(notification.related_id)}
+                    >
+                      Посмотреть вакансию
                     </button>
                   </div>
                 )}
