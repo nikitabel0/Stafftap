@@ -13,10 +13,24 @@ ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+# Функция для декодирования токена (будет использоваться в нескольких местах)
+def decode_jwt_token(token: str) -> dict:
+    """Декодирует JWT токен и возвращает payload"""
+    try:
+        # Убираем префикс "Bearer " если он есть
+        if token.startswith("Bearer "):
+            token = token.split(" ")[1]
+            
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        print(f"JWT decoding error: {str(e)}")
+        return None
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
-):
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -25,38 +39,53 @@ async def get_current_user(
     
     print(f"Received token: {token}")
     
-    try:
-        if token.startswith("Bearer "):
-            token = token.split(" ")[1]
-            
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"Decoded payload: {payload}")
+    payload = decode_jwt_token(token)
+    if not payload:
+        print("Token decoding failed")
+        raise credentials_exception
         
-        user_id = payload.get("sub")
-        if not user_id:
-            print("User ID not found in token")
-            raise credentials_exception
-            
-        user = get_user_by_id(db, int(user_id))
-        if not user:
-            print(f"User not found with ID: {user_id}")
-            raise credentials_exception
-            
-        print(f"Authenticated user: {user.id} - {user.email}")
-        return user
-            
-    except JWTError as e:
-        print(f"JWT decoding error: {str(e)}")
+    user_id = payload.get("sub")
+    if not user_id:
+        print("User ID not found in token")
         raise credentials_exception
-    except ValueError as e:
-        print(f"Invalid user ID format: {str(e)}")
+        
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        print(f"Invalid user ID format: {user_id}")
         raise credentials_exception
+        
+    user = get_user_by_id(db, user_id)
+    if not user:
+        print(f"User not found with ID: {user_id}")
+        raise credentials_exception
+        
+    print(f"Authenticated user: {user.id} - {user.email}")
+    return user
+
+# Новая функция для аутентификации в WebSocket
+async def get_current_user_from_token(token: str, db: Session) -> Optional[User]:
+    """Аутентификация пользователя по токену для WebSocket соединений"""
+    payload = decode_jwt_token(token)
+    if not payload:
+        return None
+        
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+        
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        return None
+        
+    return get_user_by_id(db, user_id)
 
 # Новая зависимость для необязательной аутентификации
 async def get_current_user_optional(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
-) -> Optional[User]:  # Убедитесь, что импортировали Optional и User
+) -> Optional[User]:
     try:
         return await get_current_user(token, db)
     except HTTPException:

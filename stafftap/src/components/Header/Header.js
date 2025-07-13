@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { 
@@ -23,6 +23,7 @@ const Header = () => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   
+  const wsRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -53,37 +54,91 @@ const Header = () => {
     else if (path.includes("/notifications")) setActiveTab("notifications");
   }, [location]);
 
-  // Загрузка количества уведомлений
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          // Уведомления
-          const notificationsResponse = await axios.get(
-            `${API_BASE_URL}/api/notifications/unread-count`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setNotificationCount(notificationsResponse.data.count);
-          
-          // Непрочитанные сообщения
-          const chatsResponse = await axios.get(
-            `${API_BASE_URL}/api/chats/unread-total`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setChatUnreadCount(chatsResponse.data.total_unread);
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке данных:', error);
+  const getCurrentUserId = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(window.atob(base64));
+      return payload.sub;
+    } catch (e) {
+      console.error('Failed to parse user ID', e);
+      return null;
+    }
+  };
+
+  const connectWebSocket = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    const userId = getCurrentUserId();
+    if (!userId) return;
+    
+    const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/api/chats/ws?token=${token}`;
+    wsRef.current = new WebSocket(wsUrl);
+    
+    wsRef.current.onopen = () => {
+      console.log('WebSocket connected for chats');
+    };
+    
+    wsRef.current.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      console.log('WebSocket message:', message);
+      
+      if (message.type === 'chat_unread_update') {
+        setChatUnreadCount(message.count);
       }
     };
-
-    fetchCounts();
     
-    // Обновляем счетчики при смене страниц
-    const interval = setInterval(fetchCounts, 60000); // Каждую минуту
-    return () => clearInterval(interval);
-  }, [location.pathname]);
+    wsRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    wsRef.current.onclose = () => {
+      console.log('WebSocket disconnected. Reconnecting in 5 seconds...');
+      setTimeout(connectWebSocket, 5000);
+    };
+  };
+
+  const fetchCounts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Уведомления
+        const notificationsResponse = await axios.get(
+          `${API_BASE_URL}/api/notifications/unread-count`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setNotificationCount(notificationsResponse.data.count);
+        
+        // Непрочитанные сообщения
+        const chatsResponse = await axios.get(
+          `${API_BASE_URL}/api/chats/unread-total`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setChatUnreadCount(chatsResponse.data.total_unread);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке данных:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+    connectWebSocket();
+    
+    // Периодическая проверка каждые 30 секунд
+    const intervalId = setInterval(fetchCounts, 30000);
+    
+    return () => {
+      clearInterval(intervalId);
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
 
   const navigateTo = (path) => {
     navigate(path);
@@ -93,18 +148,19 @@ const Header = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
     navigate('/login');
   };
 
   return (
     <>
-      {/* Основной хедер */}
       <header className={`header ${isHomePage && !scrolled ? 'transparent' : ''} ${scrolled ? 'scrolled' : ''}`}>
         <div className="logo" onClick={() => navigate("/")}>
           StaffTap
         </div>
 
-        {/* Поиск для десктопа */}
         {!isMobile && (
           <div className="search-container">
             <div className="search-bar">
@@ -118,7 +174,6 @@ const Header = () => {
           </div>
         )}
 
-        {/* Навигация для десктопа */}
         {!isMobile && (
           <nav className="desktop-nav">
             <NavItem 
@@ -164,7 +219,6 @@ const Header = () => {
           </nav>
         )}
 
-        {/* Бургер-меню для мобильных */}
         {isMobile && (
           <button 
             className="menu-toggle"
@@ -175,7 +229,6 @@ const Header = () => {
         )}
       </header>
 
-      {/* Мобильное меню (нижняя панель) */}
       {isMobile && !isMenuOpen && (
         <div className="mobile-nav-bar">
           <NavItem 
@@ -213,7 +266,6 @@ const Header = () => {
         </div>
       )}
 
-      {/* Боковое меню для мобильных */}
       {isMobile && isMenuOpen && (
         <div className="mobile-menu">
           <div className="mobile-menu-header">
