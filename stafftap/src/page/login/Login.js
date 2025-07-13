@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import GradientButton from "../../components/GradientButton/GradientButton";
 
@@ -16,7 +16,7 @@ function Login({ onLogin }) {
         setError("");
         
         try {
-            const response = await axios.post("http://localhost:8000/auth/login", {
+            const response = await api.post("/auth/login", {
                 email,
                 password,
             });
