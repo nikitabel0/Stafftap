@@ -10,5 +10,6 @@ class FavoriteJob(Base):
     job_id = Column(Integer, ForeignKey("jobs.id"))
     created_at = Column(DateTime, server_default=func.now())
     
+    # Используем строковые ссылки для отношений
     user = relationship("User", back_populates="favorite_jobs")
     job = relationship("Job")

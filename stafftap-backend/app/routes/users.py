@@ -20,6 +20,7 @@ from app.models import (
     User, Skill, UserSkill, WorkerAvailability,
     EmployerDocument, Review, Job, Booking
 )
+from sqlalchemy import func
 from app.schemas.reviews import ReviewOut, ReviewResponse, ReviewCreate
 from app.schemas.user import (
     UserProfileResponse, SkillOut, AvailabilityOut,
@@ -29,37 +30,62 @@ from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
+
 @router.get("/workers", response_model=List[WorkerOut])
 def list_workers(
     db: Session = Depends(get_db),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, le=1000)
+    limit: int = Query(100, le=1000),
+    skill: Optional[str] = Query(None),
+    available_date: Optional[date] = Query(None),
+    min_rate: Optional[float] = Query(None),
+    search: Optional[str] = Query(None)
 ):
     try:
-    
-        
-        workers = (
-            db.query(User)
+        query = (
+            db.query(
+                User,
+                func.coalesce(func.round(func.avg(Review.rating), 1), 0.0).label('rating')
+            )
+            .outerjoin(Review, Review.target_id == User.id)
             .filter(User.role == "worker", User.is_blocked.is_(False))
+            .group_by(User.id)
             .options(
                 selectinload(User.skills),
                 selectinload(User.availability)
             )
-            .offset(skip)
-            .limit(limit)
-            .all()
         )
-  
-        
+
+        if skill:
+            query = query.join(User.skills).filter(Skill.name == skill)
+
+        if available_date:
+            query = query.join(User.availability).filter(
+                WorkerAvailability.available_date == available_date
+            )
+
+        if min_rate is not None:
+            query = query.filter(User.rate_per_shift >= min_rate)
+
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    User.first_name.ilike(search_pattern),
+                    User.last_name.ilike(search_pattern),
+                    User.company_name.ilike(search_pattern)
+                )
+            )
+
+        workers_data = query.offset(skip).limit(limit).all()
+
         workers_out = []
-        for worker in workers:
+        for worker, rating in workers_data:
             # Проверка обязательных полей
             if worker.phone is None or worker.birth_date is None:
-         
-                raise ValueError(f"Worker {worker.id} has missing required fields")
-                
-            # Формирование ответа
-            worker_data = {
+                continue  # Пропускаем некорректные записи
+
+            worker_dict = {
                 "id": worker.id,
                 "first_name": worker.first_name,
                 "last_name": worker.last_name,
@@ -71,23 +97,17 @@ def list_workers(
                 "balance": float(worker.balance),
                 "is_verified": worker.is_verified,
                 "is_blocked": worker.is_blocked,
+                "rating": float(rating),  # Реальный рассчитанный рейтинг
                 "skills": [
                     {"id": skill.id, "name": skill.name}
                     for skill in worker.skills
                 ],
                 "availability": [
-                  {"id": av.id, "date": av.available_date}  # Убрано .isoformat()
+                    {"id": av.id, "date": av.available_date}
                     for av in worker.availability
                 ]
             }
-            
-
-            workers_out.append(WorkerOut(**worker_data))
-        
-        # Логируем первый элемент для проверки
-        if workers_out:
-            first_worker = workers_out[0].dict()
-       
+            workers_out.append(WorkerOut(**worker_dict))
         
         return workers_out
         

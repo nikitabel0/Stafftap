@@ -23,7 +23,9 @@ class BookingUpdate(BaseModel):
     status: str | None = None
     employer_confirmed: bool | None = None
     worker_confirmed: bool | None = None
-
+class EmployerBookRequest(BaseModel):
+    worker_id: int
+    job_id: int
 class BookingWithJobOut(BaseModel):
     id: int
     status: str

@@ -1,7 +1,11 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DateTime
+from sqlalchemy import Column, Integer,  Enum , ForeignKey, String, Boolean, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
+import enum
+class BookingType(str, enum.Enum):
+    worker_initiated = "worker_initiated"
+    employer_initiated = "employer_initiated"
 
 class Booking(Base):
     __tablename__ = "bookings"
@@ -14,8 +18,9 @@ class Booking(Base):
     worker_confirmed = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-    
     # Relationships
     job = relationship("Job", back_populates="bookings")
     worker = relationship("User", foreign_keys=[worker_id])
     chat = relationship("Chat", uselist=False, back_populates="booking")
+    booking_type = Column(Enum(BookingType), default=BookingType.worker_initiated)
+    frozen_funds = relationship("FrozenFunds", backref="booking", uselist=False, cascade="all, delete-orphan")

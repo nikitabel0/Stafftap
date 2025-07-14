@@ -25,6 +25,7 @@ class JobBase(BaseModel):
     address: str
     workers_needed: int
 
+
     @field_validator('start_time', 'end_time', mode='before')
     def parse_time(cls, value):
         if isinstance(value, time):

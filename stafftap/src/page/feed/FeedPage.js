@@ -10,11 +10,13 @@ import {
   FiCalendar,
   FiDollarSign,
   FiStar,
+  FiBriefcase,
 } from "react-icons/fi";
 import FilterPanel from "../../components/FilterPanel/FilterPanel";
 import VacancyCard from "../../components/VacancyCard/VacancyCard";
 import "./FeedPage.css";
 import API_BASE_URL from "../../apiConfig";
+import moment from "moment";
 
 const FeedPage = ({ user }) => {
   const [data, setData] = useState([]);
@@ -29,6 +31,11 @@ const FeedPage = ({ user }) => {
   const [showApplicationsModal, setShowApplicationsModal] = useState(false);
   const [applications, setApplications] = useState([]);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
+  const [showJobSelectionModal, setShowJobSelectionModal] = useState(false);
+  const [selectedWorkerId, setSelectedWorkerId] = useState(null);
+  const [employerJobs, setEmployerJobs] = useState([]);
+  const [isLoadingEmployerJobs, setIsLoadingEmployerJobs] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const role = user?.role || "worker";
@@ -72,60 +79,87 @@ const FeedPage = ({ user }) => {
       }));
     } catch (error) {
       console.error("Ошибка при загрузке вакансий:", error);
+      setError("Ошибка при загрузке вакансий. Пожалуйста, попробуйте позже.");
       return [];
     }
   };
 
   // Загрузка работников для работодателей
-  const fetchWorkers = async (filters = {}, query = '') => {
-  try {
-    const token = localStorage.getItem('token');
-    const params = {
-      skill: filters.profession || undefined,
-      available_date: filters.date || undefined,
-      min_rate: filters.minRate || undefined,
-      search: query || undefined
-    };
+  const fetchWorkers = async (filters = {}, query = "") => {
+    try {
+      const token = localStorage.getItem("token");
+      const params = {
+        skill: filters.profession || undefined,
+        available_date: filters.date || undefined,
+        min_rate: filters.minRate || undefined,
+        search: query || undefined,
+      };
 
-    console.log("Fetching workers with params:", params);
+      const response = await axios.get(`${API_BASE_URL}/api/users/workers`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      return response.data.map((worker) => ({
+        id: worker.id,
+        firstName: worker.first_name,
+        lastName: worker.last_name,
+        avatarUrl: worker.avatar_url,
+        birthDate: worker.birth_date,
+        experience: worker.experience_months,
+        ratePerShift: worker.rate_per_shift,
+        skills: worker.skills || [],
+        availability:
+          worker.availability.map((av) => ({
+            id: av.id,
+            date: av.date || av.available_date,
+          })) || [],
+        isVerified: worker.is_verified,
+        rating: worker.rating,
+      }));
+    } catch (error) {
+      console.error("Ошибка при загрузке работников:", error);
+      
+      if (error.response?.status === 403) {
+        setError("У вас нет прав для просмотра списка работников");
+      } else if (error.response?.status === 401) {
+        setError("Требуется авторизация");
+      } else {
+        setError("Ошибка при загрузке данных работников");
+      }
+      
+      return [];
+    }
+  };
+
+  // Загрузка вакансий работодателя
+  const fetchEmployerJobs = async () => {
+    if (!user || user.role !== "employer") return;
     
-    const response = await axios.get(`${API_BASE_URL}/api/users/workers`, {
-      params,
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    console.log("Workers response:", response.data);
-    
-    return response.data.map(worker => ({
-      id: worker.id,
-      firstName: worker.first_name,
-      lastName: worker.last_name,
-      avatarUrl: worker.avatar_url,
-      birthDate: worker.birth_date,
-      experience: worker.experience_months,
-      ratePerShift: worker.rate_per_shift,
-      skills: worker.skills || [],
-      availability: worker.availability.map(av => ({
-        id: av.id, 
-        date: av.date  // Убедимся, что используем правильное поле
-      })) || [],
-      isVerified: worker.is_verified,
-      rating: worker.rating || 4.5
-    }));
-  } catch (error) {
-    console.error('Ошибка при загрузке работников:', {
-      message: error.message,
-      response: error.response,
-      config: error.config
-    });
-    return [];
-  }
-};
+    setIsLoadingEmployerJobs(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${API_BASE_URL}/api/jobs/employer/${user.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      setEmployerJobs(response.data);
+    } catch (error) {
+      console.error("Ошибка при загрузке вакансий работодателя:", error);
+      setError("Не удалось загрузить ваши вакансии");
+    } finally {
+      setIsLoadingEmployerJobs(false);
+    }
+  };
 
   // Загрузка данных при изменении фильтров или поискового запроса
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         if (role === "worker") {
           const vacanciesData = await fetchVacancies(filters, searchQuery);
@@ -136,6 +170,7 @@ const FeedPage = ({ user }) => {
         }
       } catch (error) {
         console.error("Ошибка загрузки данных:", error);
+        setError("Ошибка при загрузке данных");
       } finally {
         setIsLoading(false);
       }
@@ -163,7 +198,6 @@ const FeedPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
 
-      // Только для работников
       if (role !== "worker") return;
 
       const vacancy = data.find((v) => v.id === id);
@@ -182,6 +216,7 @@ const FeedPage = ({ user }) => {
       );
     } catch (error) {
       console.error("Ошибка при обновлении избранного:", error);
+      setError("Не удалось обновить избранное");
       const vacancy = data.find((v) => v.id === id);
       if (vacancy) {
         setData((prev) =>
@@ -208,6 +243,7 @@ const FeedPage = ({ user }) => {
     if (!user) return;
 
     setIsLoadingApplications(true);
+    setError(null);
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
@@ -220,6 +256,7 @@ const FeedPage = ({ user }) => {
       setApplications(response.data);
     } catch (error) {
       console.error("Ошибка при загрузке заявок:", error);
+      setError("Не удалось загрузить ваши заявки");
     } finally {
       setIsLoadingApplications(false);
     }
@@ -257,6 +294,7 @@ const FeedPage = ({ user }) => {
       return "N/A";
     }
   };
+  
   // Форматирование опыта работы
   const formatExperience = (months) => {
     if (!months) return "Опыт не указан";
@@ -270,15 +308,31 @@ const FeedPage = ({ user }) => {
 
   // Получение ближайших доступных дат
   const getNearestAvailability = (availability) => {
-    if (!availability || availability.length === 0) return [];
-
-    return availability
-      .map((a) => (a.date ? new Date(a.date) : null)) // Изменено здесь!
-      .filter((date) => date && !isNaN(date))
+    if (!availability || availability.length === 0) return ["Нет доступных дат"];
+    
+    const validDates = availability
+      .map(av => {
+        const dateStr = av.date || av.available_date;
+        if (!dateStr) return null;
+        
+        const formats = ["YYYY-MM-DD", "DD.MM.YYYY", "MM/DD/YYYY"];
+        
+        for (const format of formats) {
+          const date = moment(dateStr, format, true);
+          if (date.isValid()) return date.toDate();
+        }
+        
+        return null;
+      })
+      .filter(date => date && !isNaN(date) && date >= new Date())
       .sort((a, b) => a - b)
-      .filter((date) => date >= new Date())
       .slice(0, 3)
-      .map((date) => date.toLocaleDateString("ru-RU"));
+      .map(date => date.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long"
+      }));
+    
+    return validDates.length > 0 ? validDates : ["Нет доступных дат"];
   };
 
   // Обработка статуса заявки
@@ -324,7 +378,46 @@ const FeedPage = ({ user }) => {
 
   // Обработка клика по карточке работника
   const handleWorkerClick = (workerId) => {
+    if (role === "employer") return;
     navigate(`/worker/${workerId}`);
+  };
+
+  // Обработчик бронирования работника
+  const handleBookWorker = (workerId) => {
+    setSelectedWorkerId(workerId);
+    fetchEmployerJobs();
+    setShowJobSelectionModal(true);
+  };
+
+  // Подтверждение бронирования работника на вакансию
+  const confirmWorkerBooking = async (jobId) => {
+    if (!selectedWorkerId) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/api/bookings/employer/book-worker/`,
+        {
+          worker_id: selectedWorkerId,
+          job_id: jobId
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      setError("Работник успешно забронирован на вакансию!");
+      
+      const workersData = await fetchWorkers(filters, searchQuery);
+      setData(workersData);
+      
+    } catch (error) {
+      console.error("Ошибка при бронировании работника:", error);
+      setError(`Ошибка: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setShowJobSelectionModal(false);
+      setSelectedWorkerId(null);
+    }
   };
 
   return (
@@ -343,6 +436,16 @@ const FeedPage = ({ user }) => {
             </div>
           )}
         </div>
+
+        {/* Баннер ошибок */}
+        {error && (
+          <div className="error-banner">
+            <span>{error}</span>
+            <button className="error-close" onClick={() => setError(null)}>
+              <FiX />
+            </button>
+          </div>
+        )}
 
         <div className="search-container">
           <div className="search-bar">
@@ -477,18 +580,21 @@ const FeedPage = ({ user }) => {
                       </h3>
                       <div className="worker-meta">
                         <span className="worker-age">
-                          {calculateAge(worker.birthDate)} лет
+                          {worker.birthDate ? calculateAge(worker.birthDate) + " лет" : "Возраст не указан"}
                         </span>
-                        {worker.isVerified && (
-                          <span className="verified-badge">Проверен</span>
-                        )}
                       </div>
                     </div>
 
-                    <div className="worker-rating">
-                      <FiStar size={18} fill="#FFD700" />
-                      <span>{worker.rating.toFixed(1)}</span>
-                    </div>
+                    {worker.rating > 0 ? (
+                      <div className="worker-rating">
+                        <FiStar size={18} fill="#FFD700" />
+                        <span>{worker.rating.toFixed(1)}</span>
+                      </div>
+                    ) : (
+                      <div className="worker-rating">
+                        <span>Нет оценок</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="worker-details">
@@ -530,6 +636,19 @@ const FeedPage = ({ user }) => {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Кнопка бронирования для работодателей */}
+                  {role === "employer" && (
+                    <button 
+                      className="book-worker-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBookWorker(worker.id);
+                      }}
+                    >
+                      Забронировать
+                    </button>
+                  )}
                 </div>
               ))
             )
@@ -667,6 +786,77 @@ const FeedPage = ({ user }) => {
                             </span>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно выбора вакансии для бронирования */}
+      {showJobSelectionModal && role === "employer" && (
+        <div className="job-selection-modal">
+          <div
+            className="modal-overlay"
+            onClick={() => setShowJobSelectionModal(false)}
+          ></div>
+
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Выберите вакансию для бронирования</h2>
+              <button
+                className="close-button"
+                onClick={() => setShowJobSelectionModal(false)}
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {isLoadingEmployerJobs ? (
+                <div className="loading-container">
+                  <div className="loader"></div>
+                  <p>Загрузка ваших вакансий...</p>
+                </div>
+              ) : employerJobs.length === 0 ? (
+                <div className="no-jobs">
+                  <div className="empty-icon">
+                    <FiBriefcase size={48} />
+                  </div>
+                  <h3>У вас нет активных вакансий</h3>
+                  <p>Создайте вакансию, чтобы забронировать работника</p>
+                  <button
+                    className="create-vacancy-button"
+                    onClick={() => {
+                      setShowJobSelectionModal(false);
+                      navigate("/create-vacancy");
+                    }}
+                  >
+                    Создать вакансию
+                  </button>
+                </div>
+              ) : (
+                <div className="jobs-list">
+                  {employerJobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="job-item"
+                      onClick={() => confirmWorkerBooking(job.id)}
+                    >
+                      <div className="job-info">
+                        <h3>{job.title}</h3>
+                        <p className="job-date">
+                          {formatDate(job.work_date)}
+                        </p>
+                        <p className="job-rate">
+                          {job.rate.toLocaleString("ru-RU")} ₽
+                        </p>
+                      </div>
+                      <div className="job-slots">
+                        <span>Осталось мест: {job.remaining_slots}</span>
                       </div>
                     </div>
                   ))}

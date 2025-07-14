@@ -24,20 +24,15 @@ class WorkerOut(BaseModel):
     is_verified: bool
     is_blocked: bool
 
-    # id: int
-    # first_name: str
-    # last_name: str
-    # avatar_url: Optional[str] = None
-    # phone: str
-    # birth_date: date  # Разрешить NULL
-    # experience_months: Optional[int] = None
-    # rate_per_shift: Optional[float] = None
+    birth_date: date  # Разрешить NULL
+    experience_months: Optional[int] = None
+    rate_per_shift: Optional[float] = None
     # balance: float = 0.0  # Всегда значение по умолчанию
-    # is_verified: bool
-    # is_blocked: bool
+    is_verified: bool
+    is_blocked: bool
 
-    # skills: List[WorkerSkillOut] = []
-    # availability: List[WorkerAvailabilityOut] = []
+    skills: List[WorkerSkillOut] = []
+    availability: List[WorkerAvailabilityOut] = []
 
     class Config:
         orm_mode = True

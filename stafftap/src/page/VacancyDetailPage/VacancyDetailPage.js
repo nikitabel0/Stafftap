@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { 
-  FiMapPin, 
-  FiClock, 
-  FiDollarSign, 
-  FiUser, 
-  FiStar, 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  FiMapPin,
+  FiClock,
+  FiDollarSign,
+  FiUser,
+  FiStar,
   FiCheck,
   FiBookmark,
   FiMessageSquare,
   FiBriefcase,
   FiArrowLeft,
-  FiXCircle
-} from 'react-icons/fi';
-import './VacancyDetailPage.css';
-import API_BASE_URL from '../../apiConfig';
+  FiXCircle,
+} from "react-icons/fi";
+import "./VacancyDetailPage.css";
+import API_BASE_URL from "../../apiConfig";
 
 const VacancyDetailPage = ({ user }) => {
   const { id } = useParams();
@@ -26,14 +26,14 @@ const VacancyDetailPage = ({ user }) => {
   const [applicationStatus, setApplicationStatus] = useState(null);
   const [bookingId, setBookingId] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isApplying, setIsApplying] = useState(false);
-  
-  const role = user?.role || 'worker';
-  
+
+  const role = user?.role || "worker";
+
   const startChat = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         ` ${API_BASE_URL}/api/chats/start/${bookingId}`,
         {},
@@ -41,20 +41,20 @@ const VacancyDetailPage = ({ user }) => {
       );
       navigate(`/chats/${response.data.id}`);
     } catch (error) {
-      console.error('Ошибка при создании чата:', error);
-      setError('Не удалось начать чат. Попробуйте позже.');
+      console.error("Ошибка при создании чата:", error);
+      setError("Не удалось начать чат. Попробуйте позже.");
     }
   };
 
   useEffect(() => {
     const fetchVacancy = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         const vacancyResponse = await axios.get(
-           `${API_BASE_URL}/api/jobs/${id}`,
+          `${API_BASE_URL}/api/jobs/${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        
+
         const data = vacancyResponse.data;
         setVacancy({
           id: data.id,
@@ -73,30 +73,32 @@ const VacancyDetailPage = ({ user }) => {
           employerRating: data.employer_rating,
           completedJobs: data.completed_jobs,
           employerVerified: data.employer_verified,
-          isFavorite: data.is_favorite
+          isFavorite: data.is_favorite,
         });
-        
+
         setIsFavorite(data.is_favorite || false);
-        
-        if (user && user.role === 'worker') {
+
+        if (user && user.role === "worker") {
           const bookingsResponse = await axios.get(
             `${API_BASE_URL}/api/bookings?job_id=${id}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          
-          const myBooking = bookingsResponse.data.find(b => b.worker_id === user.id);
+
+          const myBooking = bookingsResponse.data.find(
+            (b) => b.worker_id === user.id
+          );
           if (myBooking) {
             setBookingId(myBooking.id);
             setHasApplied(true);
             setApplicationStatus(myBooking.status);
           }
         }
-        
+
         setIsLoading(false);
       } catch (error) {
-        console.error('Ошибка при загрузке вакансии:', error);
+        console.error("Ошибка при загрузке вакансии:", error);
         setIsLoading(false);
-        setError('Не удалось загрузить вакансию');
+        setError("Не удалось загрузить вакансию");
       }
     };
 
@@ -105,49 +107,52 @@ const VacancyDetailPage = ({ user }) => {
 
   const handleToggleFavorite = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.post(
-          `${API_BASE_URL}/api/jobs/${id}/favorite`,
+        `${API_BASE_URL}/api/jobs/${id}/favorite`,
         { is_favorite: !isFavorite },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setIsFavorite(!isFavorite);
     } catch (error) {
-      console.error('Ошибка при обновлении избранного:', error);
-      setError('Не удалось обновить избранное');
+      console.error("Ошибка при обновлении избранного:", error);
+      setError("Не удалось обновить избранное");
     }
   };
 
   const handleApply = async () => {
     setIsApplying(true);
-    setError('');
+    setError("");
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${API_BASE_URL}/api/bookings/`,
-        { 
-          job_id: parseInt(id)
+        {
+          job_id: parseInt(id),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setBookingId(response.data.id);
       setHasApplied(true);
-      setApplicationStatus('pending');
+      setApplicationStatus("pending");
     } catch (error) {
-      console.error('Ошибка при отправке заявки:', error);
-      
-      let errorMessage = 'Не удалось отправить заявку';
-      
+      console.error("Ошибка при отправке заявки:", error);
+
+      let errorMessage = "Не удалось отправить заявку";
+
       if (error.response) {
         if (error.response.data && error.response.data.detail) {
           if (Array.isArray(error.response.data.detail)) {
-            errorMessage = error.response.data.detail.map(item => 
-              item.msg || item.message || JSON.stringify(item)
-            ).join(', ');
-          } else if (typeof error.response.data.detail === 'string') {
+            errorMessage = error.response.data.detail
+              .map((item) => item.msg || item.message || JSON.stringify(item))
+              .join(", ");
+          } else if (typeof error.response.data.detail === "string") {
             errorMessage = error.response.data.detail;
-          } else if (error.response.data.detail && error.response.data.detail.msg) {
+          } else if (
+            error.response.data.detail &&
+            error.response.data.detail.msg
+          ) {
             errorMessage = error.response.data.detail.msg;
           }
         } else if (error.response.data && error.response.data.message) {
@@ -156,7 +161,7 @@ const VacancyDetailPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsApplying(false);
@@ -164,8 +169,8 @@ const VacancyDetailPage = ({ user }) => {
   };
 
   const formatDate = (dateString) => {
-    const options = { day: 'numeric', month: 'long' };
-    return new Date(dateString).toLocaleDateString('ru-RU', options);
+    const options = { day: "numeric", month: "long" };
+    return new Date(dateString).toLocaleDateString("ru-RU", options);
   };
 
   if (isLoading) {
@@ -196,10 +201,12 @@ const VacancyDetailPage = ({ user }) => {
         </button>
         <h1>{vacancy.title}</h1>
         <div className="header-actions">
-          <button 
-            className={`favorite-button ${isFavorite ? 'active' : ''}`}
+          <button
+            className={`favorite-button ${isFavorite ? "active" : ""}`}
             onClick={handleToggleFavorite}
-            aria-label={isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+            aria-label={
+              isFavorite ? "Убрать из избранного" : "Добавить в избранное"
+            }
           >
             {isFavorite ? (
               <FiBookmark className="favorite-icon active" />
@@ -226,21 +233,26 @@ const VacancyDetailPage = ({ user }) => {
             </div>
             <div className="meta-item salary">
               <FiDollarSign className="icon" />
-              <span>{vacancy.salary.toLocaleString('ru-RU')} ₽</span>
+              <span>{vacancy.salary.toLocaleString("ru-RU")} ₽</span>
             </div>
           </div>
-          
+
           <div className="meta-row">
             <div className="meta-item">
               <FiClock className="icon" />
-              <span>{formatDate(vacancy.date)}, {vacancy.startTime} - {vacancy.endTime}</span>
+              <span>
+                {formatDate(vacancy.date)}, {vacancy.startTime} -{" "}
+                {vacancy.endTime}
+              </span>
             </div>
             <div className="meta-item">
               <FiUser className="icon" />
-              <span>{vacancy.remainingSlots}/{vacancy.workersNeeded} мест</span>
+              <span>
+                {vacancy.remainingSlots}/{vacancy.workersNeeded} мест
+              </span>
             </div>
           </div>
-          
+
           <div className="meta-item address">
             <FiMapPin className="icon" />
             <span>{vacancy.address}</span>
@@ -272,11 +284,13 @@ const VacancyDetailPage = ({ user }) => {
               <div>
                 <div className="stat-label">Рейтинг</div>
                 <div className="stat-value">
-                  {vacancy.employerRating ? vacancy.employerRating.toFixed(1) : '0.0'}
+                  {vacancy.employerRating
+                    ? vacancy.employerRating.toFixed(1)
+                    : "0.0"}
                 </div>
               </div>
             </div>
-            
+
             <div className="stat-item">
               <div className="stat-icon">
                 <FiBriefcase className="icon" />
@@ -287,7 +301,7 @@ const VacancyDetailPage = ({ user }) => {
               </div>
             </div>
           </div>
-          
+
           <div className="employer-contact">
             <span>{vacancy.employerName}</span>
           </div>
@@ -295,44 +309,41 @@ const VacancyDetailPage = ({ user }) => {
       </div>
 
       <div className="vacancy-actions">
-        {role === 'worker' && !hasApplied && (
-          <button 
+        {role === "worker" && !hasApplied && (
+          <button
             className="apply-button"
             onClick={handleApply}
             disabled={isApplying}
           >
-            {isApplying ? 'Отправка...' : 'Откликнуться'}
+            {isApplying ? "Отправка..." : "Откликнуться"}
           </button>
         )}
-        
-        {role === 'worker' && hasApplied && (
+
+        {role === "worker" && hasApplied && (
           <>
-            {applicationStatus === 'confirmed' && (
-              <button 
-                className="message-button"
-                onClick={startChat}
-              >
-                <FiMessageSquare className="message-icon" /> 
+            {applicationStatus === "confirmed" && (
+              <button className="message-button" onClick={startChat}>
+                <FiMessageSquare className="message-icon" />
                 <span>Написать работодателю</span>
               </button>
             )}
-            
-            {applicationStatus === 'pending' && (
+
+            {applicationStatus === "pending" && (
               <div className="application-pending">
                 <p>Ваша заявка на рассмотрении</p>
               </div>
             )}
-            
-            {applicationStatus === 'rejected' && (
+
+            {applicationStatus === "rejected" && (
               <div className="application-rejected">
                 <p>Ваша заявка отклонена</p>
               </div>
             )}
           </>
         )}
-        
-        {role === 'employer' && (
-          <button 
+
+        {role === "employer" && (
+          <button
             className="manage-button"
             onClick={() => navigate(`/bookings?job_id=${id}`)}
           >

@@ -1,5 +1,5 @@
 from app.database import Base
-
+from .favorite_job import FavoriteJob
 from .user import User
 from .review import Review
 from .skills import Skill
@@ -14,3 +14,4 @@ from .employer_documents import EmployerDocument
 from .disputes import Dispute
 from .admin_actions import AdminAction
 from .notification import Notification
+from .FrozenFunds import FrozenFunds
