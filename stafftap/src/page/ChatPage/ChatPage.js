@@ -62,7 +62,8 @@ const ChatPage = ({ user }) => {
         
         // Подключение к WebSocket
         const connectWebSocket = () => {
-          ws.current = new WebSocket(`ws://localhost:8000/api/chats/ws/${user.id}`);
+          ws.current = new WebSocket(`ws://${API_BASE_URL}/api/chats/ws/${user.id}`);
+
           
           ws.current.onopen = () => {
             console.log('WebSocket connected');
