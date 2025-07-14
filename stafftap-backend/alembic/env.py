@@ -1,21 +1,20 @@
 from logging.config import fileConfig
 import os
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv           
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-load_dotenv()  
+load_dotenv()
 
-# Alembic Config object
+db_url = os.getenv("DATABASE_URL")
+if not db_url:
+    raise RuntimeError("DATABASE_URL is not set in environment")
+    
 config = context.config
 
-config.set_main_option(
-    "sqlalchemy.url",
-    os.getenv("DATABASE_URL")
-)
+config.set_main_option("sqlalchemy.url", db_url)
 
-# Setup loggers from config file
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
@@ -32,7 +31,6 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
@@ -44,7 +42,6 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
