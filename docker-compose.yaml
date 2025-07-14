@@ -33,27 +33,26 @@ services:
       context: ./stafftap
       dockerfile: Dockerfile
     container_name: stafftap-frontend
-    # env_file:
-    #   - ./stafftap/.env
     depends_on:
       - backend
-    volumes:
-      - ./stafftap/build:/usr/share/nginx/html:ro
     ports:
-      - "3000:3000"
-      
+      - "3000:80"      # порт 80 внутри nginx-контейнера на порт 3000 хоста
+    # УБИРАЕМ всю секцию volumes, working_dir и command!
+
   nginx:
     image: nginx:stable-alpine
+    container_name: stafftap-docker-nginx-1
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - stafftap-docker_certbot-etc:/etc/letsencrypt:ro
-      - ./stafftap/build:/usr/share/nginx/html:ro
+      - ./stafftap/build:/usr/share/nginx/html:ro      # ← вот это
     depends_on:
       - frontend
       - backend
+
 
 volumes:
   stafftap-docker_certbot-etc:
