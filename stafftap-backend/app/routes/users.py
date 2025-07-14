@@ -3,10 +3,19 @@ import uuid
 import shutil
 from typing import List
 from sqlalchemy.orm import joinedload
-from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File,Query
 from sqlalchemy.orm import Session
-
+from typing import Optional
+from sqlalchemy import or_
+from datetime import date
 from app.database import get_db
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models.user import User, UserRole
+from app.schemas.worker import WorkerAvailabilityOut, WorkerOut, WorkerSkillOut
+from typing import List
+from sqlalchemy.orm import selectinload  
 from app.models import (
     User, Skill, UserSkill, WorkerAvailability,
     EmployerDocument, Review, Job, Booking
@@ -20,7 +29,70 @@ from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
+@router.get("/workers", response_model=List[WorkerOut])
+def list_workers(
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=1000)
+):
+    try:
+    
+        
+        workers = (
+            db.query(User)
+            .filter(User.role == "worker", User.is_blocked.is_(False))
+            .options(
+                selectinload(User.skills),
+                selectinload(User.availability)
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+  
+        
+        workers_out = []
+        for worker in workers:
+            # Проверка обязательных полей
+            if worker.phone is None or worker.birth_date is None:
+         
+                raise ValueError(f"Worker {worker.id} has missing required fields")
+                
+            # Формирование ответа
+            worker_data = {
+                "id": worker.id,
+                "first_name": worker.first_name,
+                "last_name": worker.last_name,
+                "avatar_url": worker.avatar_url,
+                "phone": worker.phone,
+                "birth_date": worker.birth_date,
+                "experience_months": worker.experience_months,
+                "rate_per_shift": float(worker.rate_per_shift) if worker.rate_per_shift is not None else None,
+                "balance": float(worker.balance),
+                "is_verified": worker.is_verified,
+                "is_blocked": worker.is_blocked,
+                "skills": [
+                    {"id": skill.id, "name": skill.name}
+                    for skill in worker.skills
+                ],
+                "availability": [
+                  {"id": av.id, "date": av.available_date}  # Убрано .isoformat()
+                    for av in worker.availability
+                ]
+            }
+            
 
+            workers_out.append(WorkerOut(**worker_data))
+        
+        # Логируем первый элемент для проверки
+        if workers_out:
+            first_worker = workers_out[0].dict()
+       
+        
+        return workers_out
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @router.get("/skills", response_model=List[SkillOut])
 def get_all_skills(db: Session = Depends(get_db)):
     return db.query(Skill).all()
@@ -309,6 +381,9 @@ def get_user_by_id(id: int, db: Session = Depends(get_db)):
     )
 
 
+
+
+
 @router.get("/{id}/vacancies", response_model=List[VacancyOut])
 def get_user_vacancies(id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == id).first()
@@ -433,3 +508,8 @@ def create_review(
         comment=review_with_author.comment,
         created_at=review_with_author.created_at
     )
+
+
+
+
+

@@ -1,12 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, addMonths, subMonths, isSameDay, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
-const AvailabilityCalendar = ({ availability, isEditing, onAvailabilityChange }) => {
+const AvailabilityCalendar = ({ availability = [], isEditing, onAvailabilityChange }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDates, setSelectedDates] = useState(
-    availability.map(a => parseISO(a.date))
-  );
+  const [selectedDates, setSelectedDates] = useState([]);
+
+  // Инициализация выбранных дат с проверкой типа
+  useEffect(() => {
+    try {
+      const initialDates = Array.isArray(availability) 
+        ? availability
+            .map(item => item?.date ? parseISO(item.date) : null)
+            .filter(date => date instanceof Date && !isNaN(date))
+        : [];
+      
+      setSelectedDates(initialDates);
+    } catch (error) {
+      console.error('Ошибка инициализации дат:', error);
+      setSelectedDates([]);
+    }
+  }, [availability]);
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -14,23 +28,18 @@ const AvailabilityCalendar = ({ availability, isEditing, onAvailabilityChange })
   const handleDateClick = (date) => {
     if (!isEditing) return;
     
-    const newSelectedDates = [...selectedDates];
-    const dateIndex = newSelectedDates.findIndex(d => isSameDay(d, date));
-    
-    if (dateIndex > -1) {
-      newSelectedDates.splice(dateIndex, 1);
-    } else {
-      newSelectedDates.push(date);
-    }
+    const newSelectedDates = selectedDates.some(d => isSameDay(d, date))
+      ? selectedDates.filter(d => !isSameDay(d, date))
+      : [...selectedDates, date];
     
     setSelectedDates(newSelectedDates);
-    onAvailabilityChange(newSelectedDates.map(d => ({ 
-      id: d.getTime(), 
-      date: format(d, 'yyyy-MM-dd') 
+    
+    onAvailabilityChange(newSelectedDates.map(d => ({
+      id: d.getTime(),
+      date: format(d, 'yyyy-MM-dd')
     })));
   };
 
-  
   const renderDays = () => {
     const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
@@ -44,8 +53,7 @@ const AvailabilityCalendar = ({ availability, isEditing, onAvailabilityChange })
     let currentDate = new Date(startDate);
     
     while (currentDate <= endDate) {
-      days.push(currentDate);
-      currentDate = new Date(currentDate);
+      days.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
     

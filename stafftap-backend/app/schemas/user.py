@@ -32,7 +32,7 @@ class UserOut(BaseModel):
     birth_date: date
     email: EmailStr
     role: UserRole
-
+    balance: float
     company_name: Optional[str]
     experience_months: Optional[int]
     rate_per_shift: Optional[float]

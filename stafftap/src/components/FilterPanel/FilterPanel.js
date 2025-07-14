@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FiFilter, FiX } from 'react-icons/fi';
-import './FilterPanel.css'; // Импорт стилей
+import { toast } from 'react-toastify';
+import './FilterPanel.css';
 
 const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -76,7 +77,18 @@ const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
               type="date" 
               name="date" 
               value={localFilters.date}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                const selectedDate = e.target.value;
+                const today = new Date().toISOString().split('T')[0];
+                
+                // Проверка, что выбранная дата не раньше сегодня
+                if (selectedDate < today) {
+                  toast.error("Нельзя выбирать прошедшие даты");
+                  return;
+                }
+                handleInputChange(e);
+              }}
+              min={new Date().toISOString().split('T')[0]} // устанавливаем минимальную дату - сегодня
             />
           </div>
           

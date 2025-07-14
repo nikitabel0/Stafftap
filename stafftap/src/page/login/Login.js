@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import api from "../../api";
+import axios from "axios"; // Импортируем axios напрямую
 import { useNavigate } from "react-router-dom";
 import GradientButton from "../../components/GradientButton/GradientButton";
+import API_BASE_URL from "../../apiConfig"; // Импортируем базовый URL
 
 function Login({ onLogin }) {
     const [email, setEmail] = useState("");
@@ -16,16 +17,22 @@ function Login({ onLogin }) {
         setError("");
         
         try {
-            const response = await api.post("/auth/login", {
-                email,
-                password,
-            });
+            // Используем axios напрямую с полным путем
+            const response = await axios.post(
+                `${API_BASE_URL}/auth/login`, 
+                { email, password }
+            );
 
             const token = response.data.access_token;
             localStorage.setItem("token", token);
             onLogin(token);
         } catch (err) {
-            setError("❌ Неверный логин или пароль");
+            // Более точная обработка ошибки
+            if (err.response && err.response.data && err.response.data.detail) {
+                setError(`❌ ${err.response.data.detail}`);
+            } else {
+                setError("❌ Неверный логин или пароль");
+            }
         } finally {
             setIsLoading(false);
         }

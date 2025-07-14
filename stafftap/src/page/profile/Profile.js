@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FiPlus, FiFile, FiDownload, FiTrash2, FiCamera, FiCheckCircle, FiXCircle, 
+  FiPlus, FiFile, FiDownload, FiTrash2, FiCamera, FiCheckCircle, FiXCircle,FiRefreshCw, 
   FiUser, FiLock, FiUnlock, FiBarChart2, FiFileText, FiCheck, FiX, FiSearch 
 } from 'react-icons/fi';
 import './ProfilePage.css';
@@ -314,18 +314,41 @@ const AdminUsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [filters, setFilters] = useState({
+    role: 'all',
+    verified: 'all',
+    status: 'all',
+    sort: 'newest'
+  });
+  
   const pageSize = 10;
+  const searchTimeoutRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const shouldRestoreFocusRef = useRef(false);
 
+  // Функция загрузки пользователей
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      
+      // Формируем параметры запроса
+      const params = {
+        page: currentPage,
+        page_size: pageSize,
+        ...(searchTerm && { search: searchTerm }),
+        ...(filters.role !== 'all' && { role: filters.role }),
+        ...(filters.verified !== 'all' && { 
+          is_verified: filters.verified === 'verified' 
+        }),
+        ...(filters.status !== 'all' && { 
+          is_blocked: filters.status === 'blocked' 
+        }),
+        sort: filters.sort
+      };
+
       const response = await axios.get(`${API_BASE_URL}/api/admin/users`, {
-        params: {
-          page: currentPage,
-          page_size: pageSize,
-          search: searchTerm
-        },
+        params,
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -339,20 +362,66 @@ const AdminUsersManagement = () => {
       console.error('Ошибка загрузки пользователей:', err);
     } finally {
       setLoading(false);
+      
+      // Восстанавливаем фокус после загрузки
+      if (shouldRestoreFocusRef.current && searchInputRef.current) {
+        searchInputRef.current.focus();
+        shouldRestoreFocusRef.current = false;
+      }
     }
   };
 
+  // Основной эффект загрузки данных
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, searchTerm]);
+  }, [currentPage, filters]);
 
+  // Эффект для поиска с debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    shouldRestoreFocusRef.current = true;
+    
+    // Устанавливаем таймер для поиска с задержкой 500 мс
+    searchTimeoutRef.current = setTimeout(() => {
+      if (searchTerm.length === 0 || searchTerm.length > 2) {
+        setCurrentPage(1);
+        fetchUsers();
+      }
+    }, 500);
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm]);
+
+  // Обработчики событий
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+    setCurrentPage(1);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      role: 'all',
+      verified: 'all',
+      status: 'all',
+      sort: 'newest'
+    });
+    setSearchTerm('');
+    setCurrentPage(1);
   };
 
   const handleBlockToggle = async (userId, isBlocked) => {
@@ -367,7 +436,7 @@ const AdminUsersManagement = () => {
           }
         }
       );
-      fetchUsers(); // Перезагружаем данные
+      fetchUsers();
     } catch (err) {
       console.error('Ошибка изменения статуса блокировки:', err);
       setError('Не удалось изменить статус блокировки');
@@ -386,7 +455,7 @@ const AdminUsersManagement = () => {
           }
         }
       );
-      fetchUsers(); // Перезагружаем данные
+      fetchUsers();
     } catch (err) {
       console.error('Ошибка изменения статуса верификации:', err);
       setError('Не удалось изменить статус верификации');
@@ -405,45 +474,130 @@ const AdminUsersManagement = () => {
           }
         }
       );
-      fetchUsers(); // Перезагружаем данные
+      fetchUsers();
     } catch (err) {
       console.error('Ошибка изменения роли:', err);
       setError('Не удалось изменить роль пользователя');
     }
   };
 
-  if (loading) {
-    return <div className="admin-loading">Загрузка пользователей...</div>;
-  }
-
-  if (error) {
-    return <div className="admin-error">{error}</div>;
-  }
-
+  // Рендер компонента
   return (
     <div className="admin-users-management">
-      <h2>Управление пользователями</h2>
-      
-      <div className="admin-search">
-        <FiSearch className="search-icon" />
-        <input
-          type="text"
-          placeholder="Поиск по email, имени или компании..."
-          value={searchTerm}
-          onChange={handleSearch}
-        />
+      <div className="admin-section-header">
+        <h2>Управление пользователями</h2>
+        <div className="admin-filters-summary">
+          {filters.role !== 'all' && (
+            <span className="filter-tag">Роль: {
+              filters.role === 'worker' ? 'Сотрудники' : 
+              filters.role === 'employer' ? 'Работодатели' : 'Администраторы'
+            }</span>
+          )}
+          {filters.verified !== 'all' && (
+            <span className="filter-tag">Верификация: {
+              filters.verified === 'verified' ? 'Подтвержденные' : 'Неподтвержденные'
+            }</span>
+          )}
+          {filters.status !== 'all' && (
+            <span className="filter-tag">Статус: {
+              filters.status === 'active' ? 'Активные' : 'Заблокированные'
+            }</span>
+          )}
+          {(filters.role !== 'all' || filters.verified !== 'all' || filters.status !== 'all') && (
+            <button className="reset-filters-btn" onClick={resetFilters}>
+              <FiRefreshCw /> Сбросить фильтры
+            </button>
+          )}
+        </div>
       </div>
+      
+      <div className="admin-controls">
+        <div className="admin-search">
+          <FiSearch className="search-icon" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Поиск по email, имени или компании..."
+            value={searchTerm}
+            onChange={handleSearch}
+          />
+          {searchTerm && (
+            <button 
+              className="clear-search-btn"
+              onClick={() => setSearchTerm('')}
+            >
+              &times;
+            </button>
+          )}
+        </div>
+        
+        <div className="filter-controls">
+          <div className="filter-group">
+            <label>Роль:</label>
+            <select
+              value={filters.role}
+              onChange={(e) => handleFilterChange('role', e.target.value)}
+            >
+              <option value="all">Все роли</option>
+              <option value="worker">Сотрудники</option>
+              <option value="employer">Работодатели</option>
+              <option value="admin">Администраторы</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Верификация:</label>
+            <select
+              value={filters.verified}
+              onChange={(e) => handleFilterChange('verified', e.target.value)}
+            >
+              <option value="all">Все</option>
+              <option value="verified">Подтвержденные</option>
+              <option value="unverified">Неподтвержденные</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Статус:</label>
+            <select
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="all">Все</option>
+              <option value="active">Активные</option>
+              <option value="blocked">Заблокированные</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Сортировка:</label>
+            <select
+              value={filters.sort}
+              onChange={(e) => handleFilterChange('sort', e.target.value)}
+            >
+              <option value="newest">Сначала новые</option>
+              <option value="oldest">Сначала старые</option>
+              <option value="name_asc">По имени (А-Я)</option>
+              <option value="name_desc">По имени (Я-А)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      {loading && (
+        <div className="loader-overlay">
+          <div className="loader-spinner"></div>
+        </div>
+      )}
       
       <div className="users-table-container">
         <table className="users-table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Имя</th>
+              <th>Пользователь</th>
               <th>Email</th>
               <th>Роль</th>
-              <th>Компания</th>
-              <th>Верифицирован</th>
               <th>Статус</th>
               <th>Действия</th>
             </tr>
@@ -452,33 +606,62 @@ const AdminUsersManagement = () => {
             {users.map(user => (
               <tr key={user.id} className={user.is_blocked ? 'blocked' : ''}>
                 <td>{user.id}</td>
-                <td>{user.first_name} {user.last_name}</td>
+                <td>
+                  <div className="user-info-cell">
+                    <div className="user-avatar">
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt="Avatar" />
+                      ) : (
+                        <div className="avatar-initials">
+                          {user.first_name?.[0]}{user.last_name?.[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div className="user-details">
+                      <div className="user-name">
+                        {user.first_name} {user.last_name}
+                      </div>
+                      <div className="user-company">
+                        {user.company_name || 'Без компании'}
+                      </div>
+                    </div>
+                  </div>
+                </td>
                 <td>{user.email}</td>
                 <td>
                   <select
                     value={user.role}
                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    className="role-select"
+                    className={`role-select ${user.role}`}
                   >
                     <option value="worker">Сотрудник</option>
                     <option value="employer">Работодатель</option>
                     <option value="admin">Администратор</option>
                   </select>
                 </td>
-                <td>{user.company_name || '-'}</td>
                 <td>
-                  {user.is_verified ? (
-                    <span className="verified">Да</span>
-                  ) : (
-                    <span className="not-verified">Нет</span>
-                  )}
-                </td>
-                <td>
-                  {user.is_blocked ? (
-                    <span className="blocked">Заблокирован</span>
-                  ) : (
-                    <span className="active">Активен</span>
-                  )}
+                  <div className="status-indicators">
+                    <span className={`status-badge ${user.is_verified ? 'verified' : 'not-verified'}`}>
+                      {user.is_verified ? (
+                        <>
+                          <FiCheck className="verified-icon" /> Подтвержден
+                        </>
+                      ) : (
+                        'Неподтвержден'
+                      )}
+                    </span>
+                    <span className={`status-badge ${user.is_blocked ? 'blocked' : 'active'}`}>
+                      {user.is_blocked ? (
+                        <>
+                          <FiLock className="blocked-icon" /> Заблокирован
+                        </>
+                      ) : (
+                        <>
+                          <FiUnlock className="active-icon" /> Активен
+                        </>
+                      )}
+                    </span>
+                  </div>
                 </td>
                 <td className="actions">
                   <button
@@ -502,24 +685,83 @@ const AdminUsersManagement = () => {
         </table>
       </div>
       
+      {users.length === 0 && !loading && (
+        <div className="no-results">
+          <FiSearch className="no-results-icon" />
+          <p>Пользователи не найдены</p>
+          <button className="reset-filters-btn" onClick={resetFilters}>
+            Сбросить фильтры
+          </button>
+        </div>
+      )}
+      
       {totalPages > 1 && (
         <div className="pagination">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+          <button
+            className="page-btn prev-next"
+            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            Назад
+          </button>
+          
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let page;
+            if (totalPages <= 5) {
+              page = i + 1;
+            } else if (currentPage <= 3) {
+              page = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              page = totalPages - 4 + i;
+            } else {
+              page = currentPage - 2 + i;
+            }
+            
+            return (
+              <button
+                key={page}
+                className={`page-btn ${currentPage === page ? 'active' : ''}`}
+                onClick={() => handlePageChange(page)}
+                disabled={currentPage === page}
+              >
+                {page}
+              </button>
+            );
+          })}
+          
+          {totalPages > 5 && currentPage < totalPages - 2 && (
+            <span className="page-dots">...</span>
+          )}
+          
+          {totalPages > 5 && currentPage < totalPages - 1 && (
             <button
-              key={page}
-              className={`page-btn ${currentPage === page ? 'active' : ''}`}
-              onClick={() => handlePageChange(page)}
-              disabled={currentPage === page}
+              className={`page-btn ${currentPage === totalPages ? 'active' : ''}`}
+              onClick={() => handlePageChange(totalPages)}
+              disabled={currentPage === totalPages}
             >
-              {page}
+              {totalPages}
             </button>
-          ))}
+          )}
+          
+          <button
+            className="page-btn prev-next"
+            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Вперед
+          </button>
+        </div>
+      )}
+      
+      {error && (
+        <div className="admin-error-message">
+          {error}
+          <button onClick={fetchUsers}>Повторить попытку</button>
         </div>
       )}
     </div>
   );
 };
-
 // Компонент модерации документов
 const AdminDocumentsModeration = () => {
   const [documents, setDocuments] = useState([]);

@@ -28,7 +28,12 @@ class User(Base):
     experience_months = Column(Integer, nullable=True)
     rate_per_shift = Column(Numeric(10, 2), nullable=True)
     is_verified = Column(Boolean, default=False)
+    balance = Column(Numeric(10, 2), default=0.00)
     is_blocked = Column(Boolean, default=False)
     favorite_jobs = relationship("FavoriteJob", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+
+    skills = relationship("Skill", secondary="user_skills", back_populates="users")
+    availability = relationship("WorkerAvailability", back_populates="worker", cascade="all, delete-orphan")
+
 

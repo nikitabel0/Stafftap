@@ -114,6 +114,8 @@ def get_jobs(
         ))
     
     return result
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_job(
     job_data: JobCreate,
@@ -530,3 +532,4 @@ def get_jobs_by_employer(
         ))
     
     return result
+
