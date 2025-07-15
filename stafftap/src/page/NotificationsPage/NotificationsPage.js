@@ -9,11 +9,11 @@ import {
   FiMessageSquare,
   FiFileText,
   FiAlertCircle,
-  FiUserPlus
+  FiUserPlus,
+  FiBriefcase
 } from "react-icons/fi";
 import API_BASE_URL from '../../apiConfig';
 import './NotificationsPage.css';
-
 
 const NotificationsPage = ({ user }) => {
   const [notifications, setNotifications] = useState([]);
@@ -91,14 +91,11 @@ const NotificationsPage = ({ user }) => {
   const handleNavigateToChat = async (bookingId) => {
     try {
       const token = localStorage.getItem("token");
-      // Используем POST запрос для создания/получения чата
       const response = await axios.post(
         `${API_BASE_URL}/api/chats/start/${bookingId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Переходим в чат
       navigate(`/chats/${response.data.id}`);
     } catch (error) {
       console.error("Ошибка при создании чата:", error);
@@ -129,6 +126,8 @@ const NotificationsPage = ({ user }) => {
         return <FiUserPlus className="notification-icon booking-request" />;
       case "booking_confirmed":
         return <FiCheckCircle className="notification-icon booking-confirmed" />;
+      case "employer_booking":
+        return <FiBriefcase className="notification-icon employer-booking" />;
       case "job_canceled":
         return <FiAlertCircle className="notification-icon job-canceled" />;
       default:
@@ -213,6 +212,23 @@ const NotificationsPage = ({ user }) => {
                       }
                     >
                       <FiMessageSquare /> Перейти в чат
+                    </button>
+                  </div>
+                )}
+                
+                {notification.type === "employer_booking" && (
+                  <div className="notification-actions">
+                    <button
+                      className="chat-button"
+                      onClick={() => handleNavigateToChat(notification.related_id)}
+                    >
+                      <FiMessageSquare /> Перейти в чат
+                    </button>
+                    <button
+                      className="view-job-button"
+                      onClick={() => handleViewJob(notification.job_id)}
+                    >
+                      <FiBriefcase /> Посмотреть вакансию
                     </button>
                   </div>
                 )}

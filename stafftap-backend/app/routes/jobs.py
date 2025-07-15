@@ -1,19 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
-from datetime import date, time
+from datetime import date, datetime
 from app.database import get_db
-from app.models import Job, Skill, Booking, User, Review  
+from app.models import Job, Skill, Booking, User, Review, FrozenFunds, Notification, FavoriteJob
 from app.schemas.job import JobDetail, JobOut, JobCreate, ConfirmedWorker
-from app.schemas.booking import BookingWithJobOut
-from datetime import datetime, time
-import logging
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from fastapi import status
+from app.schemas.booking import BookingOut, EmployerBookRequest
+
 from app.dependencies import get_current_user, get_current_user_optional 
-from sqlalchemy import func
-from app.models.favorite_job import FavoriteJob
+from sqlalchemy import func, or_
+import logging
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
@@ -23,6 +19,7 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
 @router.get("/", response_model=List[JobOut])
 def get_jobs(
     skill: Optional[str] = Query(None, alias="skill"),
@@ -30,23 +27,23 @@ def get_jobs(
     min_rate: Optional[float] = Query(None, alias="min_rate"),
     db: Session = Depends(get_db)
 ):
-    # Подзапрос для подсчета подтвержденных бронирований
-    confirmed_subq = db.query(
+    # Исправленный подзапрос: учитываем все бронирования, занимающие место
+    occupied_subq = db.query(
         Booking.job_id,
-        func.count(Booking.id).label('confirmed_count')
+        func.count(Booking.id).label('occupied_count')
     ).filter(
-        Booking.status == "confirmed"
+        Booking.status.in_(["confirmed", "employer_booked"])
     ).group_by(Booking.job_id).subquery()
 
     # Основной запрос с фильтрацией
     query = db.query(
         Job,
-        func.coalesce(confirmed_subq.c.confirmed_count, 0).label('confirmed_count')
+        func.coalesce(occupied_subq.c.occupied_count, 0).label('occupied_count')
     ).options(joinedload(Job.required_skill)) \
-        .outerjoin(confirmed_subq, Job.id == confirmed_subq.c.job_id) \
+        .outerjoin(occupied_subq, Job.id == occupied_subq.c.job_id) \
         .filter(Job.status == "active") \
         .filter(Job.work_date >= date.today()) \
-        .filter(Job.workers_needed > func.coalesce(confirmed_subq.c.confirmed_count, 0))
+        .filter(Job.workers_needed > func.coalesce(occupied_subq.c.occupied_count, 0))
 
     if skill:
         skill_obj = db.query(Skill).filter(Skill.name.ilike(f"%{skill}%")).first()
@@ -85,11 +82,11 @@ def get_jobs(
     completed_map = {c.employer_id: c.completed_count for c in completed_jobs}
     
     result = []
-    for job, confirmed_count in results:
+    for job, occupied_count in results:
         employer = employer_map.get(job.employer_id)
         company_name = employer.company_name if employer else "Компания не указана"
         
-        remaining = job.workers_needed - confirmed_count
+        remaining = job.workers_needed - occupied_count
         skill_name = job.required_skill.name if job.required_skill else "Не указано"
         
         result.append(JobOut(
@@ -116,7 +113,7 @@ def get_jobs(
     return result
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=201)
 def create_job(
     job_data: JobCreate,
     db: Session = Depends(get_db),
@@ -124,20 +121,17 @@ def create_job(
 ):
     if current_user.role != "employer":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only employers can create jobs"
+            status_code=403,
+            detail="Только работодатели могут создавать вакансии"
         )
     
     if job_data.required_skill_id:
         skill = db.query(Skill).get(job_data.required_skill_id)
         if not skill:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid skill ID"
+                status_code=400,
+                detail="Указан несуществующий навык"
             )
-    
-    # УБИРАЕМ РУЧНОЙ ПАРСИНГ ВРЕМЕНИ
-    # Используем время напрямую из валидированных данных
     
     new_job = Job(
         employer_id=current_user.id,
@@ -145,8 +139,8 @@ def create_job(
         description=job_data.description,
         required_skill_id=job_data.required_skill_id,
         work_date=job_data.work_date,
-        start_time=job_data.start_time,  # Используем напрямую из схемы
-        end_time=job_data.end_time,      # Используем напрямую из схемы
+        start_time=job_data.start_time,
+        end_time=job_data.end_time,
         address=job_data.address,
         rate=job_data.rate,
         workers_needed=job_data.workers_needed,
@@ -169,12 +163,12 @@ def get_job_details(
     if not job:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
     
-    # Получаем подтвержденных работников
-    confirmed_workers = db.query(Booking).options(
+    # Получаем всех работников, забронированных на эту вакансию
+    booked_workers = db.query(Booking).options(
         joinedload(Booking.worker)
     ).filter(
         Booking.job_id == job_id,
-        Booking.status == "confirmed"
+        Booking.status.in_(["confirmed", "employer_booked"])
     ).all()
     
     employer = db.query(User).filter(User.id == job.employer_id).first()
@@ -198,15 +192,36 @@ def get_job_details(
         ).first()
         is_favorite = favorite is not None
 
-    confirmed_count = db.query(Booking).filter(
+    # Исправленный подсчет занятых мест
+    occupied_count = db.query(func.count(Booking.id)).filter(
         Booking.job_id == job_id,
-        Booking.status == "confirmed"
-    ).count()
-    remaining_slots = job.workers_needed - confirmed_count
+        Booking.status.in_(["confirmed", "employer_booked"])
+    ).scalar()
+    remaining_slots = job.workers_needed - occupied_count
 
-    # Формируем список подтвержденных работников
+    # Формируем список работников
     workers_list = []
-    for worker_booking in confirmed_workers:
+    worker_ids = [bw.worker_id for bw in booked_workers]
+    
+    if worker_ids:
+        # Получаем рейтинги работников
+        ratings = db.query(
+            Review.target_id,
+            func.avg(Review.rating).label('avg_rating')
+        ).filter(Review.target_id.in_(worker_ids)).group_by(Review.target_id).all()
+        rating_map = {r.target_id: float(r.avg_rating) for r in ratings}
+        
+        # Получаем количество завершенных смен
+        completed_shifts = db.query(
+            Booking.worker_id,
+            func.count(Booking.id).label('completed_count')
+        ).filter(
+            Booking.worker_id.in_(worker_ids),
+            Booking.status == 'completed'
+        ).group_by(Booking.worker_id).all()
+        completed_map = {c.worker_id: c.completed_count for c in completed_shifts}
+    
+    for worker_booking in booked_workers:
         worker = worker_booking.worker
         workers_list.append(ConfirmedWorker(
             id=worker.id,
@@ -214,8 +229,8 @@ def get_job_details(
             last_name=worker.last_name,
             phone=worker.phone,
             avatar_url=worker.avatar_url,
-            rating=None,
-            completed_shifts=None
+            rating=rating_map.get(worker.id, 0.0),
+            completed_shifts=completed_map.get(worker.id, 0)
         ))
 
     return JobDetail(
@@ -225,8 +240,8 @@ def get_job_details(
         required_skill_id=job.required_skill_id,
         required_skill_name=job.required_skill.name if job.required_skill else "Не указано",
         work_date=job.work_date,
-        start_time=job.start_time,  # Используем объект времени напрямую
-        end_time=job.end_time,      # Используем объект времени напрямую
+        start_time=job.start_time,
+        end_time=job.end_time,
         rate=float(job.rate),
         address=job.address,
         workers_needed=job.workers_needed,
@@ -280,26 +295,26 @@ def get_favorite_jobs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Подзапрос для подтвержденных бронирований
-    confirmed_subq = db.query(
+    # Исправленный подзапрос: учитываем все бронирования, занимающие место
+    occupied_subq = db.query(
         Booking.job_id,
-        func.count(Booking.id).label('confirmed_count')
+        func.count(Booking.id).label('occupied_count')
     ).filter(
-        Booking.status == "confirmed"
+        Booking.status.in_(["confirmed", "employer_booked"])
     ).group_by(Booking.job_id).subquery()
     
     # Запрос для избранных вакансий с фильтрацией
     results = db.query(
         Job,
-        func.coalesce(confirmed_subq.c.confirmed_count, 0).label('confirmed_count')
+        func.coalesce(occupied_subq.c.occupied_count, 0).label('occupied_count')
     ).options(joinedload(Job.required_skill)) \
         .join(FavoriteJob, FavoriteJob.job_id == Job.id) \
-        .outerjoin(confirmed_subq, Job.id == confirmed_subq.c.job_id) \
+        .outerjoin(occupied_subq, Job.id == occupied_subq.c.job_id) \
         .filter(
             FavoriteJob.user_id == current_user.id,
             Job.status == "active",
             Job.work_date >= date.today(),
-            Job.workers_needed > func.coalesce(confirmed_subq.c.confirmed_count, 0)
+            Job.workers_needed > func.coalesce(occupied_subq.c.occupied_count, 0)
         ).all()
     
     if not results:
@@ -331,11 +346,11 @@ def get_favorite_jobs(
     completed_map = {c.employer_id: c.completed_count for c in completed_jobs}
     
     result = []
-    for job, confirmed_count in results:
+    for job, occupied_count in results:
         employer = employer_map.get(job.employer_id)
         company_name = employer.company_name if employer else "Компания не указана"
         
-        remaining = job.workers_needed - confirmed_count
+        remaining = job.workers_needed - occupied_count
         skill_name = job.required_skill.name if job.required_skill else "Не указано"
         
         result.append(JobOut(
@@ -368,114 +383,90 @@ def get_confirmed_workers_for_job(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Старт запроса
-    logger.info(f"Request for confirmed workers for job {job_id} from user {current_user.id} ({current_user.email})")
+    logger.info(f"Запрос подтвержденных работников для вакансии {job_id} от пользователя {current_user.id}")
     
-    # Поиск вакансии
     job = db.query(Job).get(job_id)
     if not job:
-        logger.warning(f"Job not found: {job_id}")
+        logger.warning(f"Вакансия не найдена: {job_id}")
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
-    
-    logger.info(f"Job found: ID={job.id}, Title='{job.title}', Employer={job.employer_id}")
     
     # Проверка прав доступа
     if job.employer_id != current_user.id:
-        logger.warning(
-            f"Access denied: User {current_user.id} is not owner of job {job_id}. "
-            f"Job owner is {job.employer_id}"
-        )
+        logger.warning(f"Доступ запрещен: Пользователь {current_user.id} не является владельцем вакансии {job_id}")
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    # Поиск подтвержденных бронирований
     try:
+        # Получаем всех работников, забронированных на вакансию
         bookings = db.query(Booking).options(
             joinedload(Booking.worker)
         ).filter(
             Booking.job_id == job_id,
-            Booking.status == "confirmed"
+            Booking.status.in_(["confirmed", "employer_booked"])
         ).all()
         
-        logger.info(f"Found {len(bookings)} confirmed bookings for job {job_id}")
+        logger.info(f"Найдено {len(bookings)} бронирований для вакансии {job_id}")
         
         if not bookings:
-            logger.info("No confirmed bookings found. Possible reasons: "
-                        "1. No applications for this job "
-                        "2. Applications not confirmed yet "
-                        "3. All bookings in other statuses")
             return []
         
-        # Собираем ID всех работников для массовой загрузки данных
+        # Собираем ID работников
         worker_ids = [b.worker_id for b in bookings]
         
-        # Загружаем рейтинги работников
-        ratings_query = db.query(
+        # Получаем рейтинги работников
+        ratings = db.query(
             Review.target_id,
             func.avg(Review.rating).label('avg_rating')
-        ).filter(
-            Review.target_id.in_(worker_ids)
-        ).group_by(Review.target_id)
+        ).filter(Review.target_id.in_(worker_ids)).group_by(Review.target_id).all()
+        rating_map = {r.target_id: float(r.avg_rating) for r in ratings}
         
-        rating_map = {r.target_id: float(r.avg_rating) for r in ratings_query.all()}
-        
-        # Загружаем количество завершенных смен
-        completed_shifts_query = db.query(
+        # Получаем количество завершенных смен
+        completed_shifts = db.query(
             Booking.worker_id,
             func.count(Booking.id).label('completed_count')
         ).filter(
             Booking.worker_id.in_(worker_ids),
             Booking.status == 'completed'
-        ).group_by(Booking.worker_id)
-        
-        completed_map = {c.worker_id: c.completed_count for c in completed_shifts_query.all()}
+        ).group_by(Booking.worker_id).all()
+        completed_map = {c.worker_id: c.completed_count for c in completed_shifts}
         
         result = []
         for booking in bookings:
             worker = booking.worker
-            
-            # Получаем данные для текущего работника
-            rating = rating_map.get(worker.id, 0.0)
-            completed_shifts = completed_map.get(worker.id, 0)
-            
             result.append(ConfirmedWorker(
                 id=worker.id,
                 first_name=worker.first_name,
                 last_name=worker.last_name,
                 phone=worker.phone,
                 avatar_url=worker.avatar_url,
-                rating=rating,
-                completed_shifts=completed_shifts
+                rating=rating_map.get(worker.id, 0.0),
+                completed_shifts=completed_map.get(worker.id, 0)
             ))
         
-        logger.info(f"Returning {len(result)} confirmed workers")
         return result
         
     except Exception as e:
-        logger.error(f"Error fetching confirmed workers: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail="Internal server error"
-        )
+        logger.error(f"Ошибка при получении работников: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера")
 
 @router.get("/employer/{employer_id}", response_model=List[JobOut])
 def get_jobs_by_employer(
     employer_id: int,
     db: Session = Depends(get_db)
 ):
-    # Подзапрос для подсчета подтвержденных бронирований
-    confirmed_subq = db.query(
+    # Исправленный подзапрос: учитываем все бронирования, занимающие место
+    occupied_subq = db.query(
         Booking.job_id,
-        func.count(Booking.id).label('confirmed_count')
+        func.count(Booking.id).label('occupied_count')
     ).filter(
-        Booking.status == "confirmed"
+        Booking.status.in_(["confirmed", "employer_booked"])
     ).group_by(Booking.job_id).subquery()
 
     # Основной запрос: выбираем все вакансии данного работодателя
     results = db.query(
         Job,
-        func.coalesce(confirmed_subq.c.confirmed_count, 0).label('confirmed_count')
+        func.coalesce(occupied_subq.c.occupied_count, 0).label('occupied_count')
     ).options(joinedload(Job.required_skill)) \
-        .outerjoin(confirmed_subq, Job.id == confirmed_subq.c.job_id) \
+        .outerjoin(occupied_subq, Job.id == occupied_subq.c.job_id) \
         .filter(Job.employer_id == employer_id) \
         .order_by(Job.created_at.desc()).all()
 
@@ -503,11 +494,11 @@ def get_jobs_by_employer(
     completed_map = {c.employer_id: c.completed_count for c in completed_jobs}
     
     result = []
-    for job, confirmed_count in results:
+    for job, occupied_count in results:
         employer = employer_map.get(job.employer_id)
         company_name = employer.company_name if employer else "Компания не указана"
         
-        remaining = job.workers_needed - confirmed_count
+        remaining = job.workers_needed - occupied_count
         skill_name = job.required_skill.name if job.required_skill else "Не указано"
         
         result.append(JobOut(
@@ -532,4 +523,3 @@ def get_jobs_by_employer(
         ))
     
     return result
-

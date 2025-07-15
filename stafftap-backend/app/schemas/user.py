@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from datetime import date, datetime
 from enum import Enum
 from typing import Optional, List,Dict
@@ -36,6 +36,7 @@ class UserOut(BaseModel):
     company_name: Optional[str]
     experience_months: Optional[int]
     rate_per_shift: Optional[float]
+    
 
     is_verified: bool
     is_blocked: bool
@@ -55,6 +56,24 @@ class AvailabilityOut(BaseModel):
     id: int
     date: date
 
+
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = Field(None, min_length=1)
+    last_name: Optional[str] = Field(None, min_length=1)
+    phone: Optional[str] = Field(None, min_length=5)
+    birth_date: Optional[date] = None
+    email: Optional[EmailStr] = None
+    company_name: Optional[str] = None
+    experience_months: Optional[int] = Field(None, ge=0)
+    rate_per_shift: Optional[float] = Field(None, ge=0)
+    skills: Optional[List[int]] = None
+    availability: Optional[List[date]] = None
+
+    @validator('availability', pre=True, each_item=True)
+    def parse_availability_dates(cls, value):
+        if isinstance(value, str):
+            return date.fromisoformat(value)
+        return value
 
 class DocumentOut(BaseModel):
     id: int

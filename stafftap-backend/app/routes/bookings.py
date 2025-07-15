@@ -119,6 +119,7 @@ def create_new_booking(
     
     return booking_out
 
+
 @router.post("/employer/book-worker/", response_model=BookingOut)
 def employer_book_worker(
     request: EmployerBookRequest,
@@ -156,6 +157,15 @@ def employer_book_worker(
     if current_user.balance < amount:
         raise HTTPException(status_code=400, detail="Недостаточно средств на балансе")
 
+    # Проверка свободных мест в вакансии
+    occupied_count = db.query(func.count(Booking.id)).filter(
+        Booking.job_id == job.id,
+        Booking.status.in_(["confirmed", "employer_booked"])
+    ).scalar()
+    
+    if occupied_count >= job.workers_needed:
+        raise HTTPException(status_code=400, detail="Нет свободных мест на вакансии")
+
     # Создание бронирования
     new_booking = Booking(
         job_id=job.id,
@@ -178,46 +188,32 @@ def employer_book_worker(
     )
     db.add(frozen_funds)
     
+    # Создание чата
+    new_chat = Chat(
+        booking_id=new_booking.id,
+        employer_id=current_user.id,
+        worker_id=request.worker_id
+    )
+    db.add(new_chat)
+    
     # Уведомление работнику
     notification = Notification(
         user_id=worker.id,
         type="employer_booking",
         title="Вас забронировали!",
         message=f"{current_user.company_name} забронировал вас на вакансию '{job.title}'",
-        related_id=new_booking.id
+        related_id=new_booking.id,
+        job_id=job.id  # Добавляем ID вакансии
     )
     db.add(notification)
     
     db.commit()
     
-    # Возвращаем полный объект бронирования
-    return db.query(Booking).options(
-        joinedload(Booking.job),
-        joinedload(Booking.worker)
-    ).filter(Booking.id == new_booking.id).first()
-
-@router.get("/{booking_id}", response_model=BookingOut)
-def get_booking_by_id(
-    booking_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+    # Получаем полный объект бронирования
     booking = db.query(Booking).options(
         joinedload(Booking.job),
         joinedload(Booking.worker)
-    ).filter(Booking.id == booking_id).first()
-    
-    if not booking:
-        raise HTTPException(
-            status_code=404, 
-            detail="Бронирование не найдено"
-        )
-    
-    if current_user.id not in [booking.job.employer_id, booking.worker_id]:
-        raise HTTPException(
-            status_code=403, 
-            detail="Нет доступа к этому бронированию"
-        )
+    ).filter(Booking.id == new_booking.id).first()
     
     return booking
 

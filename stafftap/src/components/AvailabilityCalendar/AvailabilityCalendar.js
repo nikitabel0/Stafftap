@@ -1,110 +1,138 @@
 import React, { useState, useEffect } from 'react';
-import { format, addMonths, subMonths, isSameDay, parseISO } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import moment from 'moment';
+import 'moment/locale/ru';
+import './AvailabilityCalendar.css';
 
-const AvailabilityCalendar = ({ availability = [], isEditing, onAvailabilityChange }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDates, setSelectedDates] = useState([]);
+moment.locale('ru');
 
-  // Инициализация выбранных дат с проверкой типа
+const AvailabilityCalendar = ({ availability, onDayClick, isEditing }) => {
+  const [currentMonth, setCurrentMonth] = useState(moment());
+  const [expanded, setExpanded] = useState(false);
+  const [availableDatesList, setAvailableDatesList] = useState([]);
+
+  // При изменении availability обновляем список доступных дат
   useEffect(() => {
-    try {
-      const initialDates = Array.isArray(availability) 
-        ? availability
-            .map(item => item?.date ? parseISO(item.date) : null)
-            .filter(date => date instanceof Date && !isNaN(date))
-        : [];
-      
-      setSelectedDates(initialDates);
-    } catch (error) {
-      console.error('Ошибка инициализации дат:', error);
-      setSelectedDates([]);
-    }
+    if (!availability) return;
+    
+    // Извлекаем все даты из объекта доступности
+    const dates = Object.keys(availability)
+      .filter(date => availability[date])
+      .map(date => {
+        // Убедимся, что дата в правильном формате
+        const dateStr = date.split('T')[0];
+        return moment(dateStr).format('YYYY-MM-DD');
+      });
+    
+    setAvailableDatesList(dates);
   }, [availability]);
 
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  // Получаем начало и конец текущего месяца
+  const startOfMonth = currentMonth.clone().startOf('month');
+  const startOfCalendar = startOfMonth.clone().startOf('isoWeek');
+  const endOfMonth = currentMonth.clone().endOf('month');
+  const endOfCalendar = endOfMonth.clone().endOf('isoWeek');
 
-  const handleDateClick = (date) => {
-    if (!isEditing) return;
-    
-    const newSelectedDates = selectedDates.some(d => isSameDay(d, date))
-      ? selectedDates.filter(d => !isSameDay(d, date))
-      : [...selectedDates, date];
-    
-    setSelectedDates(newSelectedDates);
-    
-    onAvailabilityChange(newSelectedDates.map(d => ({
-      id: d.getTime(),
-      date: format(d, 'yyyy-MM-dd')
-    })));
-  };
+  const weeks = [];
+  let day = startOfCalendar.clone();
 
-  const renderDays = () => {
-    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-    const startDate = new Date(monthStart);
-    startDate.setDate(monthStart.getDate() - monthStart.getDay());
-    
-    const endDate = new Date(monthEnd);
-    endDate.setDate(monthEnd.getDate() + (6 - monthEnd.getDay()));
-    
-    const days = [];
-    let currentDate = new Date(startDate);
-    
-    while (currentDate <= endDate) {
-      days.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
+  // Строим календарь по неделям
+  while (day.isBefore(endOfCalendar) || day.isSame(endOfCalendar)) {
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      week.push(day.clone());
+      day.add(1, 'day');
     }
-    
-    return days.map((date, i) => {
-      const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
-      const isSelected = selectedDates.some(d => isSameDay(d, date));
-      const isToday = isSameDay(date, new Date());
-      
-      return (
-        <div 
-          key={i}
-          className={`calendar-day 
-            ${isCurrentMonth ? 'current-month' : 'other-month'} 
-            ${isSelected ? 'selected' : ''}
-            ${isToday ? 'today' : ''}`}
-          onClick={() => handleDateClick(date)}
-        >
-          {date.getDate()}
-          {isSelected && <div className="availability-indicator"></div>}
-        </div>
-      );
-    });
+    weeks.push(week);
+  }
+
+  // Функция проверки доступности пользователя
+  const checkAvailability = (dateStr) => {
+    return availableDatesList.includes(dateStr);
   };
+
+  // Навигация по месяцам
+  const prevMonth = () => setCurrentMonth(currentMonth.clone().subtract(1, 'month'));
+  const nextMonth = () => setCurrentMonth(currentMonth.clone().add(1, 'month'));
 
   return (
     <div className="availability-calendar">
-      <div className="calendar-header">
+      <div className="calendar-controls">
         <button onClick={prevMonth}>&lt;</button>
-        <h3>{format(currentMonth, 'LLLL yyyy', { locale: ru })}</h3>
+        <h2>{currentMonth.format('MMMM YYYY')}</h2>
         <button onClick={nextMonth}>&gt;</button>
       </div>
       
-      <div className="calendar-weekdays">
-        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, i) => (
-          <div key={i} className="weekday">{day}</div>
+      <div className="calendar-header">
+        {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, index) => (
+          <div key={index} className="calendar-header-day">{day}</div>
         ))}
       </div>
       
-      <div className="calendar-days">
-        {renderDays()}
+      <div className="calendar-body">
+        {weeks.map((week, weekIndex) => (
+          <div key={weekIndex} className="calendar-week">
+            {week.map((date, dayIndex) => {
+              const dateStr = date.format('YYYY-MM-DD');
+              const isAvailable = checkAvailability(dateStr);
+              const isCurrentMonth = date.month() === currentMonth.month();
+              const isToday = date.isSame(moment(), 'day');
+              const isPast = date.isBefore(moment(), 'day');
+
+              return (
+                <div
+                  key={dateStr}
+                  className={`calendar-day 
+                    ${isCurrentMonth ? 'current-month' : 'other-month'} 
+                    ${isAvailable ? 'available' : ''}
+                    ${isEditing ? 'editable' : ''}
+                    ${isToday ? 'today' : ''}
+                    ${isPast ? 'past' : ''}`}
+                  onClick={() => !isPast && isEditing && onDayClick(dateStr)}
+                >
+                  <div className="day-number">{date.date()}</div>
+                  {isAvailable && <div className="availability-indicator">✓</div>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
       
-      {isEditing && (
-        <div className="calendar-legend">
-          <div className="legend-item">
-            <div className="availability-indicator"></div>
-            <span>Доступен</span>
-          </div>
-          <p>Нажмите на дату, чтобы изменить доступность</p>
+      <div className="calendar-legend">
+        <div className="legend-item">
+          <div className="legend-color available"></div>
+          <span>Доступен</span>
         </div>
-      )}
+        <div className="legend-item">
+          <div className="legend-color today"></div>
+          <span>Сегодня</span>
+        </div>
+      </div>
+      
+      <div className="available-dates-section">
+        <div className="section-header" onClick={() => setExpanded(!expanded)}>
+          <h3>Запланированная доступность</h3>
+          <span>{expanded ? '▲' : '▼'}</span>
+        </div>
+        
+        {expanded && (
+          <div className="dates-container">
+            {availableDatesList.length === 0 ? (
+              <p>Нет запланированных дней</p>
+            ) : (
+              <ul className="available-dates-list">
+                {availableDatesList
+                  .sort()
+                  .map(date => (
+                    <li key={date}>
+                      {moment(date).format('dddd, DD MMMM YYYY')}
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

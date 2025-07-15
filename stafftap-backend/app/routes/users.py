@@ -24,7 +24,7 @@ from sqlalchemy import func
 from app.schemas.reviews import ReviewOut, ReviewResponse, ReviewCreate
 from app.schemas.user import (
     UserProfileResponse, SkillOut, AvailabilityOut,
-    AvailabilityInput, DocumentOut, VacancyOut
+    AvailabilityInput, DocumentOut, VacancyOut,UserOut, UserUpdate
 )
 from app.dependencies import get_current_user
 
@@ -42,31 +42,48 @@ def list_workers(
     search: Optional[str] = Query(None)
 ):
     try:
+        # Базовый запрос с обязательными условиями
         query = (
             db.query(
                 User,
                 func.coalesce(func.round(func.avg(Review.rating), 1), 0.0).label('rating')
             )
             .outerjoin(Review, Review.target_id == User.id)
-            .filter(User.role == "worker", User.is_blocked.is_(False))
+            .filter(
+                User.role == "worker",
+                User.is_blocked.is_(False),
+                User.rate_per_shift.isnot(None),  # Только с заполненной суммой
+                User.availability.any(  # Только с хотя бы одной будущей датой
+                    WorkerAvailability.available_date >= date.today()
+                )
+            )
             .group_by(User.id)
             .options(
                 selectinload(User.skills),
-                selectinload(User.availability)
+                selectinload(User.availability)  # Загружаем связанные данные
             )
         )
 
+        # Фильтр по навыку
         if skill:
             query = query.join(User.skills).filter(Skill.name == skill)
 
+        # Фильтр по конкретной дате (только будущие даты)
         if available_date:
+            if available_date < date.today():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Дата должна быть в будущем"
+                )
             query = query.join(User.availability).filter(
                 WorkerAvailability.available_date == available_date
             )
 
+        # Фильтр по минимальной ставке
         if min_rate is not None:
             query = query.filter(User.rate_per_shift >= min_rate)
 
+        # Поиск по имени/фамилии/компании
         if search:
             search_pattern = f"%{search}%"
             query = query.filter(
@@ -81,9 +98,15 @@ def list_workers(
 
         workers_out = []
         for worker, rating in workers_data:
-            # Проверка обязательных полей
+            # Пропускаем некорректные записи
             if worker.phone is None or worker.birth_date is None:
-                continue  # Пропускаем некорректные записи
+                continue
+
+            # Фильтруем доступные даты (только будущие)
+            future_availability = [
+                av for av in worker.availability
+                if av.available_date >= date.today()
+            ]
 
             worker_dict = {
                 "id": worker.id,
@@ -93,26 +116,31 @@ def list_workers(
                 "phone": worker.phone,
                 "birth_date": worker.birth_date,
                 "experience_months": worker.experience_months,
-                "rate_per_shift": float(worker.rate_per_shift) if worker.rate_per_shift is not None else None,
+                "rate_per_shift": float(worker.rate_per_shift),
                 "balance": float(worker.balance),
                 "is_verified": worker.is_verified,
                 "is_blocked": worker.is_blocked,
-                "rating": float(rating),  # Реальный рассчитанный рейтинг
+                "rating": float(rating),
                 "skills": [
                     {"id": skill.id, "name": skill.name}
                     for skill in worker.skills
                 ],
                 "availability": [
                     {"id": av.id, "date": av.available_date}
-                    for av in worker.availability
+                    for av in sorted(future_availability, key=lambda x: x.available_date)
                 ]
             }
             workers_out.append(WorkerOut(**worker_dict))
         
         return workers_out
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+
 @router.get("/skills", response_model=List[SkillOut])
 def get_all_skills(db: Session = Depends(get_db)):
     return db.query(Skill).all()
@@ -162,6 +190,48 @@ def remove_skill_from_user(
     db.delete(link)
     db.commit()
     return {"status": "removed"}
+@router.put("/{id}", response_model=UserOut)
+def update_user(
+    id: int,
+    data: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.id != id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Обновление основных полей
+    update_data = data.dict(exclude_unset=True, exclude={"skills", "availability"})
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    # Обновление навыков (только для работника)
+    if data.skills is not None and current_user.role == UserRole.worker:
+        # Удаляем старые навыки
+        db.query(UserSkill).filter(UserSkill.user_id == id).delete()
+        # Добавляем новые
+        for skill_id in data.skills:
+            if db.query(Skill).get(skill_id):
+                db.add(UserSkill(user_id=id, skill_id=skill_id))
+
+    # Обновление доступности (только для работника)
+    if data.availability is not None and current_user.role == UserRole.worker:
+        # Удаляем старую доступность
+        db.query(WorkerAvailability).filter(WorkerAvailability.worker_id == id).delete()
+        # Добавляем новую
+        for date_val in data.availability:
+            # Проверяем что дата в будущем
+            if date_val < date.today():
+                continue
+            db.add(WorkerAvailability(worker_id=id, available_date=date_val))
+
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @router.put("/{id}/availability")
@@ -253,35 +323,6 @@ def delete_document(
     return {"status": "deleted"}
 
 
-@router.put("/{id}")
-def update_user_by_id(
-    id: int,
-    data: dict = Body(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.id != id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    user = db.query(User).filter(User.id == id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    allowed_fields = [
-        "first_name", "last_name", "phone", "email", "birth_date",
-        "company_name", "experience_months", "rate_per_shift"
-    ]
-
-    update_data = {k: v for k, v in data.items() if k in allowed_fields}
-
-    if not update_data:
-        return {"status": "ничего не обновлено"}
-
-    for field, value in update_data.items():
-        setattr(user, field, value)
-
-    db.commit()
-    return {"status": "updated"}
 
 
 @router.post("/{id}/avatar")

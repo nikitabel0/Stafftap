@@ -14,6 +14,7 @@ class Notification(Base):
     is_read = Column(Boolean, default=False)
     related_id = Column(Integer)  
     created_at = Column(DateTime, server_default=func.now())
+    job_id = Column(Integer, ForeignKey('jobs.id'), nullable=True)
     
     
     user = relationship("User", back_populates="notifications")

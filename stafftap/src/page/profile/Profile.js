@@ -1,52 +1,71 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  FiPlus, FiFile, FiDownload, FiTrash2, FiCamera, FiCheckCircle, FiXCircle,FiRefreshCw, 
-  FiUser, FiLock, FiUnlock, FiBarChart2, FiFileText, FiCheck, FiX, FiSearch 
-} from 'react-icons/fi';
-import './ProfilePage.css';
-import SkillsList from '../../components/SkillsList/SkillsList';
-import AvailabilityCalendar from '../../components/AvailabilityCalendar/AvailabilityCalendar';
-import VacancyCards from '../../components/VacancyCards/VacancyCards';
-import axios from 'axios';
-import API_BASE_URL from '../../apiConfig';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  FiPlus,
+  FiFile,
+  FiDownload,
+  FiTrash2,
+  FiCamera,
+  FiCheckCircle,
+  FiXCircle,
+  FiRefreshCw,
+  FiUser,
+  FiLock,
+  FiUnlock,
+  FiBarChart2,
+  FiFileText,
+  FiCheck,
+  FiX,
+  FiSearch,
+} from "react-icons/fi";
+import "./ProfilePage.css";
+import SkillsList from "../../components/SkillsList/SkillsList";
+import AvailabilityCalendar from "../../components/AvailabilityCalendar/AvailabilityCalendar";
+import VacancyCards from "../../components/VacancyCards/VacancyCards";
+import axios from "axios";
+import API_BASE_URL from "../../apiConfig";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Функция для безопасного форматирования чисел
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
-  return isNaN(num) 
-    ? defaultValue.toLocaleString('ru-RU') 
-    : num.toLocaleString('ru-RU');
+  return isNaN(num)
+    ? defaultValue.toLocaleString("ru-RU")
+    : num.toLocaleString("ru-RU");
 };
 
 // Компонент списка документов
 const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
   const safeDocuments = documents || [];
-  
+
   const handleAddDocument = () => {
     const newDocument = {
       id: Date.now(),
       type: "ИНН",
       file_url: "document.pdf",
-      status: "pending"
+      status: "pending",
     };
     onDocumentsChange([...safeDocuments, newDocument]);
   };
 
   const handleRemoveDocument = (id) => {
-    onDocumentsChange(safeDocuments.filter(doc => doc.id !== id));
+    onDocumentsChange(safeDocuments.filter((doc) => doc.id !== id));
   };
 
   return (
     <div className="documents-container">
-      {safeDocuments.map(doc => (
+      {safeDocuments.map((doc) => (
         <div key={doc.id} className="document-item">
           <FiFile className="document-icon" />
           <div className="document-info">
             <div className="document-type">{doc.type}</div>
             <div className={`document-status ${doc.status}`}>
-              {doc.status === 'approved' ? 'Подтвержден' : 
-               doc.status === 'rejected' ? 'Отклонен' : 'На проверке'}
+              {doc.status === "approved"
+                ? "Подтвержден"
+                : doc.status === "rejected"
+                ? "Отклонен"
+                : "На проверке"}
             </div>
           </div>
           <div className="document-actions">
@@ -54,7 +73,7 @@ const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
               <FiDownload />
             </button>
             {isEditing && (
-              <button 
+              <button
                 className="remove-btn"
                 onClick={() => handleRemoveDocument(doc.id)}
               >
@@ -64,7 +83,7 @@ const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
           </div>
         </div>
       ))}
-      
+
       {isEditing && (
         <button className="add-document-btn" onClick={handleAddDocument}>
           <FiPlus /> Добавить документ
@@ -74,24 +93,38 @@ const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
   );
 };
 
-// Функция преобразования данных пользователя
+
 const transformUser = (userData) => {
   if (!userData) return null;
-  
+
+  // Преобразуем массив дат в объект для календаря
+  const availabilityObj = {};
+  if (userData.availability && Array.isArray(userData.availability)) {
+    userData.availability.forEach((av) => {
+      // Для объектов WorkerAvailability используем поле 'date'
+      if (av.date) {
+        // Если дата в формате строки, преобразуем в нужный формат
+        const dateStr = typeof av.date === 'string' 
+          ? av.date.split('T')[0] 
+          : new Date(av.date).toISOString().split('T')[0];
+        availabilityObj[dateStr] = true;
+      }
+    });
+  }
+
   return {
     ...userData,
     balance: userData.balance || 0,
     skills: userData.skills || [],
     documents: userData.documents || [],
-    availability: userData.availability || {},
+    availability: availabilityObj,
     rating: userData.rating || 0,
     reviews_count: userData.reviews_count || 0,
-    company_name: userData.company_name || '',
+    company_name: userData.company_name || "",
     rate_per_shift: userData.rate_per_shift || 0,
-    experience_months: userData.experience_months || 0
+    experience_months: userData.experience_months || 0,
   };
 };
-
 // Компонент статистики платформы
 const PlatformStatistics = () => {
   const [stats, setStats] = useState(null);
@@ -101,21 +134,24 @@ const PlatformStatistics = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/admin/statistics`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `${API_BASE_URL}/api/admin/statistics`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        });
+        );
         setStats(response.data);
       } catch (err) {
-        setError('Ошибка загрузки статистики');
-        console.error('Ошибка загрузки статистики:', err);
+        setError("Ошибка загрузки статистики");
+        console.error("Ошибка загрузки статистики:", err);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchStats();
   }, []);
 
@@ -130,33 +166,41 @@ const PlatformStatistics = () => {
   return (
     <div className="platform-statistics">
       <h2>Статистика платформы</h2>
-      
+
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon"><FiUser /></div>
+          <div className="stat-icon">
+            <FiUser />
+          </div>
           <div className="stat-value">{stats.total_users}</div>
           <div className="stat-label">Пользователей</div>
         </div>
-        
+
         <div className="stat-card">
-          <div className="stat-icon"><FiBarChart2 /></div>
+          <div className="stat-icon">
+            <FiBarChart2 />
+          </div>
           <div className="stat-value">{stats.active_jobs}</div>
           <div className="stat-label">Активных вакансий</div>
         </div>
-        
+
         <div className="stat-card">
-          <div className="stat-icon"><FiCheckCircle /></div>
+          <div className="stat-icon">
+            <FiCheckCircle />
+          </div>
           <div className="stat-value">{stats.completed_jobs}</div>
           <div className="stat-label">Завершенных смен</div>
         </div>
-        
+
         <div className="stat-card">
-          <div className="stat-icon"><FiFileText /></div>
+          <div className="stat-icon">
+            <FiFileText />
+          </div>
           <div className="stat-value">{stats.pending_documents}</div>
           <div className="stat-label">Документов на проверке</div>
         </div>
       </div>
-      
+
       <div className="stats-charts">
         <div className="chart-container">
           <h3>Регистрации пользователей</h3>
@@ -165,12 +209,15 @@ const PlatformStatistics = () => {
             <p>График регистраций по дням</p>
           </div>
         </div>
-        
+
         <div className="chart-container">
           <h3>Распределение по ролям</h3>
           <div className="chart-placeholder">
             {/* Здесь будет круговая диаграмма */}
-            <p>Круговая диаграмма: {stats.workers} работников, {stats.employers} работодателей</p>
+            <p>
+              Круговая диаграмма: {stats.workers} работников, {stats.employers}{" "}
+              работодателей
+            </p>
           </div>
         </div>
       </div>
@@ -187,39 +234,43 @@ const AdminJobsModeration = () => {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/admin/jobs/moderation`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `${API_BASE_URL}/api/admin/jobs/moderation`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        });
+        );
         setJobs(response.data);
       } catch (err) {
-        setError('Ошибка загрузки вакансий');
-        console.error('Ошибка загрузки вакансий:', err);
+        setError("Ошибка загрузки вакансий");
+        console.error("Ошибка загрузки вакансий:", err);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchJobs();
   }, []);
 
   const handleStatusChange = async (jobId, status) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`${API_BASE_URL}/api/admin/jobs/${jobId}/status`, 
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/jobs/${jobId}/status`,
         { status },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      setJobs(jobs.filter(job => job.id !== jobId));
+      setJobs(jobs.filter((job) => job.id !== jobId));
     } catch (err) {
-      console.error('Ошибка изменения статуса:', err);
-      setError('Не удалось изменить статус');
+      console.error("Ошибка изменения статуса:", err);
+      setError("Не удалось изменить статус");
     }
   };
 
@@ -234,66 +285,70 @@ const AdminJobsModeration = () => {
   return (
     <div className="admin-jobs-moderation">
       <h2>Вакансии на модерации</h2>
-      
+
       {jobs.length === 0 ? (
         <div className="no-jobs">
           <p>Нет вакансий для модерации</p>
         </div>
       ) : (
         <div className="jobs-list">
-          {jobs.map(job => (
+          {jobs.map((job) => (
             <div key={job.id} className="moderation-job-card">
               <div className="job-header">
                 <h3>{job.title}</h3>
                 <span className="company">{job.company_name}</span>
               </div>
-              
+
               <div className="job-details">
                 <div className="detail">
                   <strong>Описание:</strong>
                   <p>{job.description}</p>
                 </div>
-                
+
                 <div className="detail-row">
                   <div className="detail">
                     <strong>Дата:</strong>
-                    <span>{new Date(job.work_date).toLocaleDateString('ru-RU')}</span>
+                    <span>
+                      {new Date(job.work_date).toLocaleDateString("ru-RU")}
+                    </span>
                   </div>
-                  
+
                   <div className="detail">
                     <strong>Время:</strong>
-                    <span>{job.start_time} - {job.end_time}</span>
+                    <span>
+                      {job.start_time} - {job.end_time}
+                    </span>
                   </div>
                 </div>
-                
+
                 <div className="detail-row">
                   <div className="detail">
                     <strong>Ставка:</strong>
                     <span>{job.rate} ₽</span>
                   </div>
-                  
+
                   <div className="detail">
                     <strong>Требуемый навык:</strong>
                     <span>{job.required_skill_name}</span>
                   </div>
                 </div>
-                
+
                 <div className="detail">
                   <strong>Адрес:</strong>
                   <span>{job.address}</span>
                 </div>
               </div>
-              
+
               <div className="job-actions">
-                <button 
+                <button
                   className="approve-btn"
-                  onClick={() => handleStatusChange(job.id, 'active')}
+                  onClick={() => handleStatusChange(job.id, "active")}
                 >
                   <FiCheckCircle /> Одобрить
                 </button>
-                <button 
+                <button
                   className="reject-btn"
-                  onClick={() => handleStatusChange(job.id, 'rejected')}
+                  onClick={() => handleStatusChange(job.id, "rejected")}
                 >
                   <FiXCircle /> Отклонить
                 </button>
@@ -311,16 +366,16 @@ const AdminUsersManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
-    role: 'all',
-    verified: 'all',
-    status: 'all',
-    sort: 'newest'
+    role: "all",
+    verified: "all",
+    status: "all",
+    sort: "newest",
   });
-  
+
   const pageSize = 10;
   const searchTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -330,39 +385,39 @@ const AdminUsersManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       // Формируем параметры запроса
       const params = {
         page: currentPage,
         page_size: pageSize,
         ...(searchTerm && { search: searchTerm }),
-        ...(filters.role !== 'all' && { role: filters.role }),
-        ...(filters.verified !== 'all' && { 
-          is_verified: filters.verified === 'verified' 
+        ...(filters.role !== "all" && { role: filters.role }),
+        ...(filters.verified !== "all" && {
+          is_verified: filters.verified === "verified",
         }),
-        ...(filters.status !== 'all' && { 
-          is_blocked: filters.status === 'blocked' 
+        ...(filters.status !== "all" && {
+          is_blocked: filters.status === "blocked",
         }),
-        sort: filters.sort
+        sort: filters.sort,
       };
 
       const response = await axios.get(`${API_BASE_URL}/api/admin/users`, {
         params,
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       setUsers(response.data.users || []);
       setTotalPages(response.data.total_pages || 1);
       setError(null);
     } catch (err) {
-      setError('Ошибка загрузки пользователей');
-      console.error('Ошибка загрузки пользователей:', err);
+      setError("Ошибка загрузки пользователей");
+      console.error("Ошибка загрузки пользователей:", err);
     } finally {
       setLoading(false);
-      
+
       // Восстанавливаем фокус после загрузки
       if (shouldRestoreFocusRef.current && searchInputRef.current) {
         searchInputRef.current.focus();
@@ -381,9 +436,9 @@ const AdminUsersManagement = () => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     shouldRestoreFocusRef.current = true;
-    
+
     // Устанавливаем таймер для поиска с задержкой 500 мс
     searchTimeoutRef.current = setTimeout(() => {
       if (searchTerm.length === 0 || searchTerm.length > 2) {
@@ -391,7 +446,7 @@ const AdminUsersManagement = () => {
         fetchUsers();
       }
     }, 500);
-    
+
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -409,75 +464,75 @@ const AdminUsersManagement = () => {
   };
 
   const handleFilterChange = (filterName, value) => {
-    setFilters(prev => ({ ...prev, [filterName]: value }));
+    setFilters((prev) => ({ ...prev, [filterName]: value }));
     setCurrentPage(1);
   };
 
   const resetFilters = () => {
     setFilters({
-      role: 'all',
-      verified: 'all',
-      status: 'all',
-      sort: 'newest'
+      role: "all",
+      verified: "all",
+      status: "all",
+      sort: "newest",
     });
-    setSearchTerm('');
+    setSearchTerm("");
     setCurrentPage(1);
   };
 
   const handleBlockToggle = async (userId, isBlocked) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.patch(
         `${API_BASE_URL}/api/admin/users/${userId}/block`,
         { is_blocked: !isBlocked },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       fetchUsers();
     } catch (err) {
-      console.error('Ошибка изменения статуса блокировки:', err);
-      setError('Не удалось изменить статус блокировки');
+      console.error("Ошибка изменения статуса блокировки:", err);
+      setError("Не удалось изменить статус блокировки");
     }
   };
 
   const handleVerifyToggle = async (userId, isVerified) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.patch(
         `${API_BASE_URL}/api/admin/users/${userId}/verify`,
         { is_verified: !isVerified },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       fetchUsers();
     } catch (err) {
-      console.error('Ошибка изменения статуса верификации:', err);
-      setError('Не удалось изменить статус верификации');
+      console.error("Ошибка изменения статуса верификации:", err);
+      setError("Не удалось изменить статус верификации");
     }
   };
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await axios.patch(
         `${API_BASE_URL}/api/admin/users/${userId}/role`,
         { role: newRole },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       fetchUsers();
     } catch (err) {
-      console.error('Ошибка изменения роли:', err);
-      setError('Не удалось изменить роль пользователя');
+      console.error("Ошибка изменения роли:", err);
+      setError("Не удалось изменить роль пользователя");
     }
   };
 
@@ -487,30 +542,40 @@ const AdminUsersManagement = () => {
       <div className="admin-section-header">
         <h2>Управление пользователями</h2>
         <div className="admin-filters-summary">
-          {filters.role !== 'all' && (
-            <span className="filter-tag">Роль: {
-              filters.role === 'worker' ? 'Сотрудники' : 
-              filters.role === 'employer' ? 'Работодатели' : 'Администраторы'
-            }</span>
+          {filters.role !== "all" && (
+            <span className="filter-tag">
+              Роль:{" "}
+              {filters.role === "worker"
+                ? "Сотрудники"
+                : filters.role === "employer"
+                ? "Работодатели"
+                : "Администраторы"}
+            </span>
           )}
-          {filters.verified !== 'all' && (
-            <span className="filter-tag">Верификация: {
-              filters.verified === 'verified' ? 'Подтвержденные' : 'Неподтвержденные'
-            }</span>
+          {filters.verified !== "all" && (
+            <span className="filter-tag">
+              Верификация:{" "}
+              {filters.verified === "verified"
+                ? "Подтвержденные"
+                : "Неподтвержденные"}
+            </span>
           )}
-          {filters.status !== 'all' && (
-            <span className="filter-tag">Статус: {
-              filters.status === 'active' ? 'Активные' : 'Заблокированные'
-            }</span>
+          {filters.status !== "all" && (
+            <span className="filter-tag">
+              Статус:{" "}
+              {filters.status === "active" ? "Активные" : "Заблокированные"}
+            </span>
           )}
-          {(filters.role !== 'all' || filters.verified !== 'all' || filters.status !== 'all') && (
+          {(filters.role !== "all" ||
+            filters.verified !== "all" ||
+            filters.status !== "all") && (
             <button className="reset-filters-btn" onClick={resetFilters}>
               <FiRefreshCw /> Сбросить фильтры
             </button>
           )}
         </div>
       </div>
-      
+
       <div className="admin-controls">
         <div className="admin-search">
           <FiSearch className="search-icon" />
@@ -522,21 +587,21 @@ const AdminUsersManagement = () => {
             onChange={handleSearch}
           />
           {searchTerm && (
-            <button 
+            <button
               className="clear-search-btn"
-              onClick={() => setSearchTerm('')}
+              onClick={() => setSearchTerm("")}
             >
               &times;
             </button>
           )}
         </div>
-        
+
         <div className="filter-controls">
           <div className="filter-group">
             <label>Роль:</label>
             <select
               value={filters.role}
-              onChange={(e) => handleFilterChange('role', e.target.value)}
+              onChange={(e) => handleFilterChange("role", e.target.value)}
             >
               <option value="all">Все роли</option>
               <option value="worker">Сотрудники</option>
@@ -544,36 +609,36 @@ const AdminUsersManagement = () => {
               <option value="admin">Администраторы</option>
             </select>
           </div>
-          
+
           <div className="filter-group">
             <label>Верификация:</label>
             <select
               value={filters.verified}
-              onChange={(e) => handleFilterChange('verified', e.target.value)}
+              onChange={(e) => handleFilterChange("verified", e.target.value)}
             >
               <option value="all">Все</option>
               <option value="verified">Подтвержденные</option>
               <option value="unverified">Неподтвержденные</option>
             </select>
           </div>
-          
+
           <div className="filter-group">
             <label>Статус:</label>
             <select
               value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
+              onChange={(e) => handleFilterChange("status", e.target.value)}
             >
               <option value="all">Все</option>
               <option value="active">Активные</option>
               <option value="blocked">Заблокированные</option>
             </select>
           </div>
-          
+
           <div className="filter-group">
             <label>Сортировка:</label>
             <select
               value={filters.sort}
-              onChange={(e) => handleFilterChange('sort', e.target.value)}
+              onChange={(e) => handleFilterChange("sort", e.target.value)}
             >
               <option value="newest">Сначала новые</option>
               <option value="oldest">Сначала старые</option>
@@ -583,13 +648,13 @@ const AdminUsersManagement = () => {
           </div>
         </div>
       </div>
-      
+
       {loading && (
         <div className="loader-overlay">
           <div className="loader-spinner"></div>
         </div>
       )}
-      
+
       <div className="users-table-container">
         <table className="users-table">
           <thead>
@@ -603,8 +668,8 @@ const AdminUsersManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
-              <tr key={user.id} className={user.is_blocked ? 'blocked' : ''}>
+            {users.map((user) => (
+              <tr key={user.id} className={user.is_blocked ? "blocked" : ""}>
                 <td>{user.id}</td>
                 <td>
                   <div className="user-info-cell">
@@ -613,7 +678,8 @@ const AdminUsersManagement = () => {
                         <img src={user.avatar_url} alt="Avatar" />
                       ) : (
                         <div className="avatar-initials">
-                          {user.first_name?.[0]}{user.last_name?.[0]}
+                          {user.first_name?.[0]}
+                          {user.last_name?.[0]}
                         </div>
                       )}
                     </div>
@@ -622,7 +688,7 @@ const AdminUsersManagement = () => {
                         {user.first_name} {user.last_name}
                       </div>
                       <div className="user-company">
-                        {user.company_name || 'Без компании'}
+                        {user.company_name || "Без компании"}
                       </div>
                     </div>
                   </div>
@@ -641,16 +707,24 @@ const AdminUsersManagement = () => {
                 </td>
                 <td>
                   <div className="status-indicators">
-                    <span className={`status-badge ${user.is_verified ? 'verified' : 'not-verified'}`}>
+                    <span
+                      className={`status-badge ${
+                        user.is_verified ? "verified" : "not-verified"
+                      }`}
+                    >
                       {user.is_verified ? (
                         <>
                           <FiCheck className="verified-icon" /> Подтвержден
                         </>
                       ) : (
-                        'Неподтвержден'
+                        "Неподтвержден"
                       )}
                     </span>
-                    <span className={`status-badge ${user.is_blocked ? 'blocked' : 'active'}`}>
+                    <span
+                      className={`status-badge ${
+                        user.is_blocked ? "blocked" : "active"
+                      }`}
+                    >
                       {user.is_blocked ? (
                         <>
                           <FiLock className="blocked-icon" /> Заблокирован
@@ -665,18 +739,26 @@ const AdminUsersManagement = () => {
                 </td>
                 <td className="actions">
                   <button
-                    className={`action-btn ${user.is_verified ? 'unverify' : 'verify'}`}
-                    onClick={() => handleVerifyToggle(user.id, user.is_verified)}
+                    className={`action-btn ${
+                      user.is_verified ? "unverify" : "verify"
+                    }`}
+                    onClick={() =>
+                      handleVerifyToggle(user.id, user.is_verified)
+                    }
                   >
                     {user.is_verified ? <FiX /> : <FiCheck />}
-                    {user.is_verified ? ' Снять верификацию' : ' Верифицировать'}
+                    {user.is_verified
+                      ? " Снять верификацию"
+                      : " Верифицировать"}
                   </button>
                   <button
-                    className={`action-btn ${user.is_blocked ? 'unblock' : 'block'}`}
+                    className={`action-btn ${
+                      user.is_blocked ? "unblock" : "block"
+                    }`}
                     onClick={() => handleBlockToggle(user.id, user.is_blocked)}
                   >
                     {user.is_blocked ? <FiUnlock /> : <FiLock />}
-                    {user.is_blocked ? ' Разблокировать' : ' Заблокировать'}
+                    {user.is_blocked ? " Разблокировать" : " Заблокировать"}
                   </button>
                 </td>
               </tr>
@@ -684,7 +766,7 @@ const AdminUsersManagement = () => {
           </tbody>
         </table>
       </div>
-      
+
       {users.length === 0 && !loading && (
         <div className="no-results">
           <FiSearch className="no-results-icon" />
@@ -694,7 +776,7 @@ const AdminUsersManagement = () => {
           </button>
         </div>
       )}
-      
+
       {totalPages > 1 && (
         <div className="pagination">
           <button
@@ -704,7 +786,7 @@ const AdminUsersManagement = () => {
           >
             Назад
           </button>
-          
+
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             let page;
             if (totalPages <= 5) {
@@ -716,11 +798,11 @@ const AdminUsersManagement = () => {
             } else {
               page = currentPage - 2 + i;
             }
-            
+
             return (
               <button
                 key={page}
-                className={`page-btn ${currentPage === page ? 'active' : ''}`}
+                className={`page-btn ${currentPage === page ? "active" : ""}`}
                 onClick={() => handlePageChange(page)}
                 disabled={currentPage === page}
               >
@@ -728,31 +810,35 @@ const AdminUsersManagement = () => {
               </button>
             );
           })}
-          
+
           {totalPages > 5 && currentPage < totalPages - 2 && (
             <span className="page-dots">...</span>
           )}
-          
+
           {totalPages > 5 && currentPage < totalPages - 1 && (
             <button
-              className={`page-btn ${currentPage === totalPages ? 'active' : ''}`}
+              className={`page-btn ${
+                currentPage === totalPages ? "active" : ""
+              }`}
               onClick={() => handlePageChange(totalPages)}
               disabled={currentPage === totalPages}
             >
               {totalPages}
             </button>
           )}
-          
+
           <button
             className="page-btn prev-next"
-            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+            onClick={() =>
+              handlePageChange(Math.min(totalPages, currentPage + 1))
+            }
             disabled={currentPage === totalPages}
           >
             Вперед
           </button>
         </div>
       )}
-      
+
       {error && (
         <div className="admin-error-message">
           {error}
@@ -771,39 +857,43 @@ const AdminDocumentsModeration = () => {
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_BASE_URL}/api/admin/documents`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `${API_BASE_URL}/api/admin/documents`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        });
+        );
         setDocuments(response.data);
       } catch (err) {
-        setError('Ошибка загрузки документов');
-        console.error('Ошибка загрузки документов:', err);
+        setError("Ошибка загрузки документов");
+        console.error("Ошибка загрузки документов:", err);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchDocuments();
   }, []);
 
   const handleStatusChange = async (docId, status) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.patch(`${API_BASE_URL}/api/admin/documents/${docId}/status`, 
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/documents/${docId}/status`,
         { status },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      setDocuments(documents.filter(doc => doc.id !== docId));
+      setDocuments(documents.filter((doc) => doc.id !== docId));
     } catch (err) {
-      console.error('Ошибка изменения статуса документа:', err);
-      setError('Не удалось изменить статус');
+      console.error("Ошибка изменения статуса документа:", err);
+      setError("Не удалось изменить статус");
     }
   };
 
@@ -818,36 +908,40 @@ const AdminDocumentsModeration = () => {
   return (
     <div className="admin-documents-moderation">
       <h2>Документы на проверке</h2>
-      
+
       {documents.length === 0 ? (
         <div className="no-documents">
           <p>Нет документов для проверки</p>
         </div>
       ) : (
         <div className="documents-list">
-          {documents.map(doc => (
+          {documents.map((doc) => (
             <div key={doc.id} className="moderation-doc-card">
               <div className="doc-header">
                 <h3>{doc.document_type}</h3>
-                <span className="user">От: {doc.user.first_name} {doc.user.last_name}</span>
+                <span className="user">
+                  От: {doc.user.first_name} {doc.user.last_name}
+                </span>
               </div>
-              
+
               <div className="doc-details">
                 <div className="detail">
                   <strong>Компания:</strong>
                   <span>{doc.user.company_name}</span>
                 </div>
-                
+
                 <div className="detail">
                   <strong>Загружено:</strong>
-                  <span>{new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}</span>
+                  <span>
+                    {new Date(doc.uploaded_at).toLocaleDateString("ru-RU")}
+                  </span>
                 </div>
               </div>
-              
+
               <div className="doc-preview">
-                <a 
-                  href={doc.file_url} 
-                  target="_blank" 
+                <a
+                  href={doc.file_url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="preview-link"
                 >
@@ -855,17 +949,17 @@ const AdminDocumentsModeration = () => {
                   <span>Просмотреть документ</span>
                 </a>
               </div>
-              
+
               <div className="doc-actions">
-                <button 
+                <button
                   className="approve-btn"
-                  onClick={() => handleStatusChange(doc.id, 'approved')}
+                  onClick={() => handleStatusChange(doc.id, "approved")}
                 >
                   <FiCheck /> Одобрить
                 </button>
-                <button 
+                <button
                   className="reject-btn"
-                  onClick={() => handleStatusChange(doc.id, 'rejected')}
+                  onClick={() => handleStatusChange(doc.id, "rejected")}
                 >
                   <FiX /> Отклонить
                 </button>
@@ -881,7 +975,7 @@ const AdminDocumentsModeration = () => {
 // Основной компонент страницы профиля
 const ProfilePage = ({ user, onSave, onLogout }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('info');
+  const [activeTab, setActiveTab] = useState("info");
   const [isEditing, setIsEditing] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -889,13 +983,22 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
-  
+
   const [employerJobs, setEmployerJobs] = useState([]);
   const [workerBookings, setWorkerBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const handleAvailabilityToggle = (dateStr) => {
+    setEditingProfile((prev) => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        [dateStr]: !prev.availability[dateStr],
+      },
+    }));
+  };
 
   const getAuthToken = () => {
-    return localStorage.getItem('token');
+    return localStorage.getItem("token");
   };
 
   useEffect(() => {
@@ -904,10 +1007,10 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       setErrors({});
       setAvatarFile(null);
       setAvatarPreview(null);
-      
-      if (user.role === 'employer') {
+
+      if (user.role === "employer") {
         loadEmployerJobs(user.id);
-      } else if (user.role === 'worker') {
+      } else if (user.role === "worker") {
         loadWorkerBookings(user.id);
       }
     }
@@ -921,13 +1024,13 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         `${API_BASE_URL}/api/jobs/employer/${employerId}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       setEmployerJobs(response.data);
     } catch (error) {
-      console.error('Ошибка при загрузке вакансий работодателя:', error);
+      console.error("Ошибка при загрузке вакансий работодателя:", error);
       if (error.response?.status === 401) onLogout();
       setEmployerJobs([]);
     } finally {
@@ -942,15 +1045,15 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       const response = await axios.get(
         `${API_BASE_URL}/api/bookings/my-applications/`,
         {
-          params: { status: 'confirmed' },
+          params: { status: "confirmed" },
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
       setWorkerBookings(response.data);
     } catch (error) {
-      console.error('Ошибка при загрузке бронирований работника:', error);
+      console.error("Ошибка при загрузке бронирований работника:", error);
       if (error.response?.status === 401) onLogout();
       setWorkerBookings([]);
     } finally {
@@ -963,79 +1066,83 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     let isValid = true;
 
     if (!editingProfile.first_name?.trim()) {
-      newErrors.first_name = 'Имя обязательно для заполнения';
+      newErrors.first_name = "Имя обязательно для заполнения";
       isValid = false;
     } else if (editingProfile.first_name.length < 2) {
-      newErrors.first_name = 'Имя должно содержать минимум 2 символа';
+      newErrors.first_name = "Имя должно содержать минимум 2 символа";
       isValid = false;
     }
 
     if (!editingProfile.last_name?.trim()) {
-      newErrors.last_name = 'Фамилия обязательна для заполнения';
+      newErrors.last_name = "Фамилия обязательна для заполнения";
       isValid = false;
     } else if (editingProfile.last_name.length < 2) {
-      newErrors.last_name = 'Фамилия должна содержать минимум 2 символа';
+      newErrors.last_name = "Фамилия должна содержать минимум 2 символа";
       isValid = false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!editingProfile.email) {
-      newErrors.email = 'Email обязателен для заполнения';
+      newErrors.email = "Email обязателен для заполнения";
       isValid = false;
     } else if (!emailRegex.test(editingProfile.email)) {
-      newErrors.email = 'Неверный формат email';
+      newErrors.email = "Неверный формат email";
       isValid = false;
     }
 
     if (!editingProfile.birth_date) {
-      newErrors.birth_date = 'Дата рождения обязательна';
+      newErrors.birth_date = "Дата рождения обязательна";
       isValid = false;
     } else {
       const birthDate = new Date(editingProfile.birth_date);
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
         age--;
       }
-      
+
       if (age < 18) {
-        newErrors.birth_date = 'Возраст должен быть не менее 18 лет';
+        newErrors.birth_date = "Возраст должен быть не менее 18 лет";
         isValid = false;
       }
     }
 
-    if (editingProfile.role === 'worker') {
+    if (editingProfile.role === "worker") {
       if (!editingProfile.rate_per_shift) {
-        newErrors.rate_per_shift = 'Ставка обязательна';
+        newErrors.rate_per_shift = "Ставка обязательна";
         isValid = false;
       } else if (isNaN(Number(editingProfile.rate_per_shift))) {
-        newErrors.rate_per_shift = 'Ставка должна быть числом';
+        newErrors.rate_per_shift = "Ставка должна быть числом";
         isValid = false;
       } else if (Number(editingProfile.rate_per_shift) <= 0) {
-        newErrors.rate_per_shift = 'Ставка должна быть положительной';
+        newErrors.rate_per_shift = "Ставка должна быть положительной";
         isValid = false;
       }
 
       if (!editingProfile.experience_months) {
-        newErrors.experience_months = 'Опыт обязателен';
+        newErrors.experience_months = "Опыт обязателен";
         isValid = false;
       } else if (isNaN(Number(editingProfile.experience_months))) {
-        newErrors.experience_months = 'Опыт должен быть числом';
+        newErrors.experience_months = "Опыт должен быть числом";
         isValid = false;
       } else if (Number(editingProfile.experience_months) < 0) {
-        newErrors.experience_months = 'Опыт не может быть отрицательным';
+        newErrors.experience_months = "Опыт не может быть отрицательным";
         isValid = false;
       }
     }
 
-    if (editingProfile.role === 'employer') {
+    if (editingProfile.role === "employer") {
       if (!editingProfile.company_name?.trim()) {
-        newErrors.company_name = 'Название компании обязательно';
+        newErrors.company_name = "Название компании обязательно";
         isValid = false;
       } else if (editingProfile.company_name.length < 2) {
-        newErrors.company_name = 'Название компании должно содержать минимум 2 символа';
+        newErrors.company_name =
+          "Название компании должно содержать минимум 2 символа";
         isValid = false;
       }
     }
@@ -1047,13 +1154,13 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (!file.type.match('image.*')) {
-        alert('Пожалуйста, выберите файл изображения');
+      if (!file.type.match("image.*")) {
+        alert("Пожалуйста, выберите файл изображения");
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        alert('Файл слишком большой. Максимальный размер 5MB');
+        alert("Файл слишком большой. Максимальный размер 5MB");
         return;
       }
 
@@ -1074,26 +1181,110 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     }
 
     setIsSaving(true);
+
     try {
-      const dataToSave = {
-        ...editingProfile,
-        rate_per_shift: Number(editingProfile.rate_per_shift),
-        experience_months: Number(editingProfile.experience_months),
-        avatarFile: avatarFile,
+      const token = localStorage.getItem("token");
+
+      // 1. Подготовка основных данных в формате JSON
+      const updateData = {
+        first_name: editingProfile.first_name || "",
+        last_name: editingProfile.last_name || "",
+        email: editingProfile.email || "",
+        birth_date: editingProfile.birth_date || "",
       };
 
-      await onSave(dataToSave);
+      // Добавляем role-specific поля
+      if (editingProfile.role === "worker") {
+        updateData.rate_per_shift = Number(editingProfile.rate_per_shift) || 0;
+        updateData.experience_months =
+          Number(editingProfile.experience_months) || 0;
+
+        // Преобразуем availability в массив дат
+        updateData.availability = [];
+        for (const [date, isAvailable] of Object.entries(
+          editingProfile.availability
+        )) {
+          if (isAvailable) {
+            updateData.availability.push(date);
+          }
+        }
+
+        // Навыки
+        updateData.skills = editingProfile.skills.map((skill) => skill.id);
+      } else if (editingProfile.role === "employer") {
+        updateData.company_name = editingProfile.company_name || "";
+      }
+
+      // 2. Отправка основных данных как JSON
+      const response = await axios.put(
+        `${API_BASE_URL}/api/users/${editingProfile.id}`,
+        updateData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // 3. Отправка аватара отдельно (если есть)
+      if (avatarFile) {
+        const avatarFormData = new FormData();
+        avatarFormData.append("avatar", avatarFile);
+
+        await axios.post(
+          `${API_BASE_URL}/api/users/${editingProfile.id}/avatar`,
+          avatarFormData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      }
+
+      // Обновление состояния
+      onSave(response.data);
       setIsEditing(false);
       setErrors({});
       setAvatarFile(null);
       setAvatarPreview(null);
+      toast.success("Профиль успешно обновлен!");
     } catch (error) {
       console.error("Ошибка сохранения:", error);
+
+      let errorMessage = "Произошла ошибка при сохранении";
+      if (error.response) {
+        // Детализация ошибок валидации
+        if (error.response.status === 422) {
+          errorMessage = "Ошибка валидации: ";
+          if (error.response.data.detail) {
+            if (Array.isArray(error.response.data.detail)) {
+              errorMessage += error.response.data.detail
+                .map((err) => `${err.loc[1]}: ${err.msg}`)
+                .join(", ");
+            } else {
+              errorMessage += error.response.data.detail;
+            }
+          }
+        }
+        // Другие статусы
+        else if (error.response.status === 401) {
+          errorMessage = "Сессия истекла. Пожалуйста, войдите снова";
+          onLogout();
+        } else if (error.response.status === 403) {
+          errorMessage = "У вас нет прав для этого действия";
+        } else if (error.response.status === 413) {
+          errorMessage = "Размер файла слишком большой. Максимум 5MB";
+        }
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
   };
-
   const handleCancelEdit = () => {
     if (user) {
       setEditingProfile(transformUser(user));
@@ -1105,10 +1296,10 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   };
 
   const handleNumericChange = (field, value) => {
-    if (value === '' || /^\d+$/.test(value)) {
+    if (value === "" || /^\d+$/.test(value)) {
       setEditingProfile({
         ...editingProfile,
-        [field]: value
+        [field]: value,
       });
     }
   };
@@ -1133,15 +1324,15 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   }
 
   const currentProfile = isEditing ? editingProfile : transformUser(user);
-  const isAdmin = currentProfile?.role === 'admin';
+  const isAdmin = currentProfile?.role === "admin";
 
   const formatBalance = (balance) => {
     return safeFormatNumber(balance);
   };
 
   const getInitials = () => {
-    const firstNameChar = currentProfile.first_name?.charAt(0) || '';
-    const lastNameChar = currentProfile.last_name?.charAt(0) || '';
+    const firstNameChar = currentProfile.first_name?.charAt(0) || "";
+    const lastNameChar = currentProfile.last_name?.charAt(0) || "";
     return `${firstNameChar}${lastNameChar}`;
   };
 
@@ -1149,18 +1340,24 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     <div className="profile-page">
       <div className="profile-banner">
         <div className="profile-avatar">
-          <div 
-            className={`avatar-placeholder ${isEditing && !isAdmin ? 'editable' : ''}`}
+          <div
+            className={`avatar-placeholder ${
+              isEditing && !isAdmin ? "editable" : ""
+            }`}
             onClick={isEditing && !isAdmin ? handleAvatarClick : undefined}
           >
             {avatarPreview ? (
               <img src={avatarPreview} alt="Preview" className="avatar-image" />
             ) : currentProfile.avatar_url ? (
-              <img src={currentProfile.avatar_url} alt="Profile" className="avatar-image" />
+              <img
+                src={currentProfile.avatar_url}
+                alt="Profile"
+                className="avatar-image"
+              />
             ) : (
               <div className="avatar-initials">{getInitials()}</div>
             )}
-            
+
             {isEditing && !isAdmin && (
               <div className="avatar-overlay">
                 <FiCamera className="camera-icon" />
@@ -1168,35 +1365,43 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
               </div>
             )}
           </div>
-          
+
           {isEditing && !isAdmin && (
-            <input 
+            <input
               type="file"
               ref={fileInputRef}
               accept="image/*"
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
               onChange={handleAvatarChange}
             />
           )}
         </div>
-        
+
         <div className="profile-info">
-          <h1>{currentProfile.first_name || ''} {currentProfile.last_name || ''}</h1>
+          <h1>
+            {currentProfile.first_name || ""} {currentProfile.last_name || ""}
+          </h1>
           <div className="profile-meta">
             <span className={`role-badge ${currentProfile.role}`}>
-              {isAdmin ? 'Администратор' : 
-               currentProfile.role === 'worker' ? 'Сотрудник' : 'Работодатель'}
+              {isAdmin
+                ? "Администратор"
+                : currentProfile.role === "worker"
+                ? "Сотрудник"
+                : "Работодатель"}
             </span>
             {currentProfile.is_verified && (
               <span className="verified-badge">Подтвержден</span>
             )}
             <span className="member-since">
-              {currentProfile.created_at ? 
-                `С ${new Date(currentProfile.created_at).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}` : 
-                'Дата регистрации неизвестна'}
+              {currentProfile.created_at
+                ? `С ${new Date(currentProfile.created_at).toLocaleDateString(
+                    "ru-RU",
+                    { month: "long", year: "numeric" }
+                  )}`
+                : "Дата регистрации неизвестна"}
             </span>
           </div>
-          
+
           {!isAdmin && (
             <div className="balance-info">
               <span>Баланс: {formatBalance(currentProfile.balance)} ₽</span>
@@ -1204,103 +1409,107 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             </div>
           )}
         </div>
-        
+
         <div className="profile-actions">
           {isEditing ? (
             <>
-              <button 
-                className="cancel-btn" 
+              <button
+                className="cancel-btn"
                 onClick={handleCancelEdit}
                 disabled={isSaving}
               >
                 Отмена
               </button>
-              <button 
-                className="save-btn" 
+              <button
+                className="save-btn"
                 onClick={handleSaveClick}
                 disabled={isSaving}
               >
-                {isSaving ? 'Сохранение...' : 'Сохранить'}
+                {isSaving ? "Сохранение..." : "Сохранить"}
               </button>
             </>
           ) : (
             <>
               {!isAdmin && (
-                <button 
-                  className="edit-btn" 
-                  onClick={() => setIsEditing(true)}
-                >
+                <button className="edit-btn" onClick={() => setIsEditing(true)}>
                   Редактировать
                 </button>
               )}
-              <button 
-                className="logout-btn" 
-                onClick={onLogout}
-              >
+              <button className="logout-btn" onClick={onLogout}>
                 Выйти
               </button>
             </>
           )}
         </div>
       </div>
-      
+
       <div className="profile-tabs">
-        <button 
-          className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`}
-          onClick={() => setActiveTab('info')}
+        <button
+          className={`tab-btn ${activeTab === "info" ? "active" : ""}`}
+          onClick={() => setActiveTab("info")}
         >
           Информация
         </button>
-        
+
         {isAdmin ? (
           <>
-            <button 
-              className={`tab-btn ${activeTab === 'admin-stats' ? 'active' : ''}`}
-              onClick={() => setActiveTab('admin-stats')}
+            <button
+              className={`tab-btn ${
+                activeTab === "admin-stats" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("admin-stats")}
             >
               <FiBarChart2 /> Статистика
             </button>
-            <button 
-              className={`tab-btn ${activeTab === 'admin-jobs' ? 'active' : ''}`}
-              onClick={() => setActiveTab('admin-jobs')}
+            <button
+              className={`tab-btn ${
+                activeTab === "admin-jobs" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("admin-jobs")}
             >
               <FiFileText /> Вакансии
             </button>
-            <button 
-              className={`tab-btn ${activeTab === 'admin-users' ? 'active' : ''}`}
-              onClick={() => setActiveTab('admin-users')}
+            <button
+              className={`tab-btn ${
+                activeTab === "admin-users" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("admin-users")}
             >
               <FiUser /> Пользователи
             </button>
-            <button 
-              className={`tab-btn ${activeTab === 'admin-docs' ? 'active' : ''}`}
-              onClick={() => setActiveTab('admin-docs')}
+            <button
+              className={`tab-btn ${
+                activeTab === "admin-docs" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("admin-docs")}
             >
               <FiFile /> Документы
             </button>
           </>
         ) : (
           <>
-            {currentProfile.role === 'worker' && (
-              <button 
-                className={`tab-btn ${activeTab === 'availability' ? 'active' : ''}`}
-                onClick={() => setActiveTab('availability')}
+            {currentProfile.role === "worker" && (
+              <button
+                className={`tab-btn ${
+                  activeTab === "availability" ? "active" : ""
+                }`}
+                onClick={() => setActiveTab("availability")}
               >
                 Доступность
               </button>
             )}
-            <button 
-              className={`tab-btn ${activeTab === 'vacancies' ? 'active' : ''}`}
-              onClick={() => setActiveTab('vacancies')}
+            <button
+              className={`tab-btn ${activeTab === "vacancies" ? "active" : ""}`}
+              onClick={() => setActiveTab("vacancies")}
             >
               Мои вакансии
             </button>
           </>
         )}
       </div>
-      
+
       <div className="profile-content">
-        {activeTab === 'info' && (
+        {activeTab === "info" && (
           <>
             <div className="section" title="Основная информация">
               <div className="info-grid">
@@ -1308,195 +1517,269 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                   <label>Имя</label>
                   {isEditing && !isAdmin ? (
                     <div>
-                      <input 
-                        type="text" 
-                        value={editingProfile.first_name || ''}
-                        onChange={(e) => setEditingProfile({
-                          ...editingProfile,
-                          first_name: e.target.value
-                        })}
-                        className={errors.first_name ? 'error-input' : ''}
+                      <input
+                        type="text"
+                        value={editingProfile.first_name || ""}
+                        onChange={(e) =>
+                          setEditingProfile({
+                            ...editingProfile,
+                            first_name: e.target.value,
+                          })
+                        }
+                        className={errors.first_name ? "error-input" : ""}
                       />
-                      {errors.first_name && <div className="error-message">{errors.first_name}</div>}
+                      {errors.first_name && (
+                        <div className="error-message">{errors.first_name}</div>
+                      )}
                     </div>
                   ) : (
-                    <p>{currentProfile.first_name || 'Не указано'}</p>
+                    <p>{currentProfile.first_name || "Не указано"}</p>
                   )}
                 </div>
-                
+
                 <div className="info-item">
                   <label>Фамилия</label>
                   {isEditing && !isAdmin ? (
                     <div>
-                      <input 
-                        type="text" 
-                        value={editingProfile.last_name || ''}
-                        onChange={(e) => setEditingProfile({
-                          ...editingProfile,
-                          last_name: e.target.value
-                        })}
-                        className={errors.last_name ? 'error-input' : ''}
+                      <input
+                        type="text"
+                        value={editingProfile.last_name || ""}
+                        onChange={(e) =>
+                          setEditingProfile({
+                            ...editingProfile,
+                            last_name: e.target.value,
+                          })
+                        }
+                        className={errors.last_name ? "error-input" : ""}
                       />
-                      {errors.last_name && <div className="error-message">{errors.last_name}</div>}
+                      {errors.last_name && (
+                        <div className="error-message">{errors.last_name}</div>
+                      )}
                     </div>
                   ) : (
-                    <p>{currentProfile.last_name || 'Не указано'}</p>
+                    <p>{currentProfile.last_name || "Не указано"}</p>
                   )}
                 </div>
-                
+
                 <div className="info-item">
                   <label>Телефон</label>
-                  <p>{currentProfile.phone || 'Не указан'}</p>
+                  <p>{currentProfile.phone || "Не указан"}</p>
                 </div>
-                
+
                 <div className="info-item">
                   <label>Email</label>
                   {isEditing && !isAdmin ? (
                     <div>
-                      <input 
-                        type="email" 
-                        value={editingProfile.email || ''}
-                        onChange={(e) => setEditingProfile({
-                          ...editingProfile,
-                          email: e.target.value
-                        })}
-                        className={errors.email ? 'error-input' : ''}
+                      <input
+                        type="email"
+                        value={editingProfile.email || ""}
+                        onChange={(e) =>
+                          setEditingProfile({
+                            ...editingProfile,
+                            email: e.target.value,
+                          })
+                        }
+                        className={errors.email ? "error-input" : ""}
                       />
-                      {errors.email && <div className="error-message">{errors.email}</div>}
+                      {errors.email && (
+                        <div className="error-message">{errors.email}</div>
+                      )}
                     </div>
                   ) : (
-                    <p>{currentProfile.email || 'Не указан'}</p>
+                    <p>{currentProfile.email || "Не указан"}</p>
                   )}
                 </div>
-                
+
                 <div className="info-item">
                   <label>Дата рождения</label>
                   {isEditing && !isAdmin ? (
                     <div>
-                      <input 
-                        type="date" 
-                        value={editingProfile.birth_date || ''}
-                        onChange={(e) => setEditingProfile({
-                          ...editingProfile,
-                          birth_date: e.target.value
-                        })}
-                        max={new Date().toISOString().split('T')[0]}
-                        className={errors.birth_date ? 'error-input' : ''}
+                      <input
+                        type="date"
+                        value={editingProfile.birth_date || ""}
+                        onChange={(e) =>
+                          setEditingProfile({
+                            ...editingProfile,
+                            birth_date: e.target.value,
+                          })
+                        }
+                        max={new Date().toISOString().split("T")[0]}
+                        className={errors.birth_date ? "error-input" : ""}
                       />
-                      {errors.birth_date && <div className="error-message">{errors.birth_date}</div>}
+                      {errors.birth_date && (
+                        <div className="error-message">{errors.birth_date}</div>
+                      )}
                     </div>
                   ) : (
-                    <p>{currentProfile.birth_date ? 
-                          new Date(currentProfile.birth_date).toLocaleDateString('ru-RU') : 
-                          'Не указана'}
+                    <p>
+                      {currentProfile.birth_date
+                        ? new Date(
+                            currentProfile.birth_date
+                          ).toLocaleDateString("ru-RU")
+                        : "Не указана"}
                     </p>
                   )}
                 </div>
-                
-                {!isAdmin && currentProfile.role === 'worker' && (
+
+                {!isAdmin && currentProfile.role === "worker" && (
                   <>
                     <div className="info-item">
                       <label>Ставка за смену</label>
                       {isEditing ? (
                         <div>
-                          <input 
-                            type="text" 
-                            value={editingProfile.rate_per_shift || ''}
-                            onChange={(e) => handleNumericChange('rate_per_shift', e.target.value)}
-                            className={errors.rate_per_shift ? 'error-input' : ''}
+                          <input
+                            type="text"
+                            value={editingProfile.rate_per_shift || ""}
+                            onChange={(e) =>
+                              handleNumericChange(
+                                "rate_per_shift",
+                                e.target.value
+                              )
+                            }
+                            className={
+                              errors.rate_per_shift ? "error-input" : ""
+                            }
                           />
-                          {errors.rate_per_shift && <div className="error-message">{errors.rate_per_shift}</div>}
+                          {errors.rate_per_shift && (
+                            <div className="error-message">
+                              {errors.rate_per_shift}
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <p>{safeFormatNumber(currentProfile.rate_per_shift)} ₽</p>
+                        <p>
+                          {safeFormatNumber(currentProfile.rate_per_shift)} ₽
+                        </p>
                       )}
                     </div>
-                    
+
                     <div className="info-item">
                       <label>Опыт работы (месяцев)</label>
                       {isEditing ? (
                         <div>
-                          <input 
-                            type="text" 
-                            value={editingProfile.experience_months || ''}
-                            onChange={(e) => handleNumericChange('experience_months', e.target.value)}
-                            className={errors.experience_months ? 'error-input' : ''}
+                          <input
+                            type="text"
+                            value={editingProfile.experience_months || ""}
+                            onChange={(e) =>
+                              handleNumericChange(
+                                "experience_months",
+                                e.target.value
+                              )
+                            }
+                            className={
+                              errors.experience_months ? "error-input" : ""
+                            }
                           />
-                          {errors.experience_months && <div className="error-message">{errors.experience_months}</div>}
+                          {errors.experience_months && (
+                            <div className="error-message">
+                              {errors.experience_months}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <p>
-                          {currentProfile.experience_months ? 
-                            `${Math.floor(currentProfile.experience_months / 12)} лет ${currentProfile.experience_months % 12} месяцев` : 
-                            'Без опыта'}
+                          {currentProfile.experience_months
+                            ? `${Math.floor(
+                                currentProfile.experience_months / 12
+                              )} лет ${
+                                currentProfile.experience_months % 12
+                              } месяцев`
+                            : "Без опыта"}
                         </p>
                       )}
                     </div>
                   </>
                 )}
-                
-                {!isAdmin && currentProfile.role === 'employer' && (
+
+                {!isAdmin && currentProfile.role === "employer" && (
                   <div className="info-item full-width">
                     <label>Название компании</label>
                     {isEditing ? (
                       <div>
-                        <input 
-                          type="text" 
-                          value={editingProfile.company_name || ''}
-                          onChange={(e) => setEditingProfile({
-                            ...editingProfile,
-                            company_name: e.target.value
-                          })}
-                          className={errors.company_name ? 'error-input' : ''}
+                        <input
+                          type="text"
+                          value={editingProfile.company_name || ""}
+                          onChange={(e) =>
+                            setEditingProfile({
+                              ...editingProfile,
+                              company_name: e.target.value,
+                            })
+                          }
+                          className={errors.company_name ? "error-input" : ""}
                         />
-                        {errors.company_name && <div className="error-message">{errors.company_name}</div>}
+                        {errors.company_name && (
+                          <div className="error-message">
+                            {errors.company_name}
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <p>{currentProfile.company_name || 'Не указано'}</p>
+                      <p>{currentProfile.company_name || "Не указано"}</p>
                     )}
                   </div>
                 )}
               </div>
             </div>
-            
+
             {!isAdmin && (
               <>
-                <div className="section" title={currentProfile.role === 'worker' ? "Навыки" : "Документы"}>
-                  {currentProfile.role === 'worker' ? (
-                    <SkillsList 
-                      skills={isEditing ? editingProfile.skills : currentProfile.skills} 
+                <div
+                  className="section"
+                  title={
+                    currentProfile.role === "worker" ? "Навыки" : "Документы"
+                  }
+                >
+                  {currentProfile.role === "worker" ? (
+                    <SkillsList
+                      skills={
+                        isEditing
+                          ? editingProfile.skills
+                          : currentProfile.skills
+                      }
                       isEditing={isEditing}
-                      onSkillsChange={(newSkills) => setEditingProfile({
-                        ...editingProfile,
-                        skills: newSkills
-                      })}
+                      onSkillsChange={(newSkills) =>
+                        setEditingProfile({
+                          ...editingProfile,
+                          skills: newSkills,
+                        })
+                      }
                     />
                   ) : (
-                    <DocumentsList 
-                      documents={isEditing ? editingProfile.documents : currentProfile.documents} 
+                    <DocumentsList
+                      documents={
+                        isEditing
+                          ? editingProfile.documents
+                          : currentProfile.documents
+                      }
                       isEditing={isEditing}
-                      onDocumentsChange={(newDocs) => setEditingProfile({
-                        ...editingProfile,
-                        documents: newDocs
-                      })}
+                      onDocumentsChange={(newDocs) =>
+                        setEditingProfile({
+                          ...editingProfile,
+                          documents: newDocs,
+                        })
+                      }
                     />
                   )}
                 </div>
-                
+
                 <div className="section" title="Рейтинг и отзывы">
                   <div className="rating-container">
-                    <div className="rating-value">{safeFormatNumber(currentProfile.rating)}</div>
+                    <div className="rating-value">
+                      {safeFormatNumber(currentProfile.rating)}
+                    </div>
                     <div className="stars">
-                      {'★'.repeat(Math.floor(currentProfile.rating || 0))}
-                      {'☆'.repeat(5 - Math.floor(currentProfile.rating || 0))}
+                      {"★".repeat(Math.floor(currentProfile.rating || 0))}
+                      {"☆".repeat(5 - Math.floor(currentProfile.rating || 0))}
                     </div>
                     <div className="reviews-count">
                       {currentProfile.reviews_count || 0} отзывов
                     </div>
                   </div>
-                  <button 
+                  <button
                     className="view-reviews-btn"
-                    onClick={() => navigate(`/profile/${currentProfile.id}/reviews`)}
+                    onClick={() =>
+                      navigate(`/profile/${currentProfile.id}/reviews`)
+                    }
                   >
                     Посмотреть все отзывы
                   </button>
@@ -1505,32 +1788,39 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             )}
           </>
         )}
-        
-        {activeTab === 'availability' && currentProfile.role === 'worker' && !isAdmin && (
-          <div className="section" title="Мой график доступности">
-            <AvailabilityCalendar
-              availability={isEditing ? editingProfile.availability : currentProfile.availability}
-              isEditing={isEditing}
-              onAvailabilityChange={(newAvailability) => setEditingProfile({
-                ...editingProfile,
-                availability: newAvailability
-              })}
-            />
-          </div>
-        )}
-        
-        {activeTab === 'vacancies' && !isAdmin && (
-          <div className="section" title={currentProfile.role === 'worker' ? "Активные вакансии" : "Мои вакансии"}>
+
+        {activeTab === "availability" &&
+          currentProfile.role === "worker" &&
+          !isAdmin && (
+            <div className="section" title="Мой график доступности">
+              <AvailabilityCalendar
+                availability={editingProfile?.availability || {}}
+                onDayClick={handleAvailabilityToggle}
+                isEditing={true}
+                user = {user}
+              />
+            </div>
+          )}
+
+        {activeTab === "vacancies" && !isAdmin && (
+          <div
+            className="section"
+            title={
+              currentProfile.role === "worker"
+                ? "Активные вакансии"
+                : "Мои вакансии"
+            }
+          >
             {isLoading ? (
               <div className="loading-vacancies">
                 <p>Загрузка данных...</p>
               </div>
-            ) : currentProfile.role === 'employer' ? (
+            ) : currentProfile.role === "employer" ? (
               employerJobs.length > 0 ? (
                 <div className="vacancies-list">
-                  {employerJobs.map(job => (
-                    <div 
-                      key={job.id} 
+                  {employerJobs.map((job) => (
+                    <div
+                      key={job.id}
                       className="vacancy-container"
                       onClick={() => handleVacancyClick(job.id)}
                     >
@@ -1541,7 +1831,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                           startTime: job.start_time,
                           endTime: job.end_time,
                           company_name: job.company_name,
-                          remaining_slots: job.remaining_slots || 0
+                          remaining_slots: job.remaining_slots || 0,
                         }}
                         role={currentProfile.role}
                       />
@@ -1551,9 +1841,9 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
               ) : (
                 <div className="no-vacancies">
                   <p>Вы еще не создали ни одной вакансии</p>
-                  <button 
+                  <button
                     className="create-vacancy-btn"
-                    onClick={() => navigate('/create-vacancy')}
+                    onClick={() => navigate("/create-vacancy")}
                   >
                     Создать вакансию
                   </button>
@@ -1561,9 +1851,9 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
               )
             ) : workerBookings.length > 0 ? (
               <div className="vacancies-list">
-                {workerBookings.map(booking => (
-                  <div 
-                    key={booking.job.id} 
+                {workerBookings.map((booking) => (
+                  <div
+                    key={booking.job.id}
                     className="vacancy-container"
                     onClick={() => handleVacancyClick(booking.job.id)}
                   >
@@ -1574,7 +1864,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                         startTime: booking.job.start_time,
                         endTime: booking.job.end_time,
                         company_name: booking.job.company_name,
-                        remaining_slots: booking.job.remaining_slots || 0
+                        remaining_slots: booking.job.remaining_slots || 0,
                       }}
                       role={currentProfile.role}
                     />
@@ -1584,9 +1874,9 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             ) : (
               <div className="no-vacancies">
                 <p>У вас пока нет активных вакансий</p>
-                <button 
+                <button
                   className="create-vacancy-btn"
-                  onClick={() => navigate('/feed')}
+                  onClick={() => navigate("/feed")}
                 >
                   Найти вакансии
                 </button>
@@ -1594,22 +1884,14 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             )}
           </div>
         )}
-        
-        {isAdmin && activeTab === 'admin-stats' && (
-          <PlatformStatistics />
-        )}
-        
-        {isAdmin && activeTab === 'admin-jobs' && (
-          <AdminJobsModeration />
-        )}
-        
-        {isAdmin && activeTab === 'admin-users' && (
-          <AdminUsersManagement />
-        )}
-        
-        {isAdmin && activeTab === 'admin-docs' && (
-          <AdminDocumentsModeration />
-        )}
+
+        {isAdmin && activeTab === "admin-stats" && <PlatformStatistics />}
+
+        {isAdmin && activeTab === "admin-jobs" && <AdminJobsModeration />}
+
+        {isAdmin && activeTab === "admin-users" && <AdminUsersManagement />}
+
+        {isAdmin && activeTab === "admin-docs" && <AdminDocumentsModeration />}
       </div>
     </div>
   );
