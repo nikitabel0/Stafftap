@@ -10,10 +10,11 @@ import {
   FiFileText,
   FiAlertCircle,
   FiUserPlus,
-  FiBriefcase
+  FiBriefcase,
+  FiUserX
 } from "react-icons/fi";
-import API_BASE_URL from '../../apiConfig';
-import './NotificationsPage.css';
+import API_BASE_URL from "../../apiConfig";
+import "./NotificationsPage.css";
 
 const NotificationsPage = ({ user }) => {
   const [notifications, setNotifications] = useState([]);
@@ -24,10 +25,9 @@ const NotificationsPage = ({ user }) => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `${API_BASE_URL}/api/notifications`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const response = await axios.get(`${API_BASE_URL}/api/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setNotifications(response.data);
         setIsLoading(false);
       } catch (error) {
@@ -38,6 +38,22 @@ const NotificationsPage = ({ user }) => {
 
     fetchNotifications();
   }, []);
+
+  const handleWorkerRejectBooking = async (bookingId, notificationId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/api/bookings/${bookingId}/worker-reject`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const updatedNotifications = notifications.filter((n) => n.id !== notificationId);
+      setNotifications(updatedNotifications);
+    } catch (error) {
+      console.error("Ошибка при отказе от бронирования:", error);
+    }
+  };
 
   const handleMarkAsRead = async (id) => {
     try {
@@ -64,11 +80,9 @@ const NotificationsPage = ({ user }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Удаляем уведомление из списка
       setNotifications(notifications.filter((n) => n.id !== notificationId));
     } catch (error) {
       console.error("Ошибка при подтверждении бронирования:", error);
-      alert("Не удалось подтвердить бронирование. Попробуйте позже.");
     }
   };
 
@@ -84,7 +98,6 @@ const NotificationsPage = ({ user }) => {
       setNotifications(notifications.filter((n) => n.id !== notificationId));
     } catch (error) {
       console.error("Ошибка при отклонении бронирования:", error);
-      alert("Не удалось отклонить бронирование. Попробуйте позже.");
     }
   };
 
@@ -99,12 +112,11 @@ const NotificationsPage = ({ user }) => {
       navigate(`/chats/${response.data.id}`);
     } catch (error) {
       console.error("Ошибка при создании чата:", error);
-      alert("Не удалось перейти в чат. Попробуйте позже.");
     }
   };
 
   const handleViewJob = (jobId) => {
-    navigate(`/job/${jobId}`);
+    navigate(`/vacancy/${jobId}`);
   };
 
   const formatDateTime = (dateString) => {
@@ -113,8 +125,32 @@ const NotificationsPage = ({ user }) => {
       month: "long",
       hour: "2-digit",
       minute: "2-digit",
+      hour12: false
     };
-    return new Date(dateString).toLocaleDateString("ru-RU", options);
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Если уведомление сегодня
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+    
+    // Если вчера
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    
+    if (date.toDateString() === yesterday.toDateString()) {
+      return "Вчера в " + date.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+    
+    return date.toLocaleDateString("ru-RU", options);
   };
 
   // Функция для получения иконки по типу уведомления
@@ -130,6 +166,8 @@ const NotificationsPage = ({ user }) => {
         return <FiBriefcase className="notification-icon employer-booking" />;
       case "job_canceled":
         return <FiAlertCircle className="notification-icon job-canceled" />;
+      case "worker_removed":
+        return <FiUserX className="notification-icon worker-removed" />;
       default:
         return <FiBell className="notification-icon" />;
     }
@@ -215,12 +253,25 @@ const NotificationsPage = ({ user }) => {
                     </button>
                   </div>
                 )}
-                
+
                 {notification.type === "employer_booking" && (
                   <div className="notification-actions">
                     <button
+                      className="reject-button"
+                      onClick={() =>
+                        handleWorkerRejectBooking(
+                          notification.related_id,
+                          notification.id
+                        )
+                      }
+                    >
+                      <FiXCircle /> Отказаться
+                    </button>
+                    <button
                       className="chat-button"
-                      onClick={() => handleNavigateToChat(notification.related_id)}
+                      onClick={() =>
+                        handleNavigateToChat(notification.related_id)
+                      }
                     >
                       <FiMessageSquare /> Перейти в чат
                     </button>
@@ -232,14 +283,33 @@ const NotificationsPage = ({ user }) => {
                     </button>
                   </div>
                 )}
-                
-                {(notification.type === "job_moderation" || notification.type === "job_canceled") && (
+
+                {(notification.type === "job_moderation" ||
+                  notification.type === "job_canceled") && (
                   <div className="notification-actions">
                     <button
                       className="view-job-button"
                       onClick={() => handleViewJob(notification.related_id)}
                     >
                       Посмотреть вакансию
+                    </button>
+                  </div>
+                )}
+
+                {/* Новый тип уведомления: Удаление работника */}
+                {notification.type === "worker_removed" && (
+                  <div className="notification-actions">
+                    <button
+                      className="view-job-button"
+                      onClick={() => handleViewJob(notification.job_id)}
+                    >
+                      <FiBriefcase /> Посмотреть вакансию
+                    </button>
+                    <button
+                      className="chat-button"
+                      onClick={() => handleNavigateToChat(notification.related_id)}
+                    >
+                      <FiMessageSquare /> Написать работодателю
                     </button>
                   </div>
                 )}

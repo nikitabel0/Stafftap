@@ -6,6 +6,7 @@ import {
   FiCalendar, 
   FiDollarSign
 } from 'react-icons/fi';
+import './VacancyCard.css';
 import { useNavigate } from 'react-router-dom';
 
 const VacancyCards = ({ vacancy, role }) => {

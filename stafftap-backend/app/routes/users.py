@@ -224,15 +224,19 @@ def update_user(
         db.query(WorkerAvailability).filter(WorkerAvailability.worker_id == id).delete()
         # Добавляем новую
         for date_val in data.availability:
-            # Проверяем что дата в будущем
             if date_val < date.today():
                 continue
             db.add(WorkerAvailability(worker_id=id, available_date=date_val))
 
     db.commit()
-    db.refresh(user)
-    return user
-
+    
+    # Перезагружаем пользователя со всеми связями
+    updated_user = db.query(User).options(
+        joinedload(User.availability),
+        joinedload(User.skills)
+    ).filter(User.id == id).first()
+    
+    return updated_user  # Возвращаем ORM-объект
 
 @router.put("/{id}/availability")
 def update_availability(
@@ -374,7 +378,7 @@ def get_user_by_id(id: int, db: Session = Depends(get_db)):
         .all()
     )
     availability = [
-        AvailabilityOut(id=a.id, date=a.available_date)
+        AvailabilityOut(id=a.id, available_date=a.available_date)
         for a in availability_rows
     ]
 

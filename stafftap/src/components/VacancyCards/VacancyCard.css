@@ -1,79 +1,402 @@
 .vacancy-card {
-  background-color: white;
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+  background: linear-gradient(145deg, #ffffff, #f8fbfa);
+  border-radius: 20px;
+  box-shadow: 
+    0 6px 25px rgba(44, 129, 97, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  border: 1px solid rgba(44, 129, 97, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.vacancy-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, #2C8161, #56BD66);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s ease;
+  z-index: 2;
+  border-radius: 2px 2px 0 0;
 }
 
 .vacancy-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-7px);
+  box-shadow: 
+    0 12px 35px rgba(44, 129, 97, 0.22),
+    0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-.card-header {
+.vacancy-card:hover::before {
+  transform: scaleX(1);
+}
+
+.vacancy-header {
+  background: white;
+  padding: 22px 25px 15px;
+  position: relative;
+  z-index: 3;
+  border-bottom: 1px solid rgba(44, 129, 97, 0.07);
+}
+
+.vacancy-title-wrapper {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 10px;
+  justify-content: space-between;
+  gap: 15px;
+  min-height: 60px; /* Гарантированное место для заголовка */
 }
 
-.card-header h3 {
-  font-size: 18px;
-  color: #2C8161;
+.vacancy-title {
+  font-size: 21px;
+  font-weight: 700;
   margin: 0;
+  line-height: 1.35;
+  color: #222;
+  transition: all 0.3s ease;
   flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* До 3 строк для длинных заголовков */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  hyphens: auto; /* Перенос длинных слов */
+  word-break: break-word; /* Обрыв длинных слов */
+}
+
+.vacancy-rate {
+  background: linear-gradient(to right, #2C8161, #56BD66);
+  color: white;
+  padding: 7px 15px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 10px rgba(44, 129, 97, 0.2);
+  flex-shrink: 0;
+  min-width: max-content;
+}
+
+.vacancy-company {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 16px;
+  color: #5a7c6f;
+  font-weight: 500;
+  padding: 8px 0;
+}
+
+.company-icon {
+  color: #2C8161;
+  font-size: 18px;
+  opacity: 0.8;
+}
+
+.vacancy-body {
+  padding: 20px 25px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 150px; /* Минимальная высота для избежания пустоты */
+}
+
+.vacancy-description {
+  color: #555;
+  font-size: 16px;
+  line-height: 1.6;
+  flex-grow: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 4; /* Увеличили количество строк */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 20px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.vacancy-description::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  height: calc(100% - 8px);
+  width: 3px;
+  background: linear-gradient(to bottom, #2C8161, #76D192);
+  border-radius: 3px;
+}
+
+.vacancy-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: auto; /* Прижимаем мета-данные к низу */
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: #444;
+}
+
+.meta-icon {
+  color: #2C8161;
+  font-size: 19px;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(44, 129, 97, 0.08);
+}
+
+.meta-content {
+  flex: 1;
+  min-width: 0; /* Разрешаем сжатие */
+}
+
+.meta-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slots-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.slots-progress {
+  flex: 1;
+  height: 6px;
+  background: rgba(44, 129, 97, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.slots-progress-bar {
+  height: 100%;
+  background: linear-gradient(to right, #2C8161, #56BD66);
+  width: calc(100% * (var(--remaining) / var(--needed)));
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+
+.slots-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2C8161;
+  min-width: 65px;
+  text-align: right;
+}
+
+.vacancy-footer {
+  padding: 18px 25px;
+  background: rgba(44, 129, 97, 0.03);
+  border-top: 1px solid rgba(44, 129, 97, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.view-details {
+  color: #2C8161;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.view-details-arrow {
+  transition: transform 0.3s ease;
+}
+
+.vacancy-card:hover .view-details {
+  gap: 12px;
+}
+
+.vacancy-card:hover .view-details-arrow {
+  transform: translateX(5px);
 }
 
 .status-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.company-name {
-  color: #666;
-  font-size: 14px;
-  margin-bottom: 15px;
-}
-
-.card-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 15px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: #555;
-}
-
-.detail-item .icon {
-  margin-right: 8px;
+  padding: 5px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(86, 189, 102, 0.15);
   color: #2C8161;
-  min-width: 16px;
 }
 
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
+/* Адаптивность */
+@media (max-width: 1200px) {
+  .vacancy-title {
+    font-size: 20px;
+  }
+  
+  .vacancy-rate {
+    font-size: 16px;
+    padding: 6px 14px;
+  }
 }
 
-.action-btn {
-  background: linear-gradient(to right, #2C8161, #56BD66);
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 20px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: opacity 0.3s;
+@media (max-width: 992px) {
+  .vacancy-header {
+    padding: 20px 22px 14px;
+  }
+  
+  .vacancy-body {
+    padding: 18px 22px;
+  }
+  
+  .vacancy-footer {
+    padding: 16px 22px;
+  }
+  
+  .vacancy-meta {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  
+  .vacancy-description {
+    -webkit-line-clamp: 5; /* Еще больше строк на планшетах */
+  }
 }
 
-.action-btn:hover {
-  opacity: 0.9;
+@media (max-width: 768px) {
+  .vacancy-card {
+    border-radius: 18px;
+  }
+  
+  .vacancy-title-wrapper {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .vacancy-rate {
+    align-self: flex-start;
+  }
+  
+  .vacancy-meta {
+    grid-template-columns: 1fr;
+  }
+  
+  .vacancy-description {
+    font-size: 15px;
+    margin-bottom: 18px;
+    padding-left: 18px;
+  }
+  
+  .vacancy-description::before {
+    top: 3px;
+    height: calc(100% - 6px);
+  }
 }
+
+@media (max-width: 576px) {
+  .vacancy-header {
+    padding: 18px 20px 12px;
+  }
+  
+  .vacancy-body {
+    padding: 16px 20px;
+    min-height: 140px;
+  }
+  
+  .vacancy-footer {
+    padding: 14px 20px;
+  }
+  
+  .vacancy-title {
+    font-size: 19px;
+    -webkit-line-clamp: 4; /* Максимум строк на мобильных */
+  }
+  
+  .vacancy-company {
+    font-size: 15px;
+  }
+  
+  .vacancy-description {
+    font-size: 15px;
+    padding-left: 16px;
+  }
+  
+  .meta-item {
+    font-size: 14px;
+  }
+  
+  .meta-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
+  }
+  
+  .view-details {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vacancy-card:hover {
+    transform: translateY(-4px);
+  }
+  
+  .vacancy-title {
+    font-size: 18px;
+  }
+  
+  .vacancy-rate {
+    font-size: 15px;
+  }
+  
+  .vacancy-body {
+    padding: 14px 18px;
+  }
+  
+  .vacancy-description {
+    -webkit-line-clamp: 6; /* Максимальное количество строк */
+  }
+}
+
+/* Плавное появление */
+.vacancy-card {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: cardAppear 0.6s forwards;
+}
+
+@keyframes cardAppear {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Задержки для анимации */
+.vacancy-card:nth-child(1) { animation-delay: 0.1s; }
+.vacancy-card:nth-child(2) { animation-delay: 0.2s; }
+.vacancy-card:nth-child(3) { animation-delay: 0.3s; }
+.vacancy-card:nth-child(4) { animation-delay: 0.4s; }

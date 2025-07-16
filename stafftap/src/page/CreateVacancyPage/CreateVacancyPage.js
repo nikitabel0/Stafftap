@@ -21,19 +21,54 @@ const CreateVacancyPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [verificationError, setVerificationError] = useState("");
 
   useEffect(() => {
+    // Загрузка данных текущего пользователя
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setVerificationError("Требуется авторизация");
+          setIsLoadingUser(false);
+          return;
+        }
+        
+        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCurrentUser(response.data);
+        
+        // Проверка верификации
+        if (response.data.role !== "employer") {
+          setVerificationError("Только работодатели могут создавать вакансии");
+        } else if (!response.data.is_verified) {
+          setVerificationError("Для создания вакансий необходимо пройти верификацию");
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки данных пользователя:", error);
+        setVerificationError("Не удалось проверить статус верификации");
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+    
+    fetchCurrentUser();
+    
+    // Загрузка навыков
     const fetchSkills = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/skills`);
         setSkills(response.data);
       } catch (error) {
         console.error("Ошибка при загрузке навыков:", error);
-        alert("Не удалось загрузить список навыков");
       } finally {
         setLoadingSkills(false);
       }
     };
+    
     fetchSkills();
   }, []);
 
@@ -82,6 +117,13 @@ const CreateVacancyPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Дополнительная проверка верификации перед отправкой
+    if (!currentUser?.is_verified || currentUser?.role !== "employer") {
+      setVerificationError("Для создания вакансий необходимо пройти верификацию");
+      return;
+    }
+    
     if (!validate()) return;
 
     const payload = {
@@ -109,7 +151,9 @@ const CreateVacancyPage = () => {
         } else if (error.response.status === 401) {
           errorMessage = "Ошибка авторизации";
         } else if (error.response.status === 403) {
-          errorMessage = "Доступ запрещен";
+          errorMessage = "Только верифицированные работодатели могут создавать вакансии";
+        } else if (error.response.status === 400) {
+          errorMessage = "Некорректные данные вакансии";
         }
       }
 
@@ -118,6 +162,52 @@ const CreateVacancyPage = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoadingUser) {
+    return (
+      <div className="create-vacancy-page">
+        <div className="loader-container">
+          <div className="loader"></div>
+          <p>Проверка статуса верификации...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (verificationError) {
+    return (
+      <div className="create-vacancy-page">
+        <div className="verification-required">
+          <h2>Требуется верификация</h2>
+          <p>{verificationError}</p>
+          
+          <div className="verification-steps">
+            <h3>Как пройти верификацию:</h3>
+            <ol>
+              <li>Перейдите в ваш профиль</li>
+              <li>Загрузите документы, подтверждающие вашу компанию</li>
+              <li>Дождитесь проверки администратора (обычно 1-2 рабочих дня)</li>
+            </ol>
+          </div>
+          
+          <div className="verification-actions">
+            <button 
+              className="go-to-profile-btn"
+              onClick={() => navigate("/profile")}
+            >
+              Перейти в профиль для верификации
+            </button>
+            <button 
+              className="go-back-btn"
+              onClick={() => navigate(-1)}
+            >
+              Назад
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="create-vacancy-page">

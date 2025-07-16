@@ -22,6 +22,12 @@ class UserCreate(BaseModel):
     experience_months: Optional[int] = None
     rate_per_shift: Optional[float] = None
 
+class AvailabilityOut(BaseModel):
+    id: int
+    available_date: date 
+    class Config:
+        orm_mode = True
+
 
 class UserOut(BaseModel):
     id: int
@@ -36,7 +42,7 @@ class UserOut(BaseModel):
     company_name: Optional[str]
     experience_months: Optional[int]
     rate_per_shift: Optional[float]
-    
+    availability: List[AvailabilityOut]
 
     is_verified: bool
     is_blocked: bool
@@ -52,9 +58,6 @@ class SkillOut(BaseModel):
     name: str
 
 
-class AvailabilityOut(BaseModel):
-    id: int
-    date: date
 
 
 class UserUpdate(BaseModel):

@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import {
   FiPlus,
   FiFile,
+  FiBriefcase,
+  FiShield,
+  FiUsers,
   FiDownload,
   FiTrash2,
   FiCamera,
@@ -17,7 +20,22 @@ import {
   FiCheck,
   FiX,
   FiSearch,
+  FiUpload,
+  FiType,
 } from "react-icons/fi";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import "./ProfilePage.css";
 import SkillsList from "../../components/SkillsList/SkillsList";
 import AvailabilityCalendar from "../../components/AvailabilityCalendar/AvailabilityCalendar";
@@ -35,19 +53,119 @@ const safeFormatNumber = (value, defaultValue = 0) => {
     : num.toLocaleString("ru-RU");
 };
 
-// Компонент списка документов
-const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
-  const safeDocuments = documents || [];
+// Компонент модального окна загрузки документа
+const DocumentUploadModal = ({ isOpen, onClose, onUpload }) => {
+  const [documentType, setDocumentType] = useState("ИНН");
+  const [file, setFile] = useState(null);
+  const [fileName, setFileName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleAddDocument = () => {
-    const newDocument = {
-      id: Date.now(),
-      type: "ИНН",
-      file_url: "document.pdf",
-      status: "pending",
-    };
-    onDocumentsChange([...safeDocuments, newDocument]);
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setFileName(selectedFile.name);
+    }
   };
+
+  const handleSubmit = async () => {
+    if (!file) {
+      toast.error("Пожалуйста, выберите файл");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      await onUpload(documentType, file);
+      onClose();
+      toast.success("Документ успешно загружен!");
+    } catch (error) {
+      console.error("Ошибка загрузки документа:", error);
+      toast.error("Не удалось загрузить документ");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content document-upload-modal">
+        <h2>Загрузить документ</h2>
+
+        <div className="form-group">
+          <label>
+            <FiType /> Тип документа
+          </label>
+          <select
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+          >
+            <option value="ИНН">ИНН</option>
+            <option value="ОГРН">ОГРН</option>
+            <option value="Выписка из ЕГРЮЛ">Выписка из ЕГРЮЛ</option>
+            <option value="Паспорт">Паспорт</option>
+            <option value="Доверенность">Доверенность</option>
+            <option value="Другое">Другое</option>
+          </select>
+        </div>
+
+        <div className="form-group file-upload-group">
+          <label className="file-upload-label">
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+            />
+            <div className="file-upload-box">
+              {fileName ? (
+                <div className="file-info">
+                  <FiFile className="file-icon" />
+                  <span className="file-name">{fileName}</span>
+                </div>
+              ) : (
+                <>
+                  <FiUpload className="upload-icon" />
+                  <span>Выберите файл</span>
+                  <span className="file-types">PDF, JPG, PNG, DOC</span>
+                </>
+              )}
+            </div>
+          </label>
+          <button className="browse-btn">Обзор</button>
+        </div>
+
+        <div className="modal-actions">
+          <button
+            className="cancel-btn"
+            onClick={onClose}
+            disabled={isUploading}
+          >
+            Отмена
+          </button>
+          <button
+            className="upload-btn"
+            onClick={handleSubmit}
+            disabled={isUploading}
+          >
+            {isUploading ? "Загрузка..." : "Загрузить"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Компонент списка документов
+const DocumentsList = ({
+  documents,
+  isEditing,
+  onDocumentsChange,
+  onAddDocument,
+}) => {
+  const safeDocuments = documents || [];
 
   const handleRemoveDocument = (id) => {
     onDocumentsChange(safeDocuments.filter((doc) => doc.id !== id));
@@ -59,7 +177,7 @@ const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
         <div key={doc.id} className="document-item">
           <FiFile className="document-icon" />
           <div className="document-info">
-            <div className="document-type">{doc.type}</div>
+            <div className="document-type">{doc.document_type}</div>
             <div className={`document-status ${doc.status}`}>
               {doc.status === "approved"
                 ? "Подтвержден"
@@ -67,11 +185,21 @@ const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
                 ? "Отклонен"
                 : "На проверке"}
             </div>
+            {doc.admin_comment && doc.status === "rejected" && (
+              <div className="document-comment">
+                <strong>Комментарий администратора:</strong> {doc.admin_comment}
+              </div>
+            )}
           </div>
           <div className="document-actions">
-            <button className="download-btn">
+            <a
+              href={doc.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="download-btn"
+            >
               <FiDownload />
-            </button>
+            </a>
             {isEditing && (
               <button
                 className="remove-btn"
@@ -85,7 +213,7 @@ const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
       ))}
 
       {isEditing && (
-        <button className="add-document-btn" onClick={handleAddDocument}>
+        <button className="add-document-btn" onClick={onAddDocument}>
           <FiPlus /> Добавить документ
         </button>
       )}
@@ -93,23 +221,32 @@ const DocumentsList = ({ documents, isEditing, onDocumentsChange }) => {
   );
 };
 
-
 const transformUser = (userData) => {
   if (!userData) return null;
 
-  // Преобразуем массив дат в объект для календаря
   const availabilityObj = {};
-  if (userData.availability && Array.isArray(userData.availability)) {
-    userData.availability.forEach((av) => {
-      // Для объектов WorkerAvailability используем поле 'date'
-      if (av.date) {
-        // Если дата в формате строки, преобразуем в нужный формат
-        const dateStr = typeof av.date === 'string' 
-          ? av.date.split('T')[0] 
-          : new Date(av.date).toISOString().split('T')[0];
-        availabilityObj[dateStr] = true;
-      }
-    });
+
+  if (userData.availability) {
+    if (Array.isArray(userData.availability)) {
+      userData.availability.forEach((item) => {
+        const dateValue = item.available_date;
+        if (dateValue) {
+          const dateStr =
+            typeof dateValue === "string"
+              ? dateValue.split("T")[0]
+              : new Date(dateValue).toISOString().split("T")[0];
+          availabilityObj[dateStr] = true;
+        }
+      });
+    } else if (typeof userData.availability === "object") {
+      Object.entries(userData.availability).forEach(
+        ([dateStr, isAvailable]) => {
+          if (isAvailable) {
+            availabilityObj[dateStr] = true;
+          }
+        }
+      );
+    }
   }
 
   return {
@@ -125,7 +262,7 @@ const transformUser = (userData) => {
     experience_months: userData.experience_months || 0,
   };
 };
-// Компонент статистики платформы
+
 const PlatformStatistics = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -156,12 +293,101 @@ const PlatformStatistics = () => {
   }, []);
 
   if (loading) {
-    return <div className="admin-loading">Загрузка статистики...</div>;
+    return (
+      <div className="platform-statistics">
+        <h2>Статистика платформы</h2>
+        <div className="stats-loading">
+          <div className="loader-spinner"></div>
+          <p>Загрузка статистики...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="admin-error">{error}</div>;
+    return (
+      <div className="platform-statistics">
+        <h2>Статистика платформы</h2>
+        <div className="stats-error">
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()}>Повторить</button>
+        </div>
+      </div>
+    );
   }
+
+  // Цвета для диаграмм
+  const COLORS = ["#2C8161", "#3DA05E", "#56BD66", "#76D192"];
+  const ROLE_COLORS = ["#2C8161", "#3498DB", "#9B59B6"];
+
+  // Данные для круговой диаграммы распределения по ролям
+  const roleData = [
+    { name: "Админы", value: stats.admins, icon: <FiUser /> },
+    { name: "Работодатели", value: stats.employers, icon: <FiBriefcase /> },
+    { name: "Сотрудники", value: stats.workers, icon: <FiShield /> },
+  ];
+
+  // Форматирование данных для графика регистраций
+  const formatRegistrationData = () => {
+    return stats.user_registrations.map((item) => ({
+      ...item,
+      // Преобразуем дату в формат "день месяц"
+      formattedDate: new Date(item.date).toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "short",
+      }),
+    }));
+  };
+
+  const registrationData = formatRegistrationData();
+
+  // Кастомный тултип для графиков
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="tooltip-label">{label}</p>
+          <p className="tooltip-value">
+            <span
+              className="color-indicator"
+              style={{ backgroundColor: payload[0].color }}
+            ></span>
+            {payload[0].name}: <strong>{payload[0].value}</strong>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Кастомная легенда для круговой диаграммы
+  const renderCustomizedLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+    index,
+  }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
+    const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight={600}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   return (
     <div className="platform-statistics">
@@ -170,10 +396,10 @@ const PlatformStatistics = () => {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">
-            <FiUser />
+            <FiUsers />
           </div>
           <div className="stat-value">{stats.total_users}</div>
-          <div className="stat-label">Пользователей</div>
+          <div className="stat-label">Всего пользователей</div>
         </div>
 
         <div className="stat-card">
@@ -203,21 +429,104 @@ const PlatformStatistics = () => {
 
       <div className="stats-charts">
         <div className="chart-container">
-          <h3>Регистрации пользователей</h3>
-          <div className="chart-placeholder">
-            {/* Здесь будет график */}
-            <p>График регистраций по дням</p>
+          <h3>Регистрации пользователей (последние 7 дней)</h3>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={registrationData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 15 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f0f0f0"
+                />
+                <XAxis
+                  dataKey="formattedDate"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#666", fontSize: 12 }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#666", fontSize: 12 }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{ fill: "rgba(44, 129, 97, 0.1)" }}
+                />
+                <Bar
+                  dataKey="count"
+                  name="Регистраций"
+                  radius={[4, 4, 0, 0]}
+                  barSize={30}
+                >
+                  {registrationData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
         <div className="chart-container">
-          <h3>Распределение по ролям</h3>
-          <div className="chart-placeholder">
-            {/* Здесь будет круговая диаграмма */}
-            <p>
-              Круговая диаграмма: {stats.workers} работников, {stats.employers}{" "}
-              работодателей
-            </p>
+          <h3>Распределение пользователей по ролям</h3>
+          <div className="chart-wrapper">
+            <div className="role-distribution">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={roleData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    innerRadius={60}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={renderCustomizedLabel}
+                    labelLine={false}
+                  >
+                    {roleData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={ROLE_COLORS[index % ROLE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => [value, "пользователей"]}
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid #eee",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    iconSize={12}
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                    wrapperStyle={{
+                      paddingLeft: "20px",
+                      fontSize: "14px",
+                    }}
+                    formatter={(value, entry, index) => (
+                      <span className="legend-item">
+                        {roleData[index].icon}
+                        {value}: {roleData[index].value}
+                      </span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>
@@ -848,18 +1157,21 @@ const AdminUsersManagement = () => {
     </div>
   );
 };
+
 // Компонент модерации документов
 const AdminDocumentsModeration = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reviewComment, setReviewComment] = useState("");
+  const [currentDocumentId, setCurrentDocumentId] = useState(null);
 
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `${API_BASE_URL}/api/admin/documents`,
+          `${API_BASE_URL}/api/admin/documents/pending`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -878,12 +1190,12 @@ const AdminDocumentsModeration = () => {
     fetchDocuments();
   }, []);
 
-  const handleStatusChange = async (docId, status) => {
+  const handleStatusChange = async (docId, status, comment = "") => {
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
-        `${API_BASE_URL}/api/admin/documents/${docId}/status`,
-        { status },
+      await axios.post(
+        `${API_BASE_URL}/api/admin/documents/${docId}/review`,
+        { status, comment },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -891,10 +1203,25 @@ const AdminDocumentsModeration = () => {
         }
       );
       setDocuments(documents.filter((doc) => doc.id !== docId));
+      setCurrentDocumentId(null);
+      setReviewComment("");
+      toast.success(
+        `Документ ${status === "approved" ? "одобрен" : "отклонен"}`
+      );
     } catch (err) {
       console.error("Ошибка изменения статуса документа:", err);
       setError("Не удалось изменить статус");
+      toast.error("Ошибка при обновлении статуса документа");
     }
+  };
+
+  const openReviewModal = (docId) => {
+    setCurrentDocumentId(docId);
+  };
+
+  const closeReviewModal = () => {
+    setCurrentDocumentId(null);
+    setReviewComment("");
   };
 
   if (loading) {
@@ -920,20 +1247,21 @@ const AdminDocumentsModeration = () => {
               <div className="doc-header">
                 <h3>{doc.document_type}</h3>
                 <span className="user">
-                  От: {doc.user.first_name} {doc.user.last_name}
+                  От: {doc.user_email} ({doc.company_name})
                 </span>
               </div>
 
               <div className="doc-details">
                 <div className="detail">
-                  <strong>Компания:</strong>
-                  <span>{doc.user.company_name}</span>
-                </div>
-
-                <div className="detail">
                   <strong>Загружено:</strong>
                   <span>
-                    {new Date(doc.uploaded_at).toLocaleDateString("ru-RU")}
+                    {new Date(doc.uploaded_at).toLocaleDateString("ru-RU", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </div>
               </div>
@@ -959,13 +1287,49 @@ const AdminDocumentsModeration = () => {
                 </button>
                 <button
                   className="reject-btn"
-                  onClick={() => handleStatusChange(doc.id, "rejected")}
+                  onClick={() => openReviewModal(doc.id)}
                 >
                   <FiX /> Отклонить
                 </button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Модальное окно для отклонения документа */}
+      {currentDocumentId && (
+        <div className="modal-overlay">
+          <div className="modal-content document-review-modal">
+            <h2>Отклонение документа</h2>
+            <p>Укажите причину отклонения документа:</p>
+
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="Причина отклонения..."
+              rows={4}
+            />
+
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={closeReviewModal}>
+                Отмена
+              </button>
+              <button
+                className="reject-confirm-btn"
+                onClick={() =>
+                  handleStatusChange(
+                    currentDocumentId,
+                    "rejected",
+                    reviewComment
+                  )
+                }
+                disabled={!reviewComment.trim()}
+              >
+                Подтвердить отклонение
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -983,10 +1347,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
 
   const [employerJobs, setEmployerJobs] = useState([]);
   const [workerBookings, setWorkerBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
   const handleAvailabilityToggle = (dateStr) => {
     setEditingProfile((prev) => ({
       ...prev,
@@ -1285,6 +1651,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       setIsSaving(false);
     }
   };
+
   const handleCancelEdit = () => {
     if (user) {
       setEditingProfile(transformUser(user));
@@ -1312,6 +1679,71 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
   const handleVacancyClick = (jobId) => {
     navigate(`/job/${jobId}`);
+  };
+
+  // Функция загрузки документа
+  const handleUploadDocument = async (documentType, file) => {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("document_type", documentType);
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/users/${editingProfile.id}/documents`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Обновляем список документов
+      const newDocument = response.data;
+      setEditingProfile((prev) => ({
+        ...prev,
+        documents: [...prev.documents, newDocument],
+      }));
+
+      // Сбрасываем верификацию пользователя
+      setEditingProfile((prev) => ({
+        ...prev,
+        is_verified: false,
+      }));
+
+      return newDocument;
+    } catch (error) {
+      console.error("Ошибка загрузки документа:", error);
+      throw error;
+    }
+  };
+
+  // Функция удаления документа
+  const handleDeleteDocument = async (docId) => {
+    const token = localStorage.getItem("token");
+    try {
+      await axios.delete(
+        `${API_BASE_URL}/api/users/${editingProfile.id}/documents/${docId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Обновляем список документов
+      setEditingProfile((prev) => ({
+        ...prev,
+        documents: prev.documents.filter((doc) => doc.id !== docId),
+      }));
+
+      toast.success("Документ удален");
+    } catch (error) {
+      console.error("Ошибка удаления документа:", error);
+      toast.error("Не удалось удалить документ");
+    }
   };
 
   if (!user || !editingProfile) {
@@ -1405,7 +1837,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           {!isAdmin && (
             <div className="balance-info">
               <span>Баланс: {formatBalance(currentProfile.balance)} ₽</span>
-              <button className="withdraw-btn">Вывести</button>
+              <button className="withdraw-btn">Вывести средства</button>
             </div>
           )}
         </div>
@@ -1758,6 +2190,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                           documents: newDocs,
                         })
                       }
+                      onAddDocument={() => setIsDocumentModalOpen(true)}
                     />
                   )}
                 </div>
@@ -1797,7 +2230,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 availability={editingProfile?.availability || {}}
                 onDayClick={handleAvailabilityToggle}
                 isEditing={true}
-                user = {user}
+                user={user}
               />
             </div>
           )}
@@ -1893,6 +2326,13 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
         {isAdmin && activeTab === "admin-docs" && <AdminDocumentsModeration />}
       </div>
+
+      {/* Модальное окно загрузки документа */}
+      <DocumentUploadModal
+        isOpen={isDocumentModalOpen}
+        onClose={() => setIsDocumentModalOpen(false)}
+        onUpload={handleUploadDocument}
+      />
     </div>
   );
 };

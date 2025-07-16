@@ -124,6 +124,11 @@ def create_job(
             status_code=403,
             detail="Только работодатели могут создавать вакансии"
         )
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Только верифицированные работодатели могут создавать вакансии"
+        )
     
     if job_data.required_skill_id:
         skill = db.query(Skill).get(job_data.required_skill_id)

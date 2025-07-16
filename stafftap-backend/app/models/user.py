@@ -30,7 +30,11 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     balance = Column(Numeric(10, 2), default=0.00)
     is_blocked = Column(Boolean, default=False)
-    
+    documents = relationship(
+        "EmployerDocument", 
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
     # Используем строковые ссылки для отношений
     favorite_jobs = relationship(
         "FavoriteJob", 

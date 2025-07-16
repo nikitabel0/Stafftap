@@ -10,7 +10,10 @@ import {
   FiPhone,
   FiUser,
   FiWifiOff,
-  FiRefreshCw
+  FiRefreshCw,
+  FiTrash2,
+  FiX,
+  FiCheck
 } from 'react-icons/fi';
 import axios from 'axios';
 import API_BASE_URL from '../../apiConfig';
@@ -23,9 +26,27 @@ const JobDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isNetworkError, setIsNetworkError] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [notification, setNotification] = useState({ type: '', message: '' });
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState(null);
 
   const getAuthToken = () => {
-    return localStorage.getItem('token'); // Исправлено с 'access_token' на 'token'
+    return localStorage.getItem('token');
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+      
+      const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCurrentUser(response.data);
+    } catch (err) {
+      console.error('Ошибка загрузки пользователя:', err);
+    }
   };
 
   const fetchJobDetails = async () => {
@@ -42,33 +63,22 @@ const JobDetailPage = () => {
       const jobUrl = `${API_BASE_URL}/api/jobs/${jobId}`;
       const workersUrl = `${API_BASE_URL}/api/jobs/${jobId}/confirmed_workers`;
       
-      console.log("Загрузка данных вакансии...");
-      console.log("URL запроса вакансии:", jobUrl);
-      console.log("URL запроса работников:", workersUrl);
-      console.log("Токен:", token ? "присутствует" : "отсутствует");
-
-      // Загружаем детали вакансии
-      const jobResponse = await axios.get(jobUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000
-      });
-      
-      console.log("Данные вакансии получены:", jobResponse.data);
-      
-      // Загружаем подтвержденных работников
-      const workersResponse = await axios.get(workersUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000
-      });
-      
-      console.log("Данные работников получены:", workersResponse.data);
+      const [jobResponse, workersResponse] = await Promise.all([
+        axios.get(jobUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000
+        }),
+        axios.get(workersUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000
+        })
+      ]);
       
       setJob(jobResponse.data);
       setWorkers(workersResponse.data);
     } catch (err) {
       console.error('Ошибка загрузки данных:', err);
       
-      // Проверяем, является ли ошибка сетевой
       if (err.code === "ECONNABORTED" || err.message === "Network Error" || !err.response) {
         setIsNetworkError(true);
         setError('Ошибка сети. Проверьте подключение к интернету');
@@ -99,8 +109,18 @@ const JobDetailPage = () => {
   };
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchJobDetails();
   }, [jobId]);
+
+  useEffect(() => {
+    if (notification.message) {
+      const timer = setTimeout(() => {
+        setNotification({ type: '', message: '' });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const formatNumber = (num) => {
     const number = Number(num);
@@ -116,6 +136,64 @@ const JobDetailPage = () => {
       month: 'long',
       year: 'numeric'
     });
+  };
+
+  const openConfirmModal = (workerId) => {
+    setSelectedWorker(workerId);
+    setShowConfirmModal(true);
+  };
+
+  const closeConfirmModal = () => {
+    setShowConfirmModal(false);
+    setSelectedWorker(null);
+  };
+
+  const handleRemoveWorker = async () => {
+    if (!selectedWorker) return;
+    
+    try {
+      setIsLoading(true);
+      const token = getAuthToken();
+      
+      await axios.delete(
+        `${API_BASE_URL}/api/bookings/remove_worker/${jobId}/${selectedWorker}`, 
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      // Обновляем данные после успешного удаления
+      await fetchJobDetails();
+      setNotification({ 
+        type: 'success', 
+        message: 'Работник успешно удален с вакансии' 
+      });
+    } catch (err) {
+      console.error('Ошибка удаления работника:', err);
+      
+      let errorMessage = 'Не удалось удалить работника';
+      if (err.response) {
+        switch (err.response.status) {
+          case 400:
+            errorMessage = err.response.data.detail || errorMessage;
+            break;
+          case 403:
+            errorMessage = 'Недостаточно прав для удаления работника';
+            break;
+          case 404:
+            errorMessage = 'Работник не найден на вакансии';
+            break;
+        }
+      }
+      
+      setNotification({ 
+        type: 'error', 
+        message: errorMessage 
+      });
+    } finally {
+      setIsLoading(false);
+      closeConfirmModal();
+    }
   };
 
   if (isLoading) {
@@ -144,7 +222,6 @@ const JobDetailPage = () => {
             <li>• Попробуйте обновить страницу</li>
           </ul>
           
-          {/* Отладочная информация */}
           <div className="debug-info">
             <p><strong>URL запроса:</strong> {jobUrl}</p>
             <p><strong>Токен:</strong> {token ? "присутствует" : "отсутствует"}</p>
@@ -196,6 +273,57 @@ const JobDetailPage = () => {
 
   return (
     <div className="job-detail-page">
+      {/* Уведомления */}
+      {notification.message && (
+        <div className={`notification ${notification.type}`}>
+          <div className="notification-content">
+            {notification.type === 'success' 
+              ? <FiCheck className="notification-icon" /> 
+              : <FiX className="notification-icon" />}
+            <span>{notification.message}</span>
+          </div>
+          <button 
+            className="notification-close"
+            onClick={() => setNotification({ type: '', message: '' })}
+          >
+            <FiX />
+          </button>
+        </div>
+      )}
+
+      {/* Модальное окно подтверждения */}
+      {showConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Подтверждение удаления</h3>
+              <button className="modal-close" onClick={closeConfirmModal}>
+                <FiX />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Вы уверены, что хотите удалить этого работника с вакансии?</p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-cancel"
+                onClick={closeConfirmModal}
+                disabled={isLoading}
+              >
+                Отмена
+              </button>
+              <button 
+                className="btn-confirm"
+                onClick={handleRemoveWorker}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <button className="back-button" onClick={() => navigate(-1)}>
         <FiArrowLeft /> Назад
       </button>
@@ -295,6 +423,24 @@ const JobDetailPage = () => {
                       </div>
                     </div>
                   </div>
+                  
+                  <button 
+                    className="remove-worker-btn"
+                    onClick={() => openConfirmModal(worker.id)}
+                    disabled={isLoading}
+                    title="Удалить работника с вакансии"
+                    style={{
+                      backgroundColor: '#ff4d4f',
+                      color: 'white',
+                      padding: '8px 15px',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <FiTrash2 size={18} /> Удалить
+                  </button>
                 </div>
               ))}
             </div>

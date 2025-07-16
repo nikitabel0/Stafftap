@@ -185,3 +185,162 @@ input[type="time"] {
     margin-top: 60px; /* Меньший отступ для маленьких экранов */
   }
 }
+
+/* Добавляем в конец существующих стилей */
+
+/* Стили для состояния загрузки */
+.loader-container {
+  text-align: center;
+  padding: 60px 0;
+}
+
+.loader {
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #2C8161;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Стили для блока верификации */
+.verification-required {
+  background: linear-gradient(to bottom, #fff 60%, #f8fcf9 100%);
+  padding: 40px 30px;
+  border-radius: 15px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+  border-top: 4px solid #e74c3c;
+  text-align: center;
+}
+
+.verification-required h2 {
+  color: #e74c3c;
+  font-size: 26px;
+  margin-bottom: 25px;
+}
+
+.verification-required p {
+  font-size: 18px;
+  color: #555;
+  line-height: 1.6;
+  max-width: 700px;
+  margin: 0 auto 30px;
+}
+
+/* Блок с инструкцией */
+.verification-steps {
+  background-color: #f9f9f9;
+  border-left: 4px solid #2C8161;
+  padding: 20px 25px;
+  text-align: left;
+  border-radius: 0 8px 8px 0;
+  margin: 30px 0;
+}
+
+.verification-steps h3 {
+  color: #2a7a5f;
+  font-size: 20px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.verification-steps ol {
+  padding-left: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.verification-steps li {
+  margin-bottom: 15px;
+  line-height: 1.5;
+  padding-left: 10px;
+  color: #444;
+}
+
+.verification-steps li::marker {
+  color: #2C8161;
+  font-weight: bold;
+}
+
+/* Кнопки действий */
+.verification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.go-to-profile-btn, .go-back-btn {
+  padding: 14px 30px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 250px;
+  text-align: center;
+}
+
+.go-to-profile-btn {
+  background: linear-gradient(to right, #2C8161, #56BD66);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(44, 129, 97, 0.3);
+}
+
+.go-to-profile-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(44, 129, 97, 0.4);
+}
+
+.go-back-btn {
+  background: white;
+  color: #2C8161;
+  border: 2px solid #2C8161;
+}
+
+.go-back-btn:hover {
+  background-color: #f0f9f4;
+}
+
+/* Адаптивность для блока верификации */
+@media (max-width: 768px) {
+  .verification-required {
+    padding: 30px 20px;
+  }
+  
+  .verification-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .go-to-profile-btn, .go-back-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .verification-steps {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .verification-required h2 {
+    font-size: 22px;
+  }
+  
+  .verification-required p {
+    font-size: 16px;
+  }
+  
+  .verification-steps h3 {
+    font-size: 18px;
+  }
+}

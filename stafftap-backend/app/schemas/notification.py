@@ -16,7 +16,7 @@ class NotificationOut(NotificationBase):
     user_id: int
     is_read: bool
     created_at: datetime
-    
+    job_id: Optional[int] = None 
     class Config:
         orm_mode = True
 

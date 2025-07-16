@@ -7,8 +7,10 @@ from app.database import get_db
 from app.models import User, Job, EmployerDocument, Booking
 from app.schemas.job import JobOut 
 from app.schemas.admin import StatisticsResponse 
+from app.schemas.user import UserRole 
+from app.schemas.Document import DocumentResponse, DocumentStatusUpdate
 from app.dependencies import get_current_user
-
+from datetime import datetime, timedelta
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 # Зависимость для проверки администратора
@@ -29,6 +31,7 @@ def get_platform_statistics(
     total_users = db.query(func.count(User.id)).scalar()
     workers = db.query(func.count(User.id)).filter(User.role == "worker").scalar()
     employers = db.query(func.count(User.id)).filter(User.role == "employer").scalar()
+    admins = db.query(func.count(User.id)).filter(User.role == "admin").scalar()
     
     # Статистика по вакансиям
     active_jobs = db.query(func.count(Job.id)).filter(Job.status == "active").scalar()
@@ -39,15 +42,34 @@ def get_platform_statistics(
         EmployerDocument.status == "pending"
     ).scalar()
     
+    # Регистрации пользователей за последние 7 дней
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=6)
+    
+    registrations = db.query(
+        func.date(User.created_at).label('date'),
+        func.count(User.id).label('count')
+    ).filter(
+        func.date(User.created_at) >= start_date,
+        func.date(User.created_at) <= end_date
+    ).group_by(func.date(User.created_at)).order_by(func.date(User.created_at)).all()
+    
+    # Форматируем даты в строки
+    registrations_data = [
+        {"date": reg.date.strftime("%Y-%m-%d"), "count": reg.count}
+        for reg in registrations
+    ]
+    
     return {
         "total_users": total_users,
         "workers": workers,
         "employers": employers,
+        "admins": admins,
         "active_jobs": active_jobs,
         "completed_jobs": completed_jobs,
-        "pending_documents": pending_documents
+        "pending_documents": pending_documents,
+        "user_registrations": registrations_data
     }
-
 @router.get("/users")
 def get_users(
     page: int = Query(1, ge=1),
@@ -331,3 +353,60 @@ def update_job_status(
         db.commit()
     
     return {"status": "updated", "new_status": new_status}
+
+
+@router.get("/documents/pending", response_model=List[DocumentResponse])
+def get_pending_documents(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    documents = db.query(EmployerDocument).filter(
+        EmployerDocument.status == "pending"
+    ).options(joinedload(EmployerDocument.user)).all()
+    
+    return [
+        DocumentResponse(
+            id=doc.id,
+            user_id=doc.user_id,
+            document_type=doc.document_type,
+            file_url=doc.file_url,
+            status=doc.status,
+            uploaded_at=doc.uploaded_at,
+            admin_comment=doc.admin_comment,
+            user_email=doc.user.email,
+            company_name=doc.user.company_name
+        )
+        for doc in documents
+    ]
+
+@router.post("/documents/{doc_id}/review")
+def review_document(
+    doc_id: int,
+    update: DocumentStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    doc = db.query(EmployerDocument).get(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if update.status not in ["approved", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    # Обновляем статус и комментарий
+    doc.status = update.status
+    doc.admin_comment = update.comment
+    
+    # Автоматическая верификация пользователя при одобрении
+    if update.status == "approved":
+        user = db.query(User).get(doc.user_id)
+        user.is_verified = True
+    
+    db.commit()
+    return {"status": "updated"}
