@@ -11,7 +11,8 @@ class ConfirmedWorker(BaseModel):
     avatar_url: Optional[str] = None
     rating: Optional[float] = None
     completed_shifts: Optional[int] = None
-
+    chat_id: Optional[int] = None
+    booking_id: int 
     class Config:
         orm_mode = True
 class JobBase(BaseModel):

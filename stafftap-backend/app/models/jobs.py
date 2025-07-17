@@ -19,7 +19,8 @@ class Job(Base):
     workers_needed = Column(Integer, nullable=False)
     status = Column(String(20), default="moderation")
     created_at = Column(DateTime, server_default=func.now())
-    
+    feedback_status = Column(String(20))  
+    feedback_submitted_at = Column(DateTime)
     # Relationships
     employer = relationship("User")
     required_skill = relationship("Skill")

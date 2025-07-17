@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  FiClock, 
-  FiMapPin, 
-  FiUsers, 
-  FiCalendar, 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  FiClock,
+  FiMapPin,
+  FiUsers,
+  FiCalendar,
   FiDollarSign,
   FiArrowLeft,
   FiPhone,
@@ -13,10 +13,11 @@ import {
   FiRefreshCw,
   FiTrash2,
   FiX,
-  FiCheck
-} from 'react-icons/fi';
-import axios from 'axios';
-import API_BASE_URL from '../../apiConfig';
+  FiCheck,
+  FiMessageSquare,
+} from "react-icons/fi";
+import axios from "axios";
+import API_BASE_URL from "../../apiConfig";
 
 const JobDetailPage = () => {
   const { jobId } = useParams();
@@ -27,25 +28,26 @@ const JobDetailPage = () => {
   const [error, setError] = useState(null);
   const [isNetworkError, setIsNetworkError] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [notification, setNotification] = useState({ type: '', message: '' });
+  const [notification, setNotification] = useState({ type: "", message: "" });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const getAuthToken = () => {
-    return localStorage.getItem('token');
+    return localStorage.getItem("token");
   };
 
   const fetchCurrentUser = async () => {
     try {
       const token = getAuthToken();
       if (!token) return;
-      
+
       const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setCurrentUser(response.data);
     } catch (err) {
-      console.error('Ошибка загрузки пользователя:', err);
+      console.error("Ошибка загрузки пользователя:", err);
     }
   };
 
@@ -53,58 +55,106 @@ const JobDetailPage = () => {
     setIsLoading(true);
     setError(null);
     setIsNetworkError(false);
-    
+
     try {
       const token = getAuthToken();
       if (!token) {
-        throw new Error('Требуется авторизация');
+        throw new Error("Требуется авторизация");
       }
 
       const jobUrl = `${API_BASE_URL}/api/jobs/${jobId}`;
       const workersUrl = `${API_BASE_URL}/api/jobs/${jobId}/confirmed_workers`;
-      
+
       const [jobResponse, workersResponse] = await Promise.all([
         axios.get(jobUrl, {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 10000
+          timeout: 10000,
         }),
         axios.get(workersUrl, {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 10000
-        })
+          timeout: 10000,
+        }),
       ]);
-      
+
       setJob(jobResponse.data);
       setWorkers(workersResponse.data);
     } catch (err) {
-      console.error('Ошибка загрузки данных:', err);
-      
-      if (err.code === "ECONNABORTED" || err.message === "Network Error" || !err.response) {
+      console.error("Ошибка загрузки данных:", err);
+
+      if (
+        err.code === "ECONNABORTED" ||
+        err.message === "Network Error" ||
+        !err.response
+      ) {
         setIsNetworkError(true);
-        setError('Ошибка сети. Проверьте подключение к интернету');
-      } 
-      else if (err.response) {
+        setError("Ошибка сети. Проверьте подключение к интернету");
+      } else if (err.response) {
         switch (err.response.status) {
           case 401:
-            setError('Сессия истекла. Пожалуйста, войдите снова.');
+            setError("Сессия истекла. Пожалуйста, войдите снова.");
             break;
           case 403:
-            setError('Недостаточно прав для просмотра этой вакансии');
+            setError("Недостаточно прав для просмотра этой вакансии");
             break;
           case 404:
-            setError('Вакансия не найдена');
+            setError("Вакансия не найдена");
             break;
           case 500:
-            setError('Ошибка сервера. Пожалуйста, попробуйте позже');
+            setError("Ошибка сервера. Пожалуйста, попробуйте позже");
             break;
           default:
-            setError(`Не удалось загрузить данные (код ${err.response.status})`);
+            setError(
+              `Не удалось загрузить данные (код ${err.response.status})`
+            );
         }
       } else {
-        setError('Неизвестная ошибка: ' + err.message);
+        setError("Неизвестная ошибка: " + err.message);
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const navigateToChat = async (bookingId, existingChatId) => {
+    setIsChatLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      
+      if (existingChatId) {
+        // Если чат уже существует, переходим сразу
+        navigate(`/chats/${existingChatId}`);
+      } else {
+        // Если чата нет - создаем новый
+        const response = await axios.post(
+          `${API_BASE_URL}/api/chats/start/${bookingId}`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        navigate(`/chats/${response.data.id}`);
+      }
+    } catch (error) {
+      console.error("Ошибка при создании чата:", error);
+      let errorMessage = "Не удалось создать чат";
+      
+      if (error.response) {
+        switch (error.response.status) {
+          case 403:
+            errorMessage = "Доступ запрещен";
+            break;
+          case 404:
+            errorMessage = "Бронирование не найдено";
+            break;
+          default:
+            errorMessage = `Ошибка сервера (${error.response.status})`;
+        }
+      }
+      
+      setNotification({
+        type: "error",
+        message: errorMessage
+      });
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -116,7 +166,7 @@ const JobDetailPage = () => {
   useEffect(() => {
     if (notification.message) {
       const timer = setTimeout(() => {
-        setNotification({ type: '', message: '' });
+        setNotification({ type: "", message: "" });
       }, 5000);
       return () => clearTimeout(timer);
     }
@@ -124,17 +174,17 @@ const JobDetailPage = () => {
 
   const formatNumber = (num) => {
     const number = Number(num);
-    return isNaN(number) ? '0' : number.toLocaleString('ru-RU');
+    return isNaN(number) ? "0" : number.toLocaleString("ru-RU");
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Дата не указана';
-    
+    if (!dateString) return "Дата не указана";
+
     const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+    return date.toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
   };
 
@@ -150,45 +200,45 @@ const JobDetailPage = () => {
 
   const handleRemoveWorker = async () => {
     if (!selectedWorker) return;
-    
+
     try {
       setIsLoading(true);
       const token = getAuthToken();
-      
+
       await axios.delete(
-        `${API_BASE_URL}/api/bookings/remove_worker/${jobId}/${selectedWorker}`, 
+        `${API_BASE_URL}/api/bookings/remove_worker/${jobId}/${selectedWorker}`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
+
       // Обновляем данные после успешного удаления
       await fetchJobDetails();
-      setNotification({ 
-        type: 'success', 
-        message: 'Работник успешно удален с вакансии' 
+      setNotification({
+        type: "success",
+        message: "Работник успешно удален с вакансии",
       });
     } catch (err) {
-      console.error('Ошибка удаления работника:', err);
-      
-      let errorMessage = 'Не удалось удалить работника';
+      console.error("Ошибка удаления работника:", err);
+
+      let errorMessage = "Не удалось удалить работника";
       if (err.response) {
         switch (err.response.status) {
           case 400:
             errorMessage = err.response.data.detail || errorMessage;
             break;
           case 403:
-            errorMessage = 'Недостаточно прав для удаления работника';
+            errorMessage = "Недостаточно прав для удаления работника";
             break;
           case 404:
-            errorMessage = 'Работник не найден на вакансии';
+            errorMessage = "Работник не найден на вакансии";
             break;
         }
       }
-      
-      setNotification({ 
-        type: 'error', 
-        message: errorMessage 
+
+      setNotification({
+        type: "error",
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -208,7 +258,7 @@ const JobDetailPage = () => {
   if (isNetworkError) {
     const token = getAuthToken();
     const jobUrl = `${API_BASE_URL}/api/jobs/${jobId}`;
-    
+
     return (
       <div className="network-error-page">
         <div className="error-content">
@@ -221,24 +271,24 @@ const JobDetailPage = () => {
             <li>• Проверьте настройки межсетевого экрана</li>
             <li>• Попробуйте обновить страницу</li>
           </ul>
-          
+
           <div className="debug-info">
-            <p><strong>URL запроса:</strong> {jobUrl}</p>
-            <p><strong>Токен:</strong> {token ? "присутствует" : "отсутствует"}</p>
-            <p><strong>API Base URL:</strong> {API_BASE_URL}</p>
+            <p>
+              <strong>URL запроса:</strong> {jobUrl}
+            </p>
+            <p>
+              <strong>Токен:</strong> {token ? "присутствует" : "отсутствует"}
+            </p>
+            <p>
+              <strong>API Base URL:</strong> {API_BASE_URL}
+            </p>
           </div>
-          
+
           <div className="error-actions">
-            <button 
-              className="retry-button"
-              onClick={fetchJobDetails}
-            >
+            <button className="retry-button" onClick={fetchJobDetails}>
               <FiRefreshCw className="button-icon" /> Повторить попытку
             </button>
-            <button 
-              className="back-button"
-              onClick={() => navigate(-1)}
-            >
+            <button className="back-button" onClick={() => navigate(-1)}>
               <FiArrowLeft className="button-icon" /> Назад
             </button>
           </div>
@@ -277,14 +327,16 @@ const JobDetailPage = () => {
       {notification.message && (
         <div className={`notification ${notification.type}`}>
           <div className="notification-content">
-            {notification.type === 'success' 
-              ? <FiCheck className="notification-icon" /> 
-              : <FiX className="notification-icon" />}
+            {notification.type === "success" ? (
+              <FiCheck className="notification-icon" />
+            ) : (
+              <FiX className="notification-icon" />
+            )}
             <span>{notification.message}</span>
           </div>
-          <button 
+          <button
             className="notification-close"
-            onClick={() => setNotification({ type: '', message: '' })}
+            onClick={() => setNotification({ type: "", message: "" })}
           >
             <FiX />
           </button>
@@ -305,19 +357,19 @@ const JobDetailPage = () => {
               <p>Вы уверены, что хотите удалить этого работника с вакансии?</p>
             </div>
             <div className="modal-footer">
-              <button 
+              <button
                 className="btn-cancel"
                 onClick={closeConfirmModal}
                 disabled={isLoading}
               >
                 Отмена
               </button>
-              <button 
+              <button
                 className="btn-confirm"
                 onClick={handleRemoveWorker}
                 disabled={isLoading}
               >
-                {isLoading ? 'Удаление...' : 'Удалить'}
+                {isLoading ? "Удаление..." : "Удалить"}
               </button>
             </div>
           </div>
@@ -327,40 +379,42 @@ const JobDetailPage = () => {
       <button className="back-button" onClick={() => navigate(-1)}>
         <FiArrowLeft /> Назад
       </button>
-      
+
       <div className="job-detail-card">
         <div className="job-header">
           <h1>{job.title}</h1>
           <div className="job-company">{job.company_name}</div>
         </div>
-        
+
         <div className="job-body">
           <div className="job-description">
             <h3>Описание</h3>
             <p>{job.description}</p>
           </div>
-          
+
           <div className="job-meta">
             <div className="meta-item">
               <FiDollarSign className="meta-icon" />
               <span>{formatNumber(job.rate)} ₽</span>
             </div>
-            
+
             <div className="meta-item">
               <FiCalendar className="meta-icon" />
               <span>{formatDate(job.work_date)}</span>
             </div>
-            
+
             <div className="meta-item">
               <FiClock className="meta-icon" />
-              <span>{job.start_time} - {job.end_time}</span>
+              <span>
+                {job.start_time} - {job.end_time}
+              </span>
             </div>
-            
+
             <div className="meta-item">
               <FiMapPin className="meta-icon" />
               <span>{job.address}</span>
             </div>
-            
+
             <div className="meta-item">
               <FiUsers className="meta-icon" />
               <span>
@@ -369,41 +423,42 @@ const JobDetailPage = () => {
                     Осталось мест: {job.remaining_slots}/{job.workers_needed}
                   </span>
                 ) : (
-                  <span className="slots-full">
-                    Все места заполнены
-                  </span>
+                  <span className="slots-full">Все места заполнены</span>
                 )}
               </span>
             </div>
           </div>
         </div>
-        
+
         <div className="workers-section">
           <h2>Подтвержденные сотрудники</h2>
-          
+
           {workers.length > 0 ? (
             <div className="workers-list">
-              {workers.map(worker => (
+              {workers.map((worker) => (
                 <div key={worker.id} className="worker-card">
                   <div className="worker-avatar">
                     {worker.avatar_url ? (
-                      <img 
-                        src={worker.avatar_url} 
-                        alt={`${worker.first_name} ${worker.last_name}`} 
+                      <img
+                        src={worker.avatar_url}
+                        alt={`${worker.first_name} ${worker.last_name}`}
                         onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextElementSibling.style.display = 'flex';
+                          e.target.style.display = "none";
+                          e.target.nextElementSibling.style.display = "flex";
                         }}
                       />
                     ) : null}
                     <div className="avatar-initials">
-                      {worker.first_name?.[0] || ''}{worker.last_name?.[0] || ''}
+                      {worker.first_name?.[0] || ""}
+                      {worker.last_name?.[0] || ""}
                     </div>
                   </div>
-                  
+
                   <div className="worker-info">
-                    <h3>{worker.first_name} {worker.last_name}</h3>
-                    
+                    <h3>
+                      {worker.first_name} {worker.last_name}
+                    </h3>
+
                     <div className="worker-contacts">
                       {worker.phone && (
                         <div className="contact-item">
@@ -412,35 +467,62 @@ const JobDetailPage = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="worker-stats">
                       <div className="stat-item">
                         <FiUser className="stat-icon" />
-                        <span>Рейтинг: {worker.rating || 'нет оценок'}</span>
+                        <span>Рейтинг: {worker.rating || "нет оценок"}</span>
                       </div>
                       <div className="stat-item">
-                        <span>Выполнено смен: {worker.completed_shifts || 0}</span>
+                        <span>
+                          Выполнено смен: {worker.completed_shifts || 0}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  
-                  <button 
-                    className="remove-worker-btn"
-                    onClick={() => openConfirmModal(worker.id)}
-                    disabled={isLoading}
-                    title="Удалить работника с вакансии"
-                    style={{
-                      backgroundColor: '#ff4d4f',
-                      color: 'white',
-                      padding: '8px 15px',
-                      borderRadius: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                  >
-                    <FiTrash2 size={18} /> Удалить
-                  </button>
+
+                  <div className="worker-actions">
+                    <button
+                      className="remove-worker-btn"
+                      onClick={() => openConfirmModal(worker.id)}
+                      disabled={isLoading}
+                      title="Удалить работника с вакансии"
+                    >
+                      <FiTrash2 size={18} /> Удалить
+                    </button>
+                    
+                    {worker.chat_id ? (
+                      <button
+                        className="message-worker-btn"
+                        onClick={() => navigate(`/chats/${worker.chat_id}`)}
+                        title="Перейти в чат"
+                        disabled={isChatLoading}
+                      >
+                        {isChatLoading ? (
+                          <span>Загрузка...</span>
+                        ) : (
+                          <>
+                            <FiMessageSquare size={18} /> Перейти в чат
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        className="message-worker-btn"
+                        onClick={() => navigateToChat(worker.booking_id)}
+                        title="Создать чат"
+                        disabled={isChatLoading}
+                      >
+                        {isChatLoading ? (
+                          <span>Создание...</span>
+                        ) : (
+                          <>
+                            <FiMessageSquare size={18} /> Создать чат
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

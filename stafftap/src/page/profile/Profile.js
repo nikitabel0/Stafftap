@@ -44,6 +44,7 @@ import axios from "axios";
 import API_BASE_URL from "../../apiConfig";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import AdminDisputesManagement from "../../components/AdminDisputesManagement/AdminDisputesManagement";
 
 // Функция для безопасного форматирования чисел
 const safeFormatNumber = (value, defaultValue = 0) => {
@@ -1911,6 +1912,14 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             </button>
             <button
               className={`tab-btn ${
+                activeTab === "admin-disputes" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("admin-disputes")}
+            >
+              <FiShield /> Диспуты
+            </button>
+            <button
+              className={`tab-btn ${
                 activeTab === "admin-docs" ? "active" : ""
               }`}
               onClick={() => setActiveTab("admin-docs")}
@@ -2321,6 +2330,8 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         {isAdmin && activeTab === "admin-stats" && <PlatformStatistics />}
 
         {isAdmin && activeTab === "admin-jobs" && <AdminJobsModeration />}
+        
+        {isAdmin && activeTab === "admin-disputes" && <AdminDisputesManagement />}
 
         {isAdmin && activeTab === "admin-users" && <AdminUsersManagement />}
 

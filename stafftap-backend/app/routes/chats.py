@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models import Chat, Message, User, Booking
 from app.schemas.chat import ChatOut, MessageCreate, MessageOut, ChatDetailOut
@@ -200,13 +200,16 @@ def start_chat(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    booking = db.query(Booking).get(booking_id)
+    # Получаем бронирование с связанной работой
+    booking = db.query(Booking).options(joinedload(Booking.job)).get(booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     
+    # Проверяем, что текущий пользователь является участником бронирования
     if current_user.id != booking.job.employer_id and current_user.id != booking.worker_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
+    # Проверяем существующий чат
     existing_chat = db.query(Chat).filter(
         Chat.booking_id == booking_id
     ).first()
@@ -214,6 +217,7 @@ def start_chat(
     if existing_chat:
         return existing_chat
     
+    # Создаем новый чат
     new_chat = Chat(
         booking_id=booking_id,
         employer_id=booking.job.employer_id,

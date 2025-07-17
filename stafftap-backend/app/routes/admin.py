@@ -4,16 +4,18 @@ from sqlalchemy import func
 from typing import List, Optional
 from app.models import Notification
 from app.database import get_db
-from app.models import User, Job, EmployerDocument, Booking
-from app.schemas.job import JobOut 
-from app.schemas.admin import StatisticsResponse 
-from app.schemas.user import UserRole 
+from app.models import User, Job, EmployerDocument, Booking, Dispute, FrozenFunds
+from app.schemas.job import JobOut
+from app.schemas.admin import StatisticsResponse, DisputeDetail
+from app.schemas.user import UserRole
 from app.schemas.Document import DocumentResponse, DocumentStatusUpdate
 from app.dependencies import get_current_user
 from datetime import datetime, timedelta
+from sqlalchemy.orm import aliased
+
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
-# Зависимость для проверки администратора
+
 def get_current_admin_user(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(
@@ -27,22 +29,22 @@ def get_platform_statistics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    # Общая статистика
+    
     total_users = db.query(func.count(User.id)).scalar()
     workers = db.query(func.count(User.id)).filter(User.role == "worker").scalar()
     employers = db.query(func.count(User.id)).filter(User.role == "employer").scalar()
     admins = db.query(func.count(User.id)).filter(User.role == "admin").scalar()
     
-    # Статистика по вакансиям
+    
     active_jobs = db.query(func.count(Job.id)).filter(Job.status == "active").scalar()
     completed_jobs = db.query(func.count(Job.id)).filter(Job.status == "completed").scalar()
     
-    # Документы на проверке
+    
     pending_documents = db.query(func.count(EmployerDocument.id)).filter(
         EmployerDocument.status == "pending"
     ).scalar()
     
-    # Регистрации пользователей за последние 7 дней
+    
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=6)
     
@@ -54,7 +56,7 @@ def get_platform_statistics(
         func.date(User.created_at) <= end_date
     ).group_by(func.date(User.created_at)).order_by(func.date(User.created_at)).all()
     
-    # Форматируем даты в строки
+    
     registrations_data = [
         {"date": reg.date.strftime("%Y-%m-%d"), "count": reg.count}
         for reg in registrations
@@ -78,14 +80,14 @@ def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    # Вычисляем смещение
+    
     offset = (page - 1) * page_size
     
-    # Формируем запрос
+    
     query = db.query(User)
     
     if search:
-        # Ищем по email, имени, фамилии или компании
+        
         search_pattern = f"%{search}%"
         query = query.filter(
             User.email.ilike(search_pattern) |
@@ -202,7 +204,7 @@ def update_document_status(
     document.status = status
     db.commit()
     
-    # Если документ одобрен, помечаем пользователя как верифицированного
+    
     if status == "approved":
         user = db.query(User).get(document.user_id)
         if user and not user.is_verified:
@@ -216,7 +218,7 @@ def get_jobs_for_moderation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    # Проверка валидности статуса
+    
     valid_statuses = ["moderation", "active", "rejected", "completed", "canceled"]
     if status not in valid_statuses:
         raise HTTPException(
@@ -224,7 +226,7 @@ def get_jobs_for_moderation(
             detail=f"Недопустимый статус. Допустимые значения: {', '.join(valid_statuses)}"
         )
     
-    # Подзапрос для подсчета подтвержденных бронирований
+    
     confirmed_subq = db.query(
         Booking.job_id,
         func.count(Booking.id).label('confirmed_count')
@@ -232,7 +234,7 @@ def get_jobs_for_moderation(
         Booking.status == "confirmed"
     ).group_by(Booking.job_id).subquery()
 
-    # Основной запрос
+    
     query = db.query(
         Job,
         func.coalesce(confirmed_subq.c.confirmed_count, 0).label('confirmed_count')
@@ -247,7 +249,7 @@ def get_jobs_for_moderation(
     if not results:
         return []
     
-    # Формирование результата
+    
     result = []
     for job, confirmed_count in results:
         employer = job.employer
@@ -256,7 +258,7 @@ def get_jobs_for_moderation(
         remaining = job.workers_needed - confirmed_count
         skill_name = job.required_skill.name if job.required_skill else "Не указано"
         
-        # Конвертация времени в строку
+        
         start_time_str = job.start_time.strftime("%H:%M") if job.start_time else ""
         end_time_str = job.end_time.strftime("%H:%M") if job.end_time else ""
         
@@ -276,9 +278,9 @@ def get_jobs_for_moderation(
             company_name=company_name,
             employer_id=job.employer_id,
             created_at=job.created_at,
-            employer_rating=0.0,  # Для модерации не обязательно
+            employer_rating=0.0,  
             employer_verified=employer.is_verified if employer else False,
-            completed_jobs=0  # Для модерации не обязательно
+            completed_jobs=0  
         ))
     
     return result
@@ -301,12 +303,12 @@ def update_job_status(
     if not job:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
     
-    # Получаем пользователя-работодателя
+    
     employer = db.query(User).get(job.employer_id)
     if not employer:
         raise HTTPException(status_code=404, detail="Работодатель не найден")
     
-    # Если меняем статус на активный, проверяем, что вакансия была на модерации
+    
     if new_status == "active" and job.status != "moderation":
         raise HTTPException(
             status_code=400,
@@ -316,7 +318,7 @@ def update_job_status(
     job.status = new_status
     db.commit()
     
-    # Если вакансия отклонена или отменена, отменяем все бронирования
+    
     if new_status in ["rejected", "canceled"]:
         bookings = db.query(Booking).filter(
             Booking.job_id == job_id,
@@ -328,7 +330,7 @@ def update_job_status(
         
         db.commit()
     
-    # Создаем уведомление для работодателя
+    
     notification = None
     
     if new_status == "active":
@@ -399,14 +401,143 @@ def review_document(
     if update.status not in ["approved", "rejected"]:
         raise HTTPException(status_code=400, detail="Invalid status")
     
-    # Обновляем статус и комментарий
+    
     doc.status = update.status
     doc.admin_comment = update.comment
     
-    # Автоматическая верификация пользователя при одобрении
+    
     if update.status == "approved":
         user = db.query(User).get(doc.user_id)
         user.is_verified = True
     
     db.commit()
     return {"status": "updated"}
+
+
+
+@router.get("/disputes", response_model=List[DisputeDetail])
+def get_disputes_for_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    
+    Worker = aliased(User)
+    Employer = aliased(User)
+
+    disputes = db.query(
+        Dispute.id,
+        Dispute.booking_id,
+        Dispute.description,
+        Dispute.created_at,
+        Dispute.status,
+        Worker.id.label("worker_id"),
+        Worker.first_name.label("worker_first_name"),
+        Worker.last_name.label("worker_last_name"),
+        Worker.email.label("worker_email"),
+        Worker.phone.label("worker_phone"),
+        Employer.company_name.label("employer_company_name"),
+        Employer.email.label("employer_email"),
+        Job.title.label("job_title"),
+        Job.work_date.label("job_date"),
+        Job.start_time.label("job_start_time"),
+        Job.end_time.label("job_end_time"),
+        Job.address.label("job_address"),
+        FrozenFunds.amount.label("frozen_amount")
+    ) \
+        .join(Booking, Dispute.booking_id == Booking.id) \
+        .join(Worker, Booking.worker_id == Worker.id) \
+        .join(Job, Booking.job_id == Job.id) \
+        .join(Employer, Job.employer_id == Employer.id) \
+        .join(FrozenFunds, FrozenFunds.booking_id == Booking.id) \
+        .filter(Dispute.status == "open") \
+        .all()
+
+    return disputes
+
+@router.post("/disputes/{dispute_id}/resolve")
+def resolve_dispute(
+    dispute_id: int,
+    decision_data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    dispute = db.query(Dispute).get(dispute_id)
+    if not dispute:
+        raise HTTPException(status_code=404, detail="Dispute not found")
+    
+    if dispute.status != "open":
+        raise HTTPException(status_code=400, detail="Dispute already resolved")
+    
+    booking = db.query(Booking).get(dispute.booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    job = db.query(Job).get(booking.job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    frozen_funds = db.query(FrozenFunds).filter(
+        FrozenFunds.booking_id == booking.id
+    ).first()
+    
+    if not frozen_funds:
+        raise HTTPException(status_code=404, detail="Frozen funds not found")
+    
+    
+    decision = decision_data.get("decision")
+    admin_comment = decision_data.get("comment", "")
+    
+    if decision == "worker":
+        
+        worker = db.query(User).get(booking.worker_id)
+        if worker:
+            worker.balance += frozen_funds.amount
+            
+            
+            notification = Notification(
+                user_id=worker.id,
+                type="dispute_resolved",
+                title="Диспут разрешен",
+                message=f"Администратор разрешил диспут в вашу пользу по смене '{job.title}'",
+                related_id=booking.id
+            )
+            db.add(notification)
+    elif decision == "employer":
+        
+        employer = db.query(User).get(job.employer_id)
+        if employer:
+            employer.balance += frozen_funds.amount
+            
+            
+            notification = Notification(
+                user_id=employer.id,
+                type="dispute_resolved",
+                title="Диспут разрешен",
+                message=f"Администратор разрешил диспут в вашу пользу по смене '{job.title}'",
+                related_id=booking.id
+            )
+            db.add(notification)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid decision")
+    
+    
+    db.delete(frozen_funds)
+    
+    
+    dispute.status = "resolved"
+    dispute.resolved_at = datetime.utcnow()
+    dispute.admin_id = current_user.id
+    dispute.admin_comment = admin_comment
+    
+    
+    booking.status = "completed"
+    
+    db.commit()
+    
+    return {"status": "dispute_resolved"}

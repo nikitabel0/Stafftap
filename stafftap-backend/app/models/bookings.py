@@ -19,6 +19,8 @@ class Booking(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     # Relationships
+    disputes = relationship("Dispute", back_populates="booking")
+
     job = relationship("Job", back_populates="bookings")
     worker = relationship("User", foreign_keys=[worker_id])
     chat = relationship("Chat", uselist=False, back_populates="booking")
