@@ -33,6 +33,19 @@ class BookingType(str, enum.Enum):
     WORKER_INITIATED = "worker_initiated"
     EMPLOYER_INITIATED = "employer_initiated"
 
+def release_funds(db: Session, booking_id: int):
+    frozen_funds = db.query(FrozenFunds).filter(
+        FrozenFunds.booking_id == booking_id
+    ).first()
+    
+    if frozen_funds:
+        booking = db.query(Booking).get(booking_id)
+        employer = booking.job.employer
+            
+        employer.balance += frozen_funds.amount
+               
+        db.delete(frozen_funds)
+
 @router.post("/", response_model=BookingOut)
 def create_new_booking(
     booking: BookingCreate,
@@ -206,6 +219,12 @@ def employer_book_worker(
     
     if job.status != "active":
         raise HTTPException(status_code=400, detail="Вакансия не активна")
+    amount = worker.rate_per_shift
+    if current_user.balance < amount:
+        raise HTTPException(
+            status_code=400, 
+            detail="Недостаточно средств для бронирования"
+        )
     
     
     existing_booking = db.query(Booking).join(Job).filter(
@@ -389,26 +408,32 @@ def confirm_booking(
         if booking.status != BookingStatus.PENDING:
             raise HTTPException(status_code=400, detail="Cannot confirm booking in current status")
         
+        # Проверяем баланс работодателя
+        if current_user.balance < booking.job.rate:
+            raise HTTPException(
+                status_code=400,
+                detail="Недостаточно средств для подтверждения бронирования"
+            )
         
-        confirmed_count = db.query(func.count(Booking.id)).filter(
-            Booking.job_id == booking.job_id,
-            Booking.status == BookingStatus.CONFIRMED
-        ).scalar()
+        # Замораживаем средства
+        current_user.balance -= booking.job.rate
+        frozen_funds = FrozenFunds(
+            booking_id=booking.id,
+            amount=booking.job.rate
+        )
+        db.add(frozen_funds)
         
-        if confirmed_count >= booking.job.workers_needed:
-            raise HTTPException(status_code=400, detail="All positions are filled")
-        
-        
+        # Обновляем статус бронирования
         booking.status = BookingStatus.CONFIRMED
         booking.updated_at = datetime.utcnow()
         
-        
+        # Удаляем уведомление о запросе
         db.query(Notification).filter(
             Notification.related_id == booking_id,
             Notification.type == "booking_request"
         ).delete()
         
-        
+        # Создаем чат (если не существует)
         existing_chat = db.query(Chat).filter(Chat.booking_id == booking_id).first()
         if not existing_chat:
             new_chat = Chat(
@@ -418,12 +443,12 @@ def confirm_booking(
             )
             db.add(new_chat)
         
-        
+        # Уведомление работнику
         notification = Notification(
             user_id=booking.worker_id,
             type="booking_confirmed",
-            title="Booking confirmed",
-            message=f"Your booking for job '{booking.job.title}' has been confirmed",
+            title="Бронирование подтверждено",
+            message=f"Ваше бронирование на вакансию '{booking.job.title}' подтверждено",
             related_id=booking_id
         )
         db.add(notification)
@@ -600,14 +625,14 @@ def remove_worker_from_job(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Проверяем права доступа
+    
     if current_user.role != "employer":
         raise HTTPException(
             status_code=403, 
             detail="Только работодатели могут удалять работников"
         )
     
-    # Находим вакансию и проверяем владельца
+    
     job = db.query(Job).get(job_id)
     if not job or job.employer_id != current_user.id:
         raise HTTPException(
@@ -615,7 +640,7 @@ def remove_worker_from_job(
             detail="Вакансия не найдена или не принадлежит вам"
         )
     
-    # Проверяем что до смены осталось более 24 часов
+    
     job_date = datetime.combine(job.work_date, datetime.min.time())
     time_remaining = job_date - datetime.utcnow()
     
@@ -625,7 +650,7 @@ def remove_worker_from_job(
             detail="Нельзя удалить работника менее чем за 24 часа до начала смены"
         )
     
-    # Находим бронирование для удаления
+    
     booking = db.query(Booking).filter(
         Booking.job_id == job_id,
         Booking.worker_id == worker_id,
@@ -639,7 +664,7 @@ def remove_worker_from_job(
         )
     
     try:
-        # Возвращаем средства если они были заморожены
+        
         frozen_funds = db.query(FrozenFunds).filter(
             FrozenFunds.booking_id == booking.id
         ).first()
@@ -648,11 +673,11 @@ def remove_worker_from_job(
             current_user.balance += frozen_funds.amount
             db.delete(frozen_funds)
         
-        # Меняем статус бронирования
+        
         booking.status = "canceled"
         booking.updated_at = datetime.utcnow()
         
-        # Отправляем уведомление работнику
+        
         notification = Notification(
             user_id=worker_id,
             type="worker_removed",
@@ -663,7 +688,7 @@ def remove_worker_from_job(
         )
         db.add(notification)
         
-        # Создаем уведомление для работодателя (опционально)
+        
         employer_notification = Notification(
             user_id=current_user.id,
             type="worker_removed_employer",

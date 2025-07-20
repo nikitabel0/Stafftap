@@ -1,17 +1,31 @@
 // AdminDisputesManagement.jsx
 import React, { useState, useEffect } from "react";
-import { FiShield, FiMessageSquare, FiCheck, FiX, FiUser, FiBriefcase, FiDollarSign } from "react-icons/fi";
+import { 
+  FiShield, 
+  FiMessageSquare, 
+  FiCheck, 
+  FiX, 
+  FiUser, 
+  FiBriefcase, 
+  FiDollarSign
+} from "react-icons/fi";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import API_BASE_URL from "../../apiConfig";
 import "./AdminDisputesManagement.css";
 
 const AdminDisputesManagement = () => {
+  const navigate = useNavigate();
   const [disputes, setDisputes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeDispute, setActiveDispute] = useState(null);
   const [adminComment, setAdminComment] = useState("");
-  const [decision, setDecision] = useState(null); // 'worker' или 'employer'
+  const [decision, setDecision] = useState(null);
+  const [chatLoading, setChatLoading] = useState({
+    worker: false,
+    employer: false
+  });
 
   useEffect(() => {
     const fetchDisputes = async () => {
@@ -56,7 +70,7 @@ const AdminDisputesManagement = () => {
       await axios.post(
         `${API_BASE_URL}/api/admin/disputes/${activeDispute.id}/resolve`,
         {
-          decision, // 'worker' или 'employer'
+          decision,
           comment: adminComment
         },
         {
@@ -66,7 +80,6 @@ const AdminDisputesManagement = () => {
         }
       );
 
-      // Обновляем список диспутов
       setDisputes(disputes.filter(d => d.id !== activeDispute.id));
       setActiveDispute(null);
       setAdminComment("");
@@ -79,15 +92,58 @@ const AdminDisputesManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  if (loading) {
-    return <div className="admin-loading">Загрузка диспутов...</div>;
   }
-
-  if (error) {
-    return <div className="admin-error">{error}</div>;
+const handleStartChat = async (participantId) => {
+  if (!activeDispute) return;
+  
+  console.log("[DEBUG] Starting chat with participant:", participantId);
+  console.log("[DEBUG] Active dispute:", activeDispute);
+  
+  try {
+    const participantType = participantId === activeDispute.worker_id ? "worker" : "employer";
+    setChatLoading(prev => ({ ...prev, [participantType]: true }));
+    
+    const token = localStorage.getItem("token");
+    
+    // ИСПРАВЛЕНИЕ: Явно указываем формат JSON
+    const response = await axios.post(
+      `${API_BASE_URL}/api/chats/admin/start/${activeDispute.booking_id}`,
+      { participant_id: participantId },  // Данные в формате объекта
+      { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"  // Явное указание типа контента
+        } 
+      }
+    );
+    
+    console.log("[DEBUG] Chat created:", response.data);
+    navigate(`/chats/${response.data.id}`);
+  } catch (error) {
+    console.error("[ERROR] Full error:", error);
+    
+    if (error.response) {
+      console.error("[ERROR] Response data:", error.response.data);
+      
+      // Улучшенная обработка ошибок
+      let errorMessage = "Ошибка сервера";
+      
+      if (error.response.status === 400) {
+        errorMessage = error.response.data.detail || "Неверный запрос";
+      } else if (error.response.status === 403) {
+        errorMessage = "Доступ запрещен: недостаточно прав";
+      } else if (error.response.status === 404) {
+        errorMessage = "Ресурс не найден";
+      }
+      
+      alert(`Ошибка: ${errorMessage}`);
+    } else {
+      alert("Не удалось создать чат. Проверьте соединение.");
+    }
+  } finally {
+    setChatLoading({ worker: false, employer: false });
   }
+}
 
   return (
     <div className="admin-disputes-management">
@@ -181,6 +237,19 @@ const AdminDisputesManagement = () => {
                         <p>{activeDispute.worker_email}</p>
                         <p>Телефон: {activeDispute.worker_phone || "не указан"}</p>
                       </div>
+                      <button 
+                        className="chat-button"
+                        onClick={() => handleStartChat(activeDispute.worker_id)}
+                        disabled={chatLoading.worker}
+                      >
+                        {chatLoading.worker ? (
+                          "Загрузка..."
+                        ) : (
+                          <>
+                            <FiMessageSquare /> Написать работнику
+                          </>
+                        )}
+                      </button>
                     </div>
                     
                     <div className="party employer">
@@ -193,6 +262,19 @@ const AdminDisputesManagement = () => {
                         <p>{activeDispute.employer_email}</p>
                         <p>Контакт: {activeDispute.employer_contact_name || "не указан"}</p>
                       </div>
+                      <button 
+                        className="chat-button"
+                        onClick={() => handleStartChat(activeDispute.employer_user_id)}
+                        disabled={chatLoading.employer}
+                      >
+                        {chatLoading.employer ? (
+                          "Загрузка..."
+                        ) : (
+                          <>
+                            <FiMessageSquare /> Написать работодателю
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>

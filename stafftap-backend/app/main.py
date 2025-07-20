@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, me, users, withdrawals, jobs, skills, bookings, chats, notifications, admin
+from app.routes import auth, me, users, withdrawals, jobs, skills, bookings, chats, notifications, admin, reviews
 from app.database import Base, engine
 from apscheduler.schedulers.background import BackgroundScheduler
-from app.tasks import background_check_completed_jobs  # Импорт из правильного места
-from datetime import datetime  # Добавленный импорт
+from app.tasks import background_check_completed_jobs  
+from datetime import datetime  
 
 app = FastAPI()
 
@@ -18,7 +18,7 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 
-# Инициализация планировщика
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(
     background_check_completed_jobs,
@@ -28,7 +28,7 @@ scheduler.add_job(
 )
 scheduler.start()
 
-# Остановка планировщика при завершении приложения
+
 @app.on_event("shutdown")
 def shutdown_event():
     scheduler.shutdown()
@@ -43,3 +43,4 @@ app.include_router(bookings.router)
 app.include_router(chats.router)
 app.include_router(notifications.router)
 app.include_router(admin.router)
+app.include_router(reviews.router)

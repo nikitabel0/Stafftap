@@ -36,6 +36,7 @@ class DisputeDetail(BaseModel):
     job_end_time: time
     job_address: str
     frozen_amount: float
+    employer_user_id: int  
 
     class Config:
         orm_mode = True

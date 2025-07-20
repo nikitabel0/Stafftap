@@ -65,10 +65,10 @@ const FavoritesPage = ({ user }) => {
         { headers: { Authorization: `Bearer ${token}` }}
       );
       
-      // Обновляем локальное состояние
+      
       setFavoriteJobs(prev => prev.filter(job => job.id !== jobId));
       
-      // Обновляем localStorage
+      
       const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
       delete favorites[jobId];
       localStorage.setItem('favorites', JSON.stringify(favorites));

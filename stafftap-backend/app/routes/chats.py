@@ -1,16 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, status
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, status,Body
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models import Chat, Message, User, Booking
 from app.schemas.chat import ChatOut, MessageCreate, MessageOut, ChatDetailOut
+from app.schemas.user import  UserRole
 from app.dependencies import get_current_user, get_current_user_from_token
 from typing import Dict, List
 import json
-from sqlalchemy import func, or_
+from sqlalchemy import or_, and_, func
 import logging
 
 router = APIRouter(prefix="/api/chats", tags=["chats"])
 logger = logging.getLogger(__name__)
+
+
 
 class ConnectionManager:
     def __init__(self):
@@ -296,3 +299,82 @@ def get_total_unread_messages(
 ):
     total = get_total_unread_for_user(db, current_user.id)
     return {"total_unread": total}
+
+
+
+# Добавьте этот эндпоинт в app/routes/chats.py
+@router.post("/admin/start/{booking_id}", response_model=ChatOut)
+def start_admin_chat(
+    booking_id: int,
+    participant_data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Проверка прав администратора
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Получаем ID участника из тела запроса
+    participant_id = participant_data.get("participant_id")
+    if not participant_id:
+        raise HTTPException(status_code=400, detail="Participant ID is required")
+    
+    # Детальное логирование для диагностики
+    logger.info(f"Admin chat request: booking_id={booking_id}, participant_id={participant_id}")
+    
+    # Получаем бронирование с связанной работой
+    booking = db.query(Booking).options(joinedload(Booking.job)).get(booking_id)
+    if not booking:
+        logger.error(f"Booking not found: {booking_id}")
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Проверяем наличие связанной работы
+    if not booking.job:
+        logger.error(f"Job not found for booking: {booking_id}")
+        raise HTTPException(status_code=404, detail="Job not found for booking")
+    
+    # Определяем валидных участников
+    valid_participants = [booking.job.employer_id, booking.worker_id]
+    logger.info(f"Valid participants for booking {booking_id}: {valid_participants}")
+    
+    # Проверяем, что участник связан с бронированием
+    if participant_id not in valid_participants:
+        logger.error(f"Invalid participant: {participant_id} not in {valid_participants}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Participant not in booking. Valid IDs: {valid_participants}"
+        )
+    
+    # Ищем существующий чат
+    existing_chat = db.query(Chat).filter(
+        or_(
+            and_(
+                Chat.employer_id == current_user.id,
+                Chat.worker_id == participant_id,
+                Chat.booking_id == booking_id
+            ),
+            and_(
+                Chat.employer_id == participant_id,
+                Chat.worker_id == current_user.id,
+                Chat.booking_id == booking_id
+            )
+        )
+    ).first()
+    
+    if existing_chat:
+        logger.info(f"Existing chat found: {existing_chat.id}")
+        return existing_chat
+    
+    # Создаем новый чат
+    new_chat = Chat(
+        booking_id=booking_id,
+        employer_id=current_user.id,
+        worker_id=participant_id
+    )
+    
+    db.add(new_chat)
+    db.commit()
+    db.refresh(new_chat)
+    
+    logger.info(f"New chat created: {new_chat.id}")
+    return new_chat

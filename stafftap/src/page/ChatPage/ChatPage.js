@@ -254,7 +254,6 @@ const ChatPage = ({ user }) => {
         </button>
       </div>
 
-      {/* Область сообщений */}
       <div className="messages-container">
         {isLoading ? (
           <div className="loading-messages">

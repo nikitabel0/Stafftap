@@ -15,6 +15,7 @@ import {
   FiX,
   FiCheck,
   FiMessageSquare,
+  FiStar
 } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../../apiConfig";
@@ -32,6 +33,13 @@ const JobDetailPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  
+  
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedWorkerForReview, setSelectedWorkerForReview] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
 
   const getAuthToken = () => {
     return localStorage.getItem("token");
@@ -121,10 +129,8 @@ const JobDetailPage = () => {
       const token = localStorage.getItem("token");
       
       if (existingChatId) {
-        // Если чат уже существует, переходим сразу
         navigate(`/chats/${existingChatId}`);
       } else {
-        // Если чата нет - создаем новый
         const response = await axios.post(
           `${API_BASE_URL}/api/chats/start/${bookingId}`,
           {},
@@ -156,6 +162,84 @@ const JobDetailPage = () => {
     } finally {
       setIsChatLoading(false);
     }
+  };
+
+  
+  const openReviewModal = (worker) => {
+    setSelectedWorkerForReview(worker);
+    setReviewRating(0);
+    setReviewComment("");
+    setIsReviewModalOpen(true);
+  };
+
+  
+  const submitReview = async () => {
+    if (!selectedWorkerForReview || reviewRating === 0) return;
+    
+    setIsReviewSubmitting(true);
+    
+    try {
+      const token = getAuthToken();
+      await axios.post(
+        `${API_BASE_URL}/api/reviews/`,
+        {
+          booking_id: selectedWorkerForReview.booking_id,
+          rating: reviewRating,
+          comment: reviewComment
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setNotification({
+        type: "success",
+        message: "Отзыв успешно отправлен"
+      });
+      
+      
+      setWorkers(workers.map(w => 
+        w.id === selectedWorkerForReview.id 
+          ? { 
+              ...w, 
+              rating: calculateNewRating(w.rating, reviewRating),
+              has_review: true
+            } 
+          : w
+      ));
+      
+      setIsReviewModalOpen(false);
+    } catch (error) {
+      console.error("Ошибка отправки отзыва:", error);
+      let errorMessage = "Не удалось отправить отзыв";
+      
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            errorMessage = error.response.data.detail || errorMessage;
+            break;
+          case 403:
+            errorMessage = "Недостаточно прав для оставления отзыва";
+            break;
+          case 404:
+            errorMessage = "Бронирование не найдено";
+            break;
+        }
+      }
+      
+      setNotification({
+        type: "error",
+        message: errorMessage
+      });
+    } finally {
+      setIsReviewSubmitting(false);
+    }
+  };
+
+  
+  const calculateNewRating = (currentRating, newRating) => {
+    if (!currentRating) return newRating;
+    return parseFloat(((currentRating + newRating) / 2).toFixed(1));
   };
 
   useEffect(() => {
@@ -212,11 +296,10 @@ const JobDetailPage = () => {
         }
       );
 
-      // Обновляем данные после успешного удаления
       await fetchJobDetails();
       setNotification({
         type: "success",
-        message: "Работник успешно удален с вакансии",
+        message: "Работник успешно удален с вакансии"
       });
     } catch (err) {
       console.error("Ошибка удаления работника:", err);
@@ -343,7 +426,7 @@ const JobDetailPage = () => {
         </div>
       )}
 
-      {/* Модальное окно подтверждения */}
+      {/* Модальное окно подтверждения удаления */}
       {showConfirmModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -376,6 +459,70 @@ const JobDetailPage = () => {
         </div>
       )}
 
+      {/* Модальное окно для отзыва */}
+      {isReviewModalOpen && selectedWorkerForReview && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Отзыв о работе {selectedWorkerForReview.first_name}</h3>
+              <button 
+                className="modal-close" 
+                onClick={() => setIsReviewModalOpen(false)}
+              >
+                <FiX />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="rating-section">
+                <p>Оценка:</p>
+                <div className="rating-stars">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      className={`star ${star <= reviewRating ? 'filled' : ''}`}
+                      onClick={() => setReviewRating(star)}
+                      disabled={isReviewSubmitting}
+                    >
+                      <FiStar size={24} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="comment-section">
+                <label htmlFor="review-comment">Комментарий (необязательно):</label>
+                <textarea
+                  id="review-comment"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Расскажите о работе сотрудника..."
+                  rows={4}
+                  disabled={isReviewSubmitting}
+                />
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setIsReviewModalOpen(false)}
+                disabled={isReviewSubmitting}
+              >
+                Отмена
+              </button>
+              <button
+                className="btn-confirm"
+                onClick={submitReview}
+                disabled={isReviewSubmitting || reviewRating === 0}
+              >
+                {isReviewSubmitting ? "Отправка..." : "Отправить отзыв"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <button className="back-button" onClick={() => navigate(-1)}>
         <FiArrowLeft /> Назад
       </button>
@@ -384,6 +531,14 @@ const JobDetailPage = () => {
         <div className="job-header">
           <h1>{job.title}</h1>
           <div className="job-company">{job.company_name}</div>
+          <div className="job-status">
+            Статус: <span className={`status-${job.status}`}>
+              {job.status === 'active' && 'Активна'}
+              {job.status === 'completed' && 'Завершена'}
+              {job.status === 'successfully_completed' && 'Успешно завершена'}
+              {job.status === 'disputed' && 'Есть споры'}
+            </span>
+          </div>
         </div>
 
         <div className="job-body">
@@ -449,8 +604,8 @@ const JobDetailPage = () => {
                       />
                     ) : null}
                     <div className="avatar-initials">
-                      {worker.first_name?.[0] || ""}
-                      {worker.last_name?.[0] || ""}
+                      {worker.first_name?.[0] || ''}
+                      {worker.last_name?.[0] || ''}
                     </div>
                   </div>
 
@@ -470,7 +625,7 @@ const JobDetailPage = () => {
 
                     <div className="worker-stats">
                       <div className="stat-item">
-                        <FiUser className="stat-icon" />
+                        <FiStar className="stat-icon" />
                         <span>Рейтинг: {worker.rating || "нет оценок"}</span>
                       </div>
                       <div className="stat-item">
@@ -478,10 +633,27 @@ const JobDetailPage = () => {
                           Выполнено смен: {worker.completed_shifts || 0}
                         </span>
                       </div>
+                      {worker.has_review && (
+                        <div className="stat-item review-badge">
+                          <span>Отзыв оставлен</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div className="worker-actions">
+                    {job.status === 'successfully_completed' && 
+                 !worker.has_review && (
+                      <button
+                        className="review-worker-btn"
+                        onClick={() => openReviewModal(worker)}
+                        title="Оставить отзыв о работе"
+                        disabled={isReviewSubmitting}
+                      >
+                        <FiStar size={18} /> Оставить отзыв
+                      </button>
+                    )}
+
                     <button
                       className="remove-worker-btn"
                       onClick={() => openConfirmModal(worker.id)}

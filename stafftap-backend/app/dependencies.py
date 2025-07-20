@@ -13,11 +13,11 @@ ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-# Функция для декодирования токена (будет использоваться в нескольких местах)
+
 def decode_jwt_token(token: str) -> dict:
     """Декодирует JWT токен и возвращает payload"""
     try:
-        # Убираем префикс "Bearer " если он есть
+        
         if token.startswith("Bearer "):
             token = token.split(" ")[1]
             
@@ -63,7 +63,7 @@ async def get_current_user(
     print(f"Authenticated user: {user.id} - {user.email}")
     return user
 
-# Новая функция для аутентификации в WebSocket
+
 async def get_current_user_from_token(token: str, db: Session) -> Optional[User]:
     """Аутентификация пользователя по токену для WebSocket соединений"""
     payload = decode_jwt_token(token)
@@ -81,7 +81,7 @@ async def get_current_user_from_token(token: str, db: Session) -> Optional[User]
         
     return get_user_by_id(db, user_id)
 
-# Новая зависимость для необязательной аутентификации
+
 async def get_current_user_optional(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)

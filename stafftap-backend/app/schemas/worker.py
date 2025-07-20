@@ -10,8 +10,8 @@ class WorkerSkillOut(BaseModel):
         orm_mode = True
 
 class WorkerAvailabilityOut(BaseModel):
-    id: int  # Добавляем обязательный ID
-    date: date  # Переименовываем available_date -> date
+    id: int  
+    date: date  
 
 
     class Config:
@@ -24,10 +24,10 @@ class WorkerOut(BaseModel):
     is_verified: bool
     is_blocked: bool
 
-    birth_date: date  # Разрешить NULL
+    birth_date: date  
     experience_months: Optional[int] = None
     rate_per_shift: Optional[float] = None
-    # balance: float = 0.0  # Всегда значение по умолчанию
+    
     is_verified: bool
     is_blocked: bool
 

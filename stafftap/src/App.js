@@ -63,7 +63,7 @@ function App() {
         throw new Error("Токен отсутствует или пользователь не определен");
       }
 
-      // Подготовка данных для отправки
+      
       const dataToSend = {
         first_name: updatedData.first_name,
         last_name: updatedData.last_name,
@@ -75,7 +75,7 @@ function App() {
         rate_per_shift: updatedData.rate_per_shift,
       };
 
-      // Отправка запроса на сервер
+      
       const response = await axios.put(
         `${API_BASE_URL}/api/users/${user.id}`,
         dataToSend,
@@ -87,7 +87,7 @@ function App() {
         }
       );
 
-      // Обновляем данные пользователя
+      
       await fetchProfile();
       return true;
     } catch (error) {

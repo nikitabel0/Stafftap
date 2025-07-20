@@ -12,7 +12,11 @@ class ConfirmedWorker(BaseModel):
     rating: Optional[float] = None
     completed_shifts: Optional[int] = None
     chat_id: Optional[int] = None
-    booking_id: int 
+    booking_id: int
+    has_review: bool = Field(
+        False,
+        description="Был ли оставлен отзыв для этого работника"
+    ) 
     class Config:
         orm_mode = True
 class JobBase(BaseModel):
@@ -53,4 +57,5 @@ class JobOut(JobBase):
 class JobDetail(JobOut):
     employer_name: str
     is_favorite: bool
+    status: str
     confirmed_workers: List[ConfirmedWorker] = []

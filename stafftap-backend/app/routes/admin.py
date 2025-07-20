@@ -423,7 +423,6 @@ def get_disputes_for_admin(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    
     Worker = aliased(User)
     Employer = aliased(User)
 
@@ -438,6 +437,7 @@ def get_disputes_for_admin(
         Worker.last_name.label("worker_last_name"),
         Worker.email.label("worker_email"),
         Worker.phone.label("worker_phone"),
+        Employer.id.label("employer_user_id"),  
         Employer.company_name.label("employer_company_name"),
         Employer.email.label("employer_email"),
         Job.title.label("job_title"),

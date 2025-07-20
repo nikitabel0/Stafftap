@@ -46,7 +46,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AdminDisputesManagement from "../../components/AdminDisputesManagement/AdminDisputesManagement";
 
-// Функция для безопасного форматирования чисел
+
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
   return isNaN(num)
@@ -54,7 +54,7 @@ const safeFormatNumber = (value, defaultValue = 0) => {
     : num.toLocaleString("ru-RU");
 };
 
-// Компонент модального окна загрузки документа
+
 const DocumentUploadModal = ({ isOpen, onClose, onUpload }) => {
   const [documentType, setDocumentType] = useState("ИНН");
   const [file, setFile] = useState(null);
@@ -159,7 +159,7 @@ const DocumentUploadModal = ({ isOpen, onClose, onUpload }) => {
   );
 };
 
-// Компонент списка документов
+
 const DocumentsList = ({
   documents,
   isEditing,
@@ -317,22 +317,22 @@ const PlatformStatistics = () => {
     );
   }
 
-  // Цвета для диаграмм
+  
   const COLORS = ["#2C8161", "#3DA05E", "#56BD66", "#76D192"];
   const ROLE_COLORS = ["#2C8161", "#3498DB", "#9B59B6"];
 
-  // Данные для круговой диаграммы распределения по ролям
+  
   const roleData = [
     { name: "Админы", value: stats.admins, icon: <FiUser /> },
     { name: "Работодатели", value: stats.employers, icon: <FiBriefcase /> },
     { name: "Сотрудники", value: stats.workers, icon: <FiShield /> },
   ];
 
-  // Форматирование данных для графика регистраций
+  
   const formatRegistrationData = () => {
     return stats.user_registrations.map((item) => ({
       ...item,
-      // Преобразуем дату в формат "день месяц"
+      
       formattedDate: new Date(item.date).toLocaleDateString("ru-RU", {
         day: "numeric",
         month: "short",
@@ -342,7 +342,7 @@ const PlatformStatistics = () => {
 
   const registrationData = formatRegistrationData();
 
-  // Кастомный тултип для графиков
+  
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -361,7 +361,7 @@ const PlatformStatistics = () => {
     return null;
   };
 
-  // Кастомная легенда для круговой диаграммы
+  
   const renderCustomizedLabel = ({
     cx,
     cy,
@@ -535,7 +535,7 @@ const PlatformStatistics = () => {
   );
 };
 
-// Компонент модерации вакансий для администратора
+
 const AdminJobsModeration = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -671,7 +671,7 @@ const AdminJobsModeration = () => {
   );
 };
 
-// Компонент управления пользователями для администратора
+
 const AdminUsersManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -691,13 +691,13 @@ const AdminUsersManagement = () => {
   const searchInputRef = useRef(null);
   const shouldRestoreFocusRef = useRef(false);
 
-  // Функция загрузки пользователей
+  
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      // Формируем параметры запроса
+      
       const params = {
         page: currentPage,
         page_size: pageSize,
@@ -728,7 +728,7 @@ const AdminUsersManagement = () => {
     } finally {
       setLoading(false);
 
-      // Восстанавливаем фокус после загрузки
+      
       if (shouldRestoreFocusRef.current && searchInputRef.current) {
         searchInputRef.current.focus();
         shouldRestoreFocusRef.current = false;
@@ -736,12 +736,12 @@ const AdminUsersManagement = () => {
     }
   };
 
-  // Основной эффект загрузки данных
+  
   useEffect(() => {
     fetchUsers();
   }, [currentPage, filters]);
 
-  // Эффект для поиска с debounce
+  
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -749,7 +749,7 @@ const AdminUsersManagement = () => {
 
     shouldRestoreFocusRef.current = true;
 
-    // Устанавливаем таймер для поиска с задержкой 500 мс
+    
     searchTimeoutRef.current = setTimeout(() => {
       if (searchTerm.length === 0 || searchTerm.length > 2) {
         setCurrentPage(1);
@@ -764,7 +764,7 @@ const AdminUsersManagement = () => {
     };
   }, [searchTerm]);
 
-  // Обработчики событий
+  
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
@@ -846,7 +846,7 @@ const AdminUsersManagement = () => {
     }
   };
 
-  // Рендер компонента
+  
   return (
     <div className="admin-users-management">
       <div className="admin-section-header">
@@ -1159,7 +1159,7 @@ const AdminUsersManagement = () => {
   );
 };
 
-// Компонент модерации документов
+
 const AdminDocumentsModeration = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1337,7 +1337,7 @@ const AdminDocumentsModeration = () => {
   );
 };
 
-// Основной компонент страницы профиля
+
 const ProfilePage = ({ user, onSave, onLogout }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("info");
@@ -1552,7 +1552,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     try {
       const token = localStorage.getItem("token");
 
-      // 1. Подготовка основных данных в формате JSON
+      
       const updateData = {
         first_name: editingProfile.first_name || "",
         last_name: editingProfile.last_name || "",
@@ -1560,13 +1560,13 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         birth_date: editingProfile.birth_date || "",
       };
 
-      // Добавляем role-specific поля
+      
       if (editingProfile.role === "worker") {
         updateData.rate_per_shift = Number(editingProfile.rate_per_shift) || 0;
         updateData.experience_months =
           Number(editingProfile.experience_months) || 0;
 
-        // Преобразуем availability в массив дат
+        
         updateData.availability = [];
         for (const [date, isAvailable] of Object.entries(
           editingProfile.availability
@@ -1576,13 +1576,13 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           }
         }
 
-        // Навыки
+        
         updateData.skills = editingProfile.skills.map((skill) => skill.id);
       } else if (editingProfile.role === "employer") {
         updateData.company_name = editingProfile.company_name || "";
       }
 
-      // 2. Отправка основных данных как JSON
+      
       const response = await axios.put(
         `${API_BASE_URL}/api/users/${editingProfile.id}`,
         updateData,
@@ -1594,7 +1594,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         }
       );
 
-      // 3. Отправка аватара отдельно (если есть)
+      
       if (avatarFile) {
         const avatarFormData = new FormData();
         avatarFormData.append("avatar", avatarFile);
@@ -1611,7 +1611,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         );
       }
 
-      // Обновление состояния
+      
       onSave(response.data);
       setIsEditing(false);
       setErrors({});
@@ -1623,7 +1623,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
       let errorMessage = "Произошла ошибка при сохранении";
       if (error.response) {
-        // Детализация ошибок валидации
+        
         if (error.response.status === 422) {
           errorMessage = "Ошибка валидации: ";
           if (error.response.data.detail) {
@@ -1636,7 +1636,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             }
           }
         }
-        // Другие статусы
+        
         else if (error.response.status === 401) {
           errorMessage = "Сессия истекла. Пожалуйста, войдите снова";
           onLogout();
@@ -1682,7 +1682,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     navigate(`/job/${jobId}`);
   };
 
-  // Функция загрузки документа
+  
   const handleUploadDocument = async (documentType, file) => {
     const token = localStorage.getItem("token");
     const formData = new FormData();
@@ -1701,14 +1701,14 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         }
       );
 
-      // Обновляем список документов
+      
       const newDocument = response.data;
       setEditingProfile((prev) => ({
         ...prev,
         documents: [...prev.documents, newDocument],
       }));
 
-      // Сбрасываем верификацию пользователя
+      
       setEditingProfile((prev) => ({
         ...prev,
         is_verified: false,
@@ -1721,7 +1721,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     }
   };
 
-  // Функция удаления документа
+  
   const handleDeleteDocument = async (docId) => {
     const token = localStorage.getItem("token");
     try {
@@ -1734,7 +1734,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         }
       );
 
-      // Обновляем список документов
+      
       setEditingProfile((prev) => ({
         ...prev,
         documents: prev.documents.filter((doc) => doc.id !== docId),

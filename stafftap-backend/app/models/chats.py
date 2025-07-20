@@ -13,7 +13,7 @@ class Chat(Base):
     created_at = Column(DateTime, server_default=func.now())
     booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="CASCADE"), unique=True)
     
-    # Relationships
+    
     booking = relationship("Booking", back_populates="chat")
     employer = relationship("User", foreign_keys=[employer_id])
     worker = relationship("User", foreign_keys=[worker_id])
@@ -29,6 +29,6 @@ class Message(Base):
     is_read = Column(Boolean, default=False)
     sent_at = Column(DateTime, server_default=func.now())
     
-    # Relationships
+    
     chat = relationship("Chat", back_populates="messages")
     sender = relationship("User")

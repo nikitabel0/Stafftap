@@ -7,6 +7,11 @@ from sqlalchemy import or_, and_
 
 scheduler = None  # Будет инициализирован в main.py
 
+# app/core.py
+from datetime import datetime, time
+from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
+
 def background_check_completed_jobs(db: Session):
     now = datetime.utcnow()
     current_date = now.date()
@@ -30,13 +35,29 @@ def background_check_completed_jobs(db: Session):
         job.feedback_status = "pending"
         
         # Создаем уведомление для работодателя
-        notification = Notification(
+        notification_employer = Notification(
             user_id=job.employer_id,
             type="job_completed",
             title="Смена завершена",
             message=f"Смена '{job.title}' завершена. Пожалуйста, оставьте отзыв",
             related_id=job.id
         )
-        db.add(notification)
+        db.add(notification_employer)
+        
+        # Создаем уведомления для работников
+        bookings = db.query(Booking).filter(
+            Booking.job_id == job.id,
+            Booking.status.in_(["confirmed", "employer_booked"])
+        ).all()
+        
+        for booking in bookings:
+            notification_worker = Notification(
+                user_id=booking.worker_id,
+                type="worker_job_completed",
+                title="Смена завершена",
+                message=f"Смена '{job.title}' завершена. Если работодатель не подтвердит вашу работу в течение 48 часов, вы можете создать диспут.",
+                related_id=booking.id  # Сохраняем ID бронирования
+            )
+            db.add(notification_worker)
     
     db.commit()

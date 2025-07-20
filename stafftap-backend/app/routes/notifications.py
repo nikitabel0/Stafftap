@@ -149,3 +149,20 @@ async def get_unread_notification_count(
         Notification.is_read == False
     ).scalar()
     return {"count": count}
+
+
+@router.delete("/job-completed/{job_id}")
+def delete_job_completed_notification(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Удаляем все уведомления о завершении работы для этой смены
+    db.query(Notification).filter(
+        Notification.type == "job_completed",
+        Notification.related_id == job_id,
+        Notification.user_id == current_user.id
+    ).delete()
+    
+    db.commit()
+    return {"status": "notification_deleted"}

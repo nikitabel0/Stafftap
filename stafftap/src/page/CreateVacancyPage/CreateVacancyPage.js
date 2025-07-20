@@ -26,7 +26,7 @@ const CreateVacancyPage = () => {
   const [verificationError, setVerificationError] = useState("");
 
   useEffect(() => {
-    // Загрузка данных текущего пользователя
+    
     const fetchCurrentUser = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -36,12 +36,12 @@ const CreateVacancyPage = () => {
           return;
         }
         
-        const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+        const response = await axios.get(`${API_BASE_URL}/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setCurrentUser(response.data);
         
-        // Проверка верификации
+        
         if (response.data.role !== "employer") {
           setVerificationError("Только работодатели могут создавать вакансии");
         } else if (!response.data.is_verified) {
@@ -57,7 +57,7 @@ const CreateVacancyPage = () => {
     
     fetchCurrentUser();
     
-    // Загрузка навыков
+    
     const fetchSkills = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/skills`);
@@ -79,7 +79,7 @@ const CreateVacancyPage = () => {
       [name]: value,
     });
 
-    // Очищаем ошибку при изменении поля
+    
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -117,8 +117,6 @@ const CreateVacancyPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Дополнительная проверка верификации перед отправкой
     if (!currentUser?.is_verified || currentUser?.role !== "employer") {
       setVerificationError("Для создания вакансий необходимо пройти верификацию");
       return;
@@ -272,7 +270,7 @@ const CreateVacancyPage = () => {
               name="work_date"
               value={formData.work_date}
               onChange={handleChange}
-              min={new Date().toISOString().split("T")[0]} // Запрет прошлых дат
+              min={new Date().toISOString().split("T")[0]} 
               className={errors.work_date ? "error" : ""}
             />
             {errors.work_date && (

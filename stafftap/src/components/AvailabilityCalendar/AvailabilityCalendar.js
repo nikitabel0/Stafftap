@@ -10,15 +10,15 @@ const AvailabilityCalendar = ({ availability, onDayClick, isEditing }) => {
   const [expanded, setExpanded] = useState(false);
   const [availableDatesList, setAvailableDatesList] = useState([]);
 
-  // При изменении availability обновляем список доступных дат
+  
   useEffect(() => {
     if (!availability) return;
     
-    // Извлекаем все даты из объекта доступности
+    
     const dates = Object.keys(availability)
       .filter(date => availability[date])
       .map(date => {
-        // Убедимся, что дата в правильном формате
+        
         const dateStr = date.split('T')[0];
         return moment(dateStr).format('YYYY-MM-DD');
       });
@@ -26,7 +26,7 @@ const AvailabilityCalendar = ({ availability, onDayClick, isEditing }) => {
     setAvailableDatesList(dates);
   }, [availability]);
 
-  // Получаем начало и конец текущего месяца
+  
   const startOfMonth = currentMonth.clone().startOf('month');
   const startOfCalendar = startOfMonth.clone().startOf('isoWeek');
   const endOfMonth = currentMonth.clone().endOf('month');
@@ -35,7 +35,7 @@ const AvailabilityCalendar = ({ availability, onDayClick, isEditing }) => {
   const weeks = [];
   let day = startOfCalendar.clone();
 
-  // Строим календарь по неделям
+  
   while (day.isBefore(endOfCalendar) || day.isSame(endOfCalendar)) {
     const week = [];
     for (let i = 0; i < 7; i++) {
@@ -45,12 +45,12 @@ const AvailabilityCalendar = ({ availability, onDayClick, isEditing }) => {
     weeks.push(week);
   }
 
-  // Функция проверки доступности пользователя
+  
   const checkAvailability = (dateStr) => {
     return availableDatesList.includes(dateStr);
   };
 
-  // Навигация по месяцам
+  
   const prevMonth = () => setCurrentMonth(currentMonth.clone().subtract(1, 'month'));
   const nextMonth = () => setCurrentMonth(currentMonth.clone().add(1, 'month'));
 

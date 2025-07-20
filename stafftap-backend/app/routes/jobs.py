@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import date, datetime
 from app.database import get_db
+from app.schemas.review import ReviewCreate 
 from app.models import Job, Skill, Booking, User, Review, FrozenFunds, Notification, FavoriteJob,Chat
 from app.schemas.job import JobDetail, JobOut, JobCreate, ConfirmedWorker
 from app.schemas.booking import BookingOut, EmployerBookRequest
@@ -32,7 +33,7 @@ logger.addHandler(handler)
 def release_funds(db: Session, booking_id: int):
     """Размораживает средства и переводит на баланс работника"""
     try:
-        # Находим замороженные средства
+        
         frozen_funds = db.query(FrozenFunds).filter(
             FrozenFunds.booking_id == booking_id
         ).first()
@@ -41,7 +42,7 @@ def release_funds(db: Session, booking_id: int):
             logger.warning(f"Замороженные средства не найдены для бронирования {booking_id}")
             return
 
-        # Получаем связанные объекты
+        
         booking = db.query(Booking).get(booking_id)
         if not booking:
             logger.error(f"Бронирование не найдено: {booking_id}")
@@ -52,11 +53,11 @@ def release_funds(db: Session, booking_id: int):
             logger.error(f"Работник не найден: {booking.worker_id}")
             return
 
-        # Переводим средства
+        
         worker.balance += frozen_funds.amount
         db.delete(frozen_funds)
         
-        # Создаем уведомление
+        
         notification = Notification(
             user_id=worker.id,
             type="payment_released",
@@ -78,7 +79,7 @@ def get_jobs(
     min_rate: Optional[float] = Query(None, alias="min_rate"),
     db: Session = Depends(get_db)
 ):
-    # Исправленный подзапрос: учитываем все бронирования, занимающие место
+    
     occupied_subq = db.query(
         Booking.job_id,
         func.count(Booking.id).label('occupied_count')
@@ -86,7 +87,7 @@ def get_jobs(
         Booking.status.in_(["confirmed", "employer_booked"])
     ).group_by(Booking.job_id).subquery()
 
-    # Основной запрос с фильтрацией
+    
     query = db.query(
         Job,
         func.coalesce(occupied_subq.c.occupied_count, 0).label('occupied_count')
@@ -112,7 +113,7 @@ def get_jobs(
     if not results:
         return []
     
-    # Собираем данные
+    
     employer_ids = list(set(job.employer_id for job, _ in results))
     employers = db.query(User).filter(User.id.in_(employer_ids)).all()
     employer_map = {e.id: e for e in employers}
@@ -221,7 +222,7 @@ def get_job_details(
     if not job:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
     
-    # Получаем всех работников, забронированных на эту вакансию
+    
     booked_workers = db.query(Booking).options(
         joinedload(Booking.worker)
     ).filter(
@@ -250,26 +251,26 @@ def get_job_details(
         ).first()
         is_favorite = favorite is not None
 
-    # Исправленный подсчет занятых мест
+    
     occupied_count = db.query(func.count(Booking.id)).filter(
         Booking.job_id == job_id,
         Booking.status.in_(["confirmed", "employer_booked"])
     ).scalar()
     remaining_slots = job.workers_needed - occupied_count
 
-    # Формируем список работников
+    
     workers_list = []
     worker_ids = [bw.worker_id for bw in booked_workers]
     
     if worker_ids:
-        # Получаем рейтинги работников
+        
         ratings = db.query(
             Review.target_id,
             func.avg(Review.rating).label('avg_rating')
         ).filter(Review.target_id.in_(worker_ids)).group_by(Review.target_id).all()
         rating_map = {r.target_id: float(r.avg_rating) for r in ratings}
         
-        # Получаем количество завершенных смен
+        
         completed_shifts = db.query(
             Booking.worker_id,
             func.count(Booking.id).label('completed_count')
@@ -282,7 +283,7 @@ def get_job_details(
     for worker_booking in booked_workers:
         worker = worker_booking.worker
         
-        # ИСПРАВЛЕНИЕ: добавляем booking_id и chat_id
+        
         chat = db.query(Chat).filter(Chat.booking_id == worker_booking.id).first()
         chat_id = chat.id if chat else None
         
@@ -294,9 +295,9 @@ def get_job_details(
             avatar_url=worker.avatar_url,
             rating=rating_map.get(worker.id, 0.0),
             completed_shifts=completed_map.get(worker.id, 0),
-            # ДОБАВЛЕНО ОБЯЗАТЕЛЬНОЕ ПОЛЕ
+            
             booking_id=worker_booking.id,
-            # ДОБАВЛЕНО ОПЦИОНАЛЬНОЕ ПОЛЕ
+            
             chat_id=chat_id
         ))
 
@@ -311,6 +312,7 @@ def get_job_details(
         end_time=job.end_time,
         rate=float(job.rate),
         address=job.address,
+        status=job.status, 
         workers_needed=job.workers_needed,
         remaining_slots=remaining_slots,
         company_name=employer.company_name,
@@ -362,7 +364,7 @@ def get_favorite_jobs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Исправленный подзапрос: учитываем все бронирования, занимающие место
+    
     occupied_subq = db.query(
         Booking.job_id,
         func.count(Booking.id).label('occupied_count')
@@ -370,7 +372,7 @@ def get_favorite_jobs(
         Booking.status.in_(["confirmed", "employer_booked"])
     ).group_by(Booking.job_id).subquery()
     
-    # Запрос для избранных вакансий с фильтрацией
+    
     results = db.query(
         Job,
         func.coalesce(occupied_subq.c.occupied_count, 0).label('occupied_count')
@@ -387,7 +389,7 @@ def get_favorite_jobs(
     if not results:
         return []
     
-    # Обработка результатов
+    
     employer_ids = list(set(job.employer_id for job, _ in results))
     
     employers_data = db.query(
@@ -450,76 +452,72 @@ def get_confirmed_workers_for_job(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Запрос подтвержденных работников для вакансии {job_id} от пользователя {current_user.id}")
-    
     job = db.query(Job).get(job_id)
     if not job:
-        logger.warning(f"Вакансия не найдена: {job_id}")
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
     
-    # Проверка прав доступа - только владелец вакансии
     if job.employer_id != current_user.id and current_user.role != "admin":
-        logger.warning(f"Доступ запрещен: Пользователь {current_user.id} не является владельцем вакансии {job_id}")
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    try:
-        # Получаем всех работников, забронированных на вакансию
-        bookings = db.query(Booking).options(
-            joinedload(Booking.worker)
-        ).filter(
-            Booking.job_id == job_id,
-            Booking.status.in_(["confirmed", "employer_booked"])
-        ).all()
+    bookings = db.query(Booking).options(
+        joinedload(Booking.worker)
+    ).filter(
+        Booking.job_id == job_id,
+        Booking.status.in_(["confirmed", "employer_booked"])
+    ).all()
+    
+    if not bookings:
+        return []
+    
+    worker_ids = [b.worker_id for b in bookings]
+    
+    
+    ratings = db.query(
+        Review.target_id,
+        func.avg(Review.rating).label('avg_rating')
+    ).filter(Review.target_id.in_(worker_ids)).group_by(Review.target_id).all()
+    rating_map = {r.target_id: float(r.avg_rating) for r in ratings}
+    
+    
+    completed_shifts = db.query(
+        Booking.worker_id,
+        func.count(Booking.id).label('completed_count')
+    ).filter(
+        Booking.worker_id.in_(worker_ids),
+        Booking.status == 'completed'
+    ).group_by(Booking.worker_id).all()
+    completed_map = {c.worker_id: c.completed_count for c in completed_shifts}
+    
+    
+    reviews_exist = db.query(
+        Review.booking_id
+    ).filter(
+        Review.booking_id.in_([b.id for b in bookings])
+    ).all()
+    reviewed_bookings = {r.booking_id for r in reviews_exist}
+    
+    result = []
+    for booking in bookings:
+        worker = booking.worker
         
-        logger.info(f"Найдено {len(bookings)} бронирований для вакансии {job_id}")
-        
-        if not bookings:
-            return []
-        
-        # Собираем ID работников
-        worker_ids = [b.worker_id for b in bookings]
-        
-        # Получаем рейтинги работников
-        ratings = db.query(
-            Review.target_id,
-            func.avg(Review.rating).label('avg_rating')
-        ).filter(Review.target_id.in_(worker_ids)).group_by(Review.target_id).all()
-        rating_map = {r.target_id: float(r.avg_rating) for r in ratings}
-        
-        # Получаем количество завершенных смен
-        completed_shifts = db.query(
-            Booking.worker_id,
-            func.count(Booking.id).label('completed_count')
-        ).filter(
-            Booking.worker_id.in_(worker_ids),
-            Booking.status == 'completed'
-        ).group_by(Booking.worker_id).all()
-        completed_map = {c.worker_id: c.completed_count for c in completed_shifts}
-        
-        result = []
-        for booking in bookings:
-            worker = booking.worker
-            # Получаем чат для этого бронирования
-            chat = db.query(Chat).filter(Chat.booking_id == booking.id).first()
-            chat_id = chat.id if chat else None
+        chat = db.query(Chat).filter(Chat.booking_id == booking.id).first()
+        chat_id = chat.id if chat else None
 
-            result.append(ConfirmedWorker(
-                id=worker.id,
-                first_name=worker.first_name,
-                last_name=worker.last_name,
-                phone=worker.phone,
-                avatar_url=worker.avatar_url,
-                rating=rating_map.get(worker.id, 0.0),
-                completed_shifts=completed_map.get(worker.id, 0),
-                chat_id=chat_id,
-                booking_id=booking.id  # Добавлено новое поле
-            ))
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Ошибка при получении работников: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера")
+        result.append({
+            "id": worker.id,
+            "first_name": worker.first_name,
+            "last_name": worker.last_name,
+            "phone": worker.phone,
+            "avatar_url": worker.avatar_url,
+            "rating": rating_map.get(worker.id, 0.0),
+            "completed_shifts": completed_map.get(worker.id, 0),
+            "booking_id": booking.id,
+            "chat_id": chat_id,
+            
+            "has_review": booking.id in reviewed_bookings
+        })
+    
+    return result
     
 
 @router.get("/employer/{employer_id}", response_model=List[JobOut])
@@ -527,7 +525,7 @@ def get_jobs_by_employer(
     employer_id: int,
     db: Session = Depends(get_db)
 ):
-    # Исправленный подзапрос: учитываем все бронирования, занимающие место
+    
     occupied_subq = db.query(
         Booking.job_id,
         func.count(Booking.id).label('occupied_count')
@@ -535,7 +533,7 @@ def get_jobs_by_employer(
         Booking.status.in_(["confirmed", "employer_booked"])
     ).group_by(Booking.job_id).subquery()
 
-    # Основной запрос: выбираем все вакансии данного работодателя
+    
     results = db.query(
         Job,
         func.coalesce(occupied_subq.c.occupied_count, 0).label('occupied_count')
@@ -547,7 +545,7 @@ def get_jobs_by_employer(
     if not results:
         return []
     
-    # Собираем данные
+    
     employer_ids = list(set(job.employer_id for job, _ in results))
     employers = db.query(User).filter(User.id.in_(employer_ids)).all()
     employer_map = {e.id: e for e in employers}
@@ -606,7 +604,7 @@ def get_jobs_awaiting_feedback(
     if current_user.role != "employer":
         raise HTTPException(status_code=403, detail="Только работодатели могут оставлять фидбэк")
     
-    # Находим смены, которые закончились, но еще не получили фидбэк
+    
     jobs = db.query(Job).filter(
         Job.employer_id == current_user.id,
         Job.status == "completed",
@@ -615,13 +613,13 @@ def get_jobs_awaiting_feedback(
     
     return jobs
 
-# Эндпоинт для получения работников смены@router.get("/{job_id}/workers", response_model=List[schemas.ConfirmedWorker])
+
 async def get_job_workers(
     job_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Исправленный запрос с загрузкой отношений
+    
     job = db.query(Job)\
         .options(
             joinedload(Job.employer),
@@ -633,11 +631,11 @@ async def get_job_workers(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    # Проверяем что пользователь - работодатель этой смены
+    
     if job.employer.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    # Получаем подтвержденных работников
+    
     confirmed_workers = []
     for booking in job.bookings:
         if booking.status == "confirmed":
@@ -654,6 +652,7 @@ async def get_job_workers(
             })
     
     return confirmed_workers
+
 @router.post("/{job_id}/feedback")
 def submit_job_feedback(
     job_id: int,
@@ -661,20 +660,16 @@ def submit_job_feedback(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Проверка существования смены
     job = db.query(Job).get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
     
-    # Проверка прав доступа
     if job.employer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    # Проверка статуса смены
     if job.status != "completed":
         raise HTTPException(status_code=400, detail="Смена еще не завершена")
     
-    # Проверка предыдущего фидбэка
     if job.feedback_status != "pending":
         raise HTTPException(status_code=400, detail="Фидбэк уже был предоставлен")
     
@@ -682,17 +677,14 @@ def submit_job_feedback(
     problem_worker_ids = feedback.get("problem_workers", [])
     problem_description = feedback.get("problem_description", "")
     
-    # Валидация данных
     if feedback_status not in ["success", "problem"]:
         raise HTTPException(status_code=400, detail="Некорректный статус фидбэка")
     
-    # Получаем все бронирования для смены
     bookings = db.query(Booking).filter(
         Booking.job_id == job_id,
         Booking.status.in_(["confirmed", "employer_booked"])
     ).all()
     
-    # Валидация problem_worker_ids
     valid_worker_ids = [b.worker_id for b in bookings]
     invalid_workers = [wid for wid in problem_worker_ids if wid not in valid_worker_ids]
     
@@ -702,28 +694,42 @@ def submit_job_feedback(
             detail=f"Указаны несуществующие работники: {invalid_workers}"
         )
     
-    # Обработка положительного фидбэка
+    
     if feedback_status == "success":
         for booking in bookings:
             release_funds(db, booking.id)
+        
+        
+        for booking in bookings:
+            notification = Notification(
+                user_id=booking.worker_id,
+                type="payment_released",
+                title="Оплата за смену",
+                message=f"Средства за смену '{job.title}' были переведены на ваш баланс",
+                related_id=booking.id
+            )
+            db.add(notification)
+        
         job.status = "successfully_completed"
     
-    # Обработка проблемного фидбэка
+
     elif feedback_status == "problem":
         for booking in bookings:
             if booking.worker_id in problem_worker_ids:
-                # ПЕРЕДАЕМ ID ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ КАК ИНИЦИАТОРА ДИСПУТА
-                create_dispute(
-                    db, 
-                    booking.id, 
-                    problem_description,
-                    initiator_id=current_user.id  # ДОБАВЛЕНО
-                )
+                create_dispute(db, booking.id, problem_description, current_user.id)
             else:
                 release_funds(db, booking.id)
+                
+                notification = Notification(
+                    user_id=booking.worker_id,
+                    type="payment_released",
+                    title="Оплата за смену",
+                    message=f"Средства за смену '{job.title}' были переведены на ваш баланс",
+                    related_id=booking.id
+                )
+                db.add(notification)
         job.status = "disputed"
     
-    # Обновляем статус фидбэка
     job.feedback_status = feedback_status
     job.feedback_submitted_at = datetime.utcnow()
     db.commit()
@@ -731,7 +737,6 @@ def submit_job_feedback(
     return {"status": "feedback_accepted"}
 
 
-# Вспомогательная функция для разморозки средств
 def release_funds(db: Session, booking_id: int):
     frozen_funds = db.query(FrozenFunds).filter(
         FrozenFunds.booking_id == booking_id
@@ -742,7 +747,7 @@ def release_funds(db: Session, booking_id: int):
         worker = booking.worker
         worker.balance += frozen_funds.amount
         
-        # Создаем уведомление для работника
+        
         notification = Notification(
             user_id=worker.id,
             type="payment_released",
@@ -754,7 +759,7 @@ def release_funds(db: Session, booking_id: int):
         
         db.delete(frozen_funds)
 
-# Вспомогательная функция для создания диспута
+
 def create_dispute(
     db: Session, 
     booking_id: int, 
@@ -762,7 +767,7 @@ def create_dispute(
     initiator_id: int
 ):
     try:
-        # Получаем бронирование с загрузкой связанных данных
+        
         booking = db.query(Booking)\
             .options(
                 joinedload(Booking.worker),
@@ -781,11 +786,11 @@ def create_dispute(
             logger.error(f"Работник не найден для бронирования: {booking_id}")
             return
 
-        # СОЗДАЕМ ДИСПУТ С АВТОМАТИЧЕСКИМ ЗАПОЛНЕНИЕМ JOB_ID И WORKER_ID
+        
         dispute = Dispute(
             booking_id=booking_id,
-            job_id=booking.job_id,      # Автоматически из бронирования
-            worker_id=booking.worker_id, # Автоматически из бронирования
+            job_id=booking.job_id,      
+            worker_id=booking.worker_id, 
             initiator_id=initiator_id,
             description=description,
             status="open"
@@ -794,7 +799,7 @@ def create_dispute(
         db.add(dispute)
         db.flush()
 
-        # Создаем уведомления
+        
         employer_notification = Notification(
             user_id=booking.job.employer_id,
             type="dispute_created",
@@ -819,11 +824,191 @@ def create_dispute(
     except Exception as e:
         logger.error(f"Ошибка при создании диспута: {str(e)}", exc_info=True)
         raise
-# Фоновая задача для проверки завершенных смен
+
+@router.post("/worker-create")
+def worker_create_dispute(
+    data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    
+    if current_user.role != "worker":
+        raise HTTPException(status_code=403, detail="Только работники могут создавать диспут")
+
+    booking_id = data.get("booking_id")
+    description = data.get("description")
+
+    if not booking_id or not description:
+        raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
+
+    
+    booking = db.query(Booking).get(booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Бронирование не найдено")
+    
+    if booking.worker_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+
+    
+    job = booking.job
+    if job.status != "completed":
+        raise HTTPException(status_code=400, detail="Смена еще не завершена")
+
+    
+    existing_dispute = db.query(Dispute).filter(Dispute.booking_id == booking_id).first()
+    if existing_dispute:
+        raise HTTPException(status_code=400, detail="Диспут уже существует")
+
+    
+    dispute = Dispute(
+        booking_id=booking_id,
+        job_id=booking.job_id,
+        worker_id=booking.worker_id,
+        initiator_id=current_user.id,
+        description=description,
+        status="open"
+    )
+    db.add(dispute)
+
+    
+    booking.status = "disputed"
+
+    
+    employer_notification = Notification(
+        user_id=job.employer_id,
+        type="dispute_created",
+        title="Открыт диспут",
+        message=f"Работник открыл диспут по смене '{job.title}'",
+        related_id=dispute.id
+    )
+    db.add(employer_notification)
+
+    
+    admins = db.query(User).filter(User.role == "admin").all()
+    for admin in admins:
+        admin_notification = Notification(
+            user_id=admin.id,
+            type="dispute_created",
+            title="Новый диспут",
+            message=f"Создан новый диспут по смене '{job.title}'",
+            related_id=dispute.id
+        )
+        db.add(admin_notification)
+
+    db.commit()
+
+    return {"status": "dispute_created", "dispute_id": dispute.id}
+
+
+
+@router.post("/{notification_id}/confirm-work")
+def confirm_work(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    
+    notification = db.query(Notification).get(notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Уведомление не найдено")
+    
+    if notification.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    if notification.type != "worker_job_completed":
+        raise HTTPException(
+            status_code=400,
+            detail="Неверный тип уведомления"
+        )
+    
+    
+    review_notification = Notification(
+        user_id=current_user.id,
+        type="review_request",
+        title="Оставить отзыв",
+        message="Пожалуйста, оцените работодателя",
+        related_id=notification.related_id  
+    )
+    db.add(review_notification)
+    
+    
+    db.delete(notification)
+    db.commit()
+    
+    return {"status": "work_confirmed"}
+
+@router.post("/{notification_id}/submit-review")
+def submit_review(
+    notification_id: int,
+    review_data: ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    
+    notification = db.query(Notification).get(notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Уведомление не найдено")
+    
+    if notification.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    if notification.type != "review_request":
+        raise HTTPException(
+            status_code=400,
+            detail="Неверный тип уведомления"
+        )
+    
+    
+    booking = db.query(Booking).get(notification.related_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Бронирование не найдено")
+    
+    
+    review = Review(
+        booking_id=booking.id,
+        reviewer_id=current_user.id,
+        target_id=booking.job.employer_id,
+        rating=review_data.rating,
+        comment=review_data.comment
+    )
+    db.add(review)
+    
+    
+    db.delete(notification)
+    db.commit()
+    
+    return {"status": "review_submitted"}
+
+@router.post("/{notification_id}/skip-review")
+def skip_review(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    
+    notification = db.query(Notification).get(notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Уведомление не найдено")
+    
+    if notification.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    if notification.type != "review_request":
+        raise HTTPException(
+            status_code=400,
+            detail="Неверный тип уведомления"
+        )
+    
+    
+    db.delete(notification)
+    db.commit()
+    
+    return {"status": "review_skipped"}
+
 def background_check_completed_jobs(db: Session):
     now = datetime.utcnow()
     
-    # Находим смены, которые закончились (work_date + end_time < текущего времени)
+    
     jobs = db.query(Job).filter(
         Job.status == "active",
         or_(
@@ -836,11 +1021,11 @@ def background_check_completed_jobs(db: Session):
     ).all()
     
     for job in jobs:
-        # Помечаем смену как завершенную и ожидающую фидбэк
+        
         job.status = "completed"
         job.feedback_status = "pending"
         
-        # Создаем уведомление для работодателя
+        
         notification = Notification(
             user_id=job.employer_id,
             type="job_completed",
