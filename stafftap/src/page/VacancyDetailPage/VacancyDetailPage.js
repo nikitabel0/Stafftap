@@ -14,7 +14,7 @@ import {
   FiArrowLeft,
   FiXCircle,
 } from "react-icons/fi";
-import "./VacancyDetailPage.css";
+import styles from './VacancyDetailPage.module.css';
 import API_BASE_URL from "../../apiConfig";
 
 const VacancyDetailPage = ({ user }) => {
@@ -35,7 +35,7 @@ const VacancyDetailPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        ` ${API_BASE_URL}/api/chats/start/${bookingId}`,
+        `${API_BASE_URL}/api/chats/start/${bookingId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -175,8 +175,8 @@ const VacancyDetailPage = ({ user }) => {
 
   if (isLoading) {
     return (
-      <div className="vacancy-loading">
-        <div className="loader"></div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loader}></div>
         <p>Загрузка вакансии...</p>
       </div>
     );
@@ -184,106 +184,104 @@ const VacancyDetailPage = ({ user }) => {
 
   if (!vacancy) {
     return (
-      <div className="vacancy-not-found">
+      <div className={styles.notFoundContainer}>
         <h2>Вакансия не найдена</h2>
         <p>Возможно, она была удалена или перемещена</p>
-        <button onClick={() => navigate(-1)}>Вернуться назад</button>
+        <button className={styles.backButton} onClick={() => navigate(-1)}>
+          Вернуться назад
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="vacancy-detail-page">
-      <div className="vacancy-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
-          <FiArrowLeft className="back-icon" />
+    <div className={styles.pageContainer}>
+      <div className={styles.header}>
+        <button className={styles.backButton} onClick={() => navigate(-1)}>
+          <FiArrowLeft className={styles.backIcon} />
           Назад
         </button>
         <h1>{vacancy.title}</h1>
-        <div className="header-actions">
+        <div className={styles.headerActions}>
           <button
-            className={`favorite-button ${isFavorite ? "active" : ""}`}
+            className={`${styles.favoriteButton} ${isFavorite ? styles.active : ""}`}
             onClick={handleToggleFavorite}
             aria-label={
               isFavorite ? "Убрать из избранного" : "Добавить в избранное"
             }
           >
-            {isFavorite ? (
-              <FiBookmark className="favorite-icon active" />
-            ) : (
-              <FiBookmark className="favorite-icon" />
-            )}
+            <FiBookmark className={styles.favoriteIcon} />
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="error-alert">
-          <FiXCircle className="error-icon" />
+        <div className={styles.errorAlert}>
+          <FiXCircle className={styles.errorIcon} />
           <span>{error}</span>
         </div>
       )}
 
-      <div className="vacancy-info-card">
-        <div className="vacancy-meta">
-          <div className="meta-row">
-            <div className="meta-item">
-              <FiBriefcase className="icon" />
+      <div className={styles.infoCard}>
+        <div className={styles.metaInfo}>
+          <div className={styles.metaRow}>
+            <div className={styles.metaItem}>
+              <FiBriefcase className={styles.icon} />
               <span>{vacancy.profession}</span>
             </div>
-            <div className="meta-item salary">
-              <FiDollarSign className="icon" />
+            <div className={`${styles.metaItem} ${styles.salary}`}>
+              <FiDollarSign className={styles.icon} />
               <span>{vacancy.salary.toLocaleString("ru-RU")} ₽</span>
             </div>
           </div>
 
-          <div className="meta-row">
-            <div className="meta-item">
-              <FiClock className="icon" />
+          <div className={styles.metaRow}>
+            <div className={styles.metaItem}>
+              <FiClock className={styles.icon} />
               <span>
                 {formatDate(vacancy.date)}, {vacancy.startTime} -{" "}
                 {vacancy.endTime}
               </span>
             </div>
-            <div className="meta-item">
-              <FiUser className="icon" />
+            <div className={styles.metaItem}>
+              <FiUser className={styles.icon} />
               <span>
                 {vacancy.remainingSlots}/{vacancy.workersNeeded} мест
               </span>
             </div>
           </div>
 
-          <div className="meta-item address">
-            <FiMapPin className="icon" />
+          <div className={`${styles.metaItem} ${styles.address}`}>
+            <FiMapPin className={styles.icon} />
             <span>{vacancy.address}</span>
           </div>
         </div>
 
-        <div className="vacancy-description">
+        <div className={styles.description}>
           <h3>Описание вакансии</h3>
           <p>{vacancy.description}</p>
         </div>
       </div>
 
-      <div className="employer-card">
+      <div className={styles.employerCard}>
         <h3>Работодатель</h3>
-        <div className="employer-info">
-          <div className="employer-header">
+        <div className={styles.employerInfo}>
+          <div className={styles.employerHeader}>
             <h4>{vacancy.company}</h4>
             {vacancy.employerVerified && (
-              <span className="verified-badge">
+              <span className={styles.verifiedBadge}>
                 <FiCheck /> Проверен
               </span>
             )}
           </div>
-          <div className="employer-stats">
-            <div className="stat-item">
-              <div className="stat-icon">
-                <FiStar className="icon" />
+          <div className={styles.employerStats}>
+            <div className={styles.statItem}>
+              <div className={styles.statIcon}>
+                <FiStar className={styles.icon} />
               </div>
               <div>
-                <div className="stat-label">Рейтинг</div>
-                <div className="stat-value">
+                <div className={styles.statLabel}>Рейтинг</div>
+                <div className={styles.statValue}>
                   {vacancy.employerRating
                     ? vacancy.employerRating.toFixed(1)
                     : "0.0"}
@@ -291,60 +289,66 @@ const VacancyDetailPage = ({ user }) => {
               </div>
             </div>
 
-            <div className="stat-item">
-              <div className="stat-icon">
-                <FiBriefcase className="icon" />
+            <div className={styles.statItem}>
+              <div className={styles.statIcon}>
+                <FiBriefcase className={styles.icon} />
               </div>
               <div>
-                <div className="stat-label">Завершено</div>
-                <div className="stat-value">{vacancy.completedJobs} работ</div>
+                <div className={styles.statLabel}>Завершено</div>
+                <div className={styles.statValue}>{vacancy.completedJobs} работ</div>
               </div>
             </div>
           </div>
 
-          <div className="employer-contact">
+          <div className={styles.employerContact}>
             <span>{vacancy.employerName}</span>
           </div>
         </div>
       </div>
 
-      <div className="vacancy-actions">
+      <div className={styles.actionsContainer}>
         {role === "worker" && !hasApplied && (
           <button
-            className="apply-button"
+            className={styles.applyButton}
             onClick={handleApply}
             disabled={isApplying}
           >
-            {isApplying ? "Отправка..." : "Откликнуться"}
+            {isApplying ? (
+              <>
+                <span className={styles.spinner}></span> Отправка...
+              </>
+            ) : (
+              "Откликнуться"
+            )}
           </button>
         )}
 
         {role === "worker" && hasApplied && (
-          <>
+          <div className={styles.applicationStatus}>
             {applicationStatus === "confirmed" && (
-              <button className="message-button" onClick={startChat}>
-                <FiMessageSquare className="message-icon" />
+              <button className={styles.messageButton} onClick={startChat}>
+                <FiMessageSquare className={styles.messageIcon} />
                 <span>Написать работодателю</span>
               </button>
             )}
 
             {applicationStatus === "pending" && (
-              <div className="application-pending">
+              <div className={`${styles.status} ${styles.pending}`}>
                 <p>Ваша заявка на рассмотрении</p>
               </div>
             )}
 
             {applicationStatus === "rejected" && (
-              <div className="application-rejected">
+              <div className={`${styles.status} ${styles.rejected}`}>
                 <p>Ваша заявка отклонена</p>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {role === "employer" && (
           <button
-            className="manage-button"
+            className={styles.manageButton}
             onClick={() => navigate(`/bookings?job_id=${id}`)}
           >
             Управлять откликами

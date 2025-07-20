@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiPlus,
+  FiStar,
   FiFile,
   FiBriefcase,
   FiShield,
@@ -46,14 +47,12 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AdminDisputesManagement from "../../components/AdminDisputesManagement/AdminDisputesManagement";
 
-
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
   return isNaN(num)
     ? defaultValue.toLocaleString("ru-RU")
     : num.toLocaleString("ru-RU");
 };
-
 
 const DocumentUploadModal = ({ isOpen, onClose, onUpload }) => {
   const [documentType, setDocumentType] = useState("ИНН");
@@ -158,7 +157,6 @@ const DocumentUploadModal = ({ isOpen, onClose, onUpload }) => {
     </div>
   );
 };
-
 
 const DocumentsList = ({
   documents,
@@ -317,22 +315,19 @@ const PlatformStatistics = () => {
     );
   }
 
-  
   const COLORS = ["#2C8161", "#3DA05E", "#56BD66", "#76D192"];
   const ROLE_COLORS = ["#2C8161", "#3498DB", "#9B59B6"];
 
-  
   const roleData = [
     { name: "Админы", value: stats.admins, icon: <FiUser /> },
     { name: "Работодатели", value: stats.employers, icon: <FiBriefcase /> },
     { name: "Сотрудники", value: stats.workers, icon: <FiShield /> },
   ];
 
-  
   const formatRegistrationData = () => {
     return stats.user_registrations.map((item) => ({
       ...item,
-      
+
       formattedDate: new Date(item.date).toLocaleDateString("ru-RU", {
         day: "numeric",
         month: "short",
@@ -342,7 +337,6 @@ const PlatformStatistics = () => {
 
   const registrationData = formatRegistrationData();
 
-  
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -361,7 +355,6 @@ const PlatformStatistics = () => {
     return null;
   };
 
-  
   const renderCustomizedLabel = ({
     cx,
     cy,
@@ -535,7 +528,6 @@ const PlatformStatistics = () => {
   );
 };
 
-
 const AdminJobsModeration = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -671,7 +663,6 @@ const AdminJobsModeration = () => {
   );
 };
 
-
 const AdminUsersManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -691,13 +682,11 @@ const AdminUsersManagement = () => {
   const searchInputRef = useRef(null);
   const shouldRestoreFocusRef = useRef(false);
 
-  
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      
       const params = {
         page: currentPage,
         page_size: pageSize,
@@ -728,7 +717,6 @@ const AdminUsersManagement = () => {
     } finally {
       setLoading(false);
 
-      
       if (shouldRestoreFocusRef.current && searchInputRef.current) {
         searchInputRef.current.focus();
         shouldRestoreFocusRef.current = false;
@@ -736,12 +724,10 @@ const AdminUsersManagement = () => {
     }
   };
 
-  
   useEffect(() => {
     fetchUsers();
   }, [currentPage, filters]);
 
-  
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -749,7 +735,6 @@ const AdminUsersManagement = () => {
 
     shouldRestoreFocusRef.current = true;
 
-    
     searchTimeoutRef.current = setTimeout(() => {
       if (searchTerm.length === 0 || searchTerm.length > 2) {
         setCurrentPage(1);
@@ -764,7 +749,6 @@ const AdminUsersManagement = () => {
     };
   }, [searchTerm]);
 
-  
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
@@ -846,7 +830,6 @@ const AdminUsersManagement = () => {
     }
   };
 
-  
   return (
     <div className="admin-users-management">
       <div className="admin-section-header">
@@ -1159,7 +1142,6 @@ const AdminUsersManagement = () => {
   );
 };
 
-
 const AdminDocumentsModeration = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1337,7 +1319,6 @@ const AdminDocumentsModeration = () => {
   );
 };
 
-
 const ProfilePage = ({ user, onSave, onLogout }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("info");
@@ -1349,10 +1330,34 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const fileInputRef = useRef(null);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
-
+  const [allSkills, setAllSkills] = useState([]);
   const [employerJobs, setEmployerJobs] = useState([]);
   const [workerBookings, setWorkerBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+    const [reviews, setReviews] = useState({
+    rating: 0,
+    reviews_count: 0,
+    reviews: []
+  });
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+
+  const loadUserReviews = async (userId) => {
+    setIsLoadingReviews(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/users/${userId}/reviews`);
+      setReviews(response.data);
+    } catch (error) {
+      console.error('Ошибка загрузки отзывов:', error);
+      toast.error('Не удалось загрузить отзывы');
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
+   useEffect(() => {
+    if (activeTab === "reviews" && user?.id) {
+      loadUserReviews(user.id);
+    }
+  }, [activeTab, user]);
 
   const handleAvailabilityToggle = (dateStr) => {
     setEditingProfile((prev) => ({
@@ -1517,7 +1522,42 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     setErrors(newErrors);
     return isValid;
   };
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/skills`);
+        setAllSkills(response.data);
+      } catch (error) {
+        console.error("Ошибка загрузки навыков:", error);
+      }
+    };
 
+    if (user?.role === "worker") {
+      fetchSkills();
+    }
+  }, [user]);
+
+  const createNewSkill = async (name) => {
+    try {
+      const token = getAuthToken();
+      const response = await axios.post(
+         `${API_BASE_URL}/api/users/skills/create`,
+        { name },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setAllSkills((prev) => [...prev, response.data]);
+      return response.data;
+    } catch (error) {
+      console.error("Ошибка создания навыка:", error);
+      throw error;
+    }
+  };
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1552,7 +1592,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     try {
       const token = localStorage.getItem("token");
 
-      
       const updateData = {
         first_name: editingProfile.first_name || "",
         last_name: editingProfile.last_name || "",
@@ -1560,13 +1599,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         birth_date: editingProfile.birth_date || "",
       };
 
-      
       if (editingProfile.role === "worker") {
         updateData.rate_per_shift = Number(editingProfile.rate_per_shift) || 0;
         updateData.experience_months =
           Number(editingProfile.experience_months) || 0;
 
-        
         updateData.availability = [];
         for (const [date, isAvailable] of Object.entries(
           editingProfile.availability
@@ -1576,13 +1613,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           }
         }
 
-        
         updateData.skills = editingProfile.skills.map((skill) => skill.id);
       } else if (editingProfile.role === "employer") {
         updateData.company_name = editingProfile.company_name || "";
       }
 
-      
       const response = await axios.put(
         `${API_BASE_URL}/api/users/${editingProfile.id}`,
         updateData,
@@ -1594,7 +1629,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         }
       );
 
-      
       if (avatarFile) {
         const avatarFormData = new FormData();
         avatarFormData.append("avatar", avatarFile);
@@ -1611,7 +1645,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         );
       }
 
-      
       onSave(response.data);
       setIsEditing(false);
       setErrors({});
@@ -1623,7 +1656,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
       let errorMessage = "Произошла ошибка при сохранении";
       if (error.response) {
-        
         if (error.response.status === 422) {
           errorMessage = "Ошибка валидации: ";
           if (error.response.data.detail) {
@@ -1635,9 +1667,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
               errorMessage += error.response.data.detail;
             }
           }
-        }
-        
-        else if (error.response.status === 401) {
+        } else if (error.response.status === 401) {
           errorMessage = "Сессия истекла. Пожалуйста, войдите снова";
           onLogout();
         } else if (error.response.status === 403) {
@@ -1682,7 +1712,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     navigate(`/job/${jobId}`);
   };
 
-  
   const handleUploadDocument = async (documentType, file) => {
     const token = localStorage.getItem("token");
     const formData = new FormData();
@@ -1701,14 +1730,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         }
       );
 
-      
       const newDocument = response.data;
       setEditingProfile((prev) => ({
         ...prev,
         documents: [...prev.documents, newDocument],
       }));
 
-      
       setEditingProfile((prev) => ({
         ...prev,
         is_verified: false,
@@ -1721,7 +1748,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     }
   };
 
-  
   const handleDeleteDocument = async (docId) => {
     const token = localStorage.getItem("token");
     try {
@@ -1734,7 +1760,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         }
       );
 
-      
       setEditingProfile((prev) => ({
         ...prev,
         documents: prev.documents.filter((doc) => doc.id !== docId),
@@ -1939,14 +1964,23 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 Доступность
               </button>
             )}
-            <button
-              className={`tab-btn ${activeTab === "vacancies" ? "active" : ""}`}
-              onClick={() => setActiveTab("vacancies")}
-            >
-              Мои вакансии
-            </button>
+                 {currentProfile.role === "employer" && (
+        <button
+          className={`tab-btn ${activeTab === "vacancies" ? "active" : ""}`}
+          onClick={() => setActiveTab("vacancies")}
+        >
+          Мои вакансии
+        </button>
+      )}
           </>
         )}
+        
+        <button
+          className={`tab-btn ${activeTab === "reviews" ? "active" : ""}`}
+          onClick={() => setActiveTab("reviews")}
+        >
+          <FiStar /> Отзывы
+        </button>
       </div>
 
       <div className="profile-content">
@@ -2184,6 +2218,8 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                           skills: newSkills,
                         })
                       }
+                      allSkills={allSkills}
+                      onCreateSkill={createNewSkill}
                     />
                   ) : (
                     <DocumentsList
@@ -2204,7 +2240,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                   )}
                 </div>
 
-                <div className="section" title="Рейтинг и отзывы">
+                {/* <div className="section" title="Рейтинг и отзывы">
                   <div className="rating-container">
                     <div className="rating-value">
                       {safeFormatNumber(currentProfile.rating)}
@@ -2219,13 +2255,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                   </div>
                   <button
                     className="view-reviews-btn"
-                    onClick={() =>
-                      navigate(`/profile/${currentProfile.id}/reviews`)
-                    }
+                    onClick={() => setActiveTab("reviews")}
                   >
                     Посмотреть все отзывы
                   </button>
-                </div>
+                </div> */}
               </>
             )}
           </>
@@ -2327,18 +2361,68 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           </div>
         )}
 
+        {activeTab === "reviews" && (
+          <div className="section" title="Отзывы">
+            <div className="reviews-summary">
+              <div className="rating-value">
+                {reviews.rating.toFixed(1)}
+              </div>
+              <div className="stars">
+                {"★".repeat(Math.floor(reviews.rating))}
+                {"☆".repeat(5 - Math.floor(reviews.rating))}
+              </div>
+              <div className="reviews-count">
+                {reviews.reviews_count} отзывов
+              </div>
+            </div>
+
+            {isLoadingReviews ? (
+              <div className="loading-reviews">
+                <div className="loader"></div>
+                <p>Загрузка отзывов...</p>
+              </div>
+            ) : reviews.reviews.length > 0 ? (
+              <div className="reviews-list">
+                {reviews.reviews.map(review => (
+                  <div key={review.id} className="review-card">
+                    <div className="review-header">
+                      <div className="review-author">{review.author}</div>
+                      <div className="review-rating">
+                        {"★".repeat(review.rating)}
+                        {"☆".repeat(5 - review.rating)}
+                      </div>
+                      <div className="review-date">
+                        {new Date(review.created_at).toLocaleDateString("ru-RU")}
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <div className="review-comment">{review.comment}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-reviews">
+                <FiStar className="no-reviews-icon" />
+                <p>Пока нет отзывов</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {isAdmin && activeTab === "admin-stats" && <PlatformStatistics />}
 
         {isAdmin && activeTab === "admin-jobs" && <AdminJobsModeration />}
-        
-        {isAdmin && activeTab === "admin-disputes" && <AdminDisputesManagement />}
+
+        {isAdmin && activeTab === "admin-disputes" && (
+          <AdminDisputesManagement />
+        )}
 
         {isAdmin && activeTab === "admin-users" && <AdminUsersManagement />}
 
         {isAdmin && activeTab === "admin-docs" && <AdminDocumentsModeration />}
       </div>
 
-      {/* Модальное окно загрузки документа */}
       <DocumentUploadModal
         isOpen={isDocumentModalOpen}
         onClose={() => setIsDocumentModalOpen(false)}

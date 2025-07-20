@@ -12,7 +12,7 @@ import {
   FiX,
   FiHeart
 } from "react-icons/fi";
-import "./FavoritesPage.css";
+import styles from './FavoritesPage.module.css';
 import API_BASE_URL from '../../apiConfig';
 
 const FavoritesPage = ({ user }) => {
@@ -26,7 +26,7 @@ const FavoritesPage = ({ user }) => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          ` ${API_BASE_URL}/api/jobs/favorites/`,
+          `${API_BASE_URL}/api/jobs/favorites/`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -60,14 +60,12 @@ const FavoritesPage = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        ` ${API_BASE_URL}/api/jobs/${jobId}/favorite`,
+        `${API_BASE_URL}/api/jobs/${jobId}/favorite`,
         { is_favorite: false },
         { headers: { Authorization: `Bearer ${token}` }}
       );
       
-      
       setFavoriteJobs(prev => prev.filter(job => job.id !== jobId));
-      
       
       const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
       delete favorites[jobId];
@@ -85,73 +83,73 @@ const FavoritesPage = ({ user }) => {
 
   if (isLoading) {
     return (
-      <div className="favorites-loading">
-        <div className="loader"></div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loader}></div>
         <p>Загрузка избранных вакансий...</p>
       </div>
     );
   }
 
   return (
-    <div className="favorites-page">
-      <div className="favorites-header">
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
         <h1>Избранные вакансии</h1>
-        <div className="favorites-count">
+        <div className={styles.favoritesCount}>
           {favoriteJobs.length} {favoriteJobs.length === 1 ? 'вакансия' : 
             favoriteJobs.length > 1 && favoriteJobs.length < 5 ? 'вакансии' : 'вакансий'}
         </div>
       </div>
 
       {favoriteJobs.length === 0 ? (
-        <div className="no-favorites">
-          <div className="empty-icon">
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>
             <FiHeart size={48} />
           </div>
           <p>У вас пока нет избранных вакансий</p>
-          <button className="find-vacancies-btn" onClick={() => navigate("/")}>
+          <button className={styles.primaryButton} onClick={() => navigate("/")}>
             Найти вакансии
           </button>
         </div>
       ) : (
-        <div className="favorites-list">
+        <div className={styles.jobsGrid}>
           {favoriteJobs.map((job) => (
             <div
               key={job.id}
-              className="job-card"
+              className={styles.jobCard}
               onClick={() => handleJobClick(job.id)}
             >
               <button
-                className={`remove-favorite-btn ${isRemoving[job.id] ? "removing" : ""}`}
+                className={`${styles.removeButton} ${isRemoving[job.id] ? styles.removing : ""}`}
                 onClick={(e) => handleRemoveFavorite(job.id, e)}
                 disabled={isRemoving[job.id]}
               >
                 {isRemoving[job.id] ? (
-                  <div className="spinner"></div>
+                  <div className={styles.spinner}></div>
                 ) : (
                   <FiX size={20} />
                 )}
               </button>
               
-              <div className="job-header">
+              <div className={styles.jobHeader}>
                 <h3>{job.title}</h3>
-                <div className="company-info">
-                  <span className="company">{job.company_name}</span>
+                <div className={styles.companyInfo}>
+                  <span className={styles.companyName}>{job.company_name}</span>
                   {job.employer_verified && (
-                    <span className="verified-badge">
+                    <span className={styles.verifiedBadge}>
                       <FiCheck /> Проверен
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="job-details">
-                <div className="detail-row">
-                  <div className="detail-item">
-                    <FiBriefcase className="icon" />
+              <div className={styles.jobDetails}>
+                <div className={styles.detailRow}>
+                  <div className={styles.detailItem}>
+                    <FiBriefcase className={styles.icon} />
                     <span>{job.required_skill_name}</span>
                   </div>
-                  <div className="detail-item">
-                    <FiClock className="icon" />
+                  <div className={styles.detailItem}>
+                    <FiClock className={styles.icon} />
                     <span>
                       {formatDate(job.work_date)}, {job.start_time} -{" "}
                       {job.end_time}
@@ -159,36 +157,36 @@ const FavoritesPage = ({ user }) => {
                   </div>
                 </div>
 
-                <div className="detail-row">
-                  <div className="detail-item">
-                    <FiMapPin className="icon" />
+                <div className={styles.detailRow}>
+                  <div className={styles.detailItem}>
+                    <FiMapPin className={styles.icon} />
                     <span>{job.address}</span>
                   </div>
-                  <div className="detail-item">
-                    <FiDollarSign className="icon" />
+                  <div className={styles.detailItem}>
+                    <FiDollarSign className={styles.icon} />
                     <span>{job.rate.toLocaleString()} ₽</span>
                   </div>
                 </div>
 
-                <div className="detail-row">
-                  <div className="detail-item">
-                    <FiUser className="icon" />
+                <div className={styles.detailRow}>
+                  <div className={styles.detailItem}>
+                    <FiUser className={styles.icon} />
                     <span>
                       Осталось мест: {job.remaining_slots}/{job.workers_needed}
                     </span>
                   </div>
-                  <div className="detail-item">
-                    <FiStar className="icon" />
+                  <div className={styles.detailItem}>
+                    <FiStar className={styles.icon} />
                     <span>
-                      Рейтинг работодателя: {job.employer_rating.toFixed(1)}
+                      Рейтинг: {job.employer_rating.toFixed(1)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="job-footer">
-                <div className="completed-jobs">
-                  <FiBriefcase className="icon" />
+              <div className={styles.jobFooter}>
+                <div className={styles.completedJobs}>
+                  <FiBriefcase className={styles.icon} />
                   <span>Завершено работ: {job.completed_jobs}</span>
                 </div>
               </div>

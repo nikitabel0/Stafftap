@@ -262,6 +262,79 @@ def update_availability(
     db.commit()
     return {"status": "availability updated", "count": len(data)}
 
+@router.post("/skills", response_model=SkillOut)
+def create_skill(
+    name: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем, существует ли уже такой навык
+    existing_skill = db.query(Skill).filter(
+        func.lower(Skill.name) == func.lower(name)
+    ).first()
+    
+    if existing_skill:
+        return existing_skill
+    
+    # Создаем новый навык
+    new_skill = Skill(name=name)
+    db.add(new_skill)
+    db.commit()
+    db.refresh(new_skill)
+    return new_skill
+
+
+@router.post("/skills/create", response_model=SkillOut)
+def create_skill(
+    name: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Проверяем, существует ли уже такой навык
+    existing_skill = db.query(Skill).filter(
+        func.lower(Skill.name) == func.lower(name)
+    ).first()
+    
+    if existing_skill:
+        return existing_skill
+    
+    # Создаем новый навык
+    new_skill = Skill(name=name)
+    db.add(new_skill)
+    db.commit()
+    db.refresh(new_skill)
+    return new_skill
+
+@router.get("/{id}/reviews", response_model=ReviewResponse)
+def get_user_reviews(id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    reviews = db.query(Review).options(
+        joinedload(Review.author)
+    ).filter(Review.target_id == id).all()
+
+    rating = round(sum(r.rating for r in reviews) / len(reviews), 2) if reviews else 0
+    reviews_count = len(reviews)
+
+    result = [
+        ReviewOut(
+            id=r.id,
+            author=f"{r.author.first_name} {r.author.last_name}",
+            rating=r.rating,
+            comment=r.comment,
+            created_at=r.created_at
+        )
+        for r in reviews
+    ]
+
+    return ReviewResponse(
+        rating=rating,
+        reviews_count=reviews_count,
+        reviews=result
+    )
+
 
 @router.post("/{id}/documents")
 def upload_document(

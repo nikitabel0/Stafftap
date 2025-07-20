@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, validator
 from datetime import date, datetime
 from enum import Enum
 from typing import Optional, List,Dict
+from app.schemas.skill import SkillOut
 
 class UserRole(str, Enum):
     employer = "employer"
@@ -33,6 +34,7 @@ class UserOut(BaseModel):
     id: int
     telegram_id: Optional[int]
     first_name: str
+    skills: List[SkillOut]
     last_name: str
     phone: str
     birth_date: date

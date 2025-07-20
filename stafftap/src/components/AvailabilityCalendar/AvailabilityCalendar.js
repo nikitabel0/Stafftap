@@ -7,7 +7,6 @@ moment.locale('ru');
 
 const AvailabilityCalendar = ({ availability, onDayClick, isEditing }) => {
   const [currentMonth, setCurrentMonth] = useState(moment());
-  const [expanded, setExpanded] = useState(false);
   const [availableDatesList, setAvailableDatesList] = useState([]);
 
   
@@ -109,30 +108,7 @@ const AvailabilityCalendar = ({ availability, onDayClick, isEditing }) => {
         </div>
       </div>
       
-      <div className="available-dates-section">
-        <div className="section-header" onClick={() => setExpanded(!expanded)}>
-          <h3>Запланированная доступность</h3>
-          <span>{expanded ? '▲' : '▼'}</span>
-        </div>
-        
-        {expanded && (
-          <div className="dates-container">
-            {availableDatesList.length === 0 ? (
-              <p>Нет запланированных дней</p>
-            ) : (
-              <ul className="available-dates-list">
-                {availableDatesList
-                  .sort()
-                  .map(date => (
-                    <li key={date}>
-                      {moment(date).format('dddd, DD MMMM YYYY')}
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
+     
     </div>
   );
 };

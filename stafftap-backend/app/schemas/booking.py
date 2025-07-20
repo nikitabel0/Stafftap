@@ -19,6 +19,17 @@ class BookingOut(BookingBase):
     class Config:
         orm_mode = True
 
+class BookingOutPay(BookingBase):
+    id: int
+    status: str
+    employer_confirmed: bool
+    worker_confirmed: bool
+    created_at: datetime
+    updated_at: datetime
+    job:JobOut
+    class Config:
+        orm_mode = True
+
 class BookingUpdate(BaseModel):
     status: str | None = None
     employer_confirmed: bool | None = None

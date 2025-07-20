@@ -1,0 +1,845 @@
+/* JobDetailPage.module.css */
+.pageContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  position: relative;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 25px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(44, 129, 97, 0.3);
+}
+
+.backButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(44, 129, 97, 0.4);
+}
+
+.backButton:active {
+  transform: translateY(1px);
+}
+
+/* Job Card */
+.jobCard {
+  background: white;
+  border-radius: 25px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(44, 129, 97, 0.1);
+}
+
+.jobHeader {
+  padding: 30px;
+  background: linear-gradient(135deg, #f0f9f5 0%, #e0f3e9 100%);
+  border-bottom: 1px solid rgba(44, 129, 97, 0.1);
+}
+
+.jobHeader h1 {
+  font-size: 32px;
+  color: #1a3c2d;
+  margin: 0 0 10px 0;
+  font-weight: 800;
+}
+
+.jobCompany {
+  font-size: 18px;
+  color: #2C8161;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.jobStatus {
+  font-size: 16px;
+  color: #5a7c6f;
+}
+
+.status {
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.status-active {
+  background: rgba(86, 189, 102, 0.2);
+  color: #2C8161;
+}
+
+.status-completed {
+  background: rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+}
+
+.status-successfully_completed {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+}
+
+.status-disputed {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+.jobBody {
+  padding: 30px;
+}
+
+.jobDescription h3 {
+  font-size: 22px;
+  color: #1a3c2d;
+  margin-top: 0;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.jobDescription h3::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, #2C8161, #56BD66);
+  border-radius: 3px;
+}
+
+.jobDescription p {
+  color: #4a6b5f;
+  line-height: 1.7;
+  font-size: 17px;
+  margin-bottom: 30px;
+}
+
+.jobMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  background: rgba(44, 129, 97, 0.03);
+  padding: 25px;
+  border-radius: 20px;
+  border: 1px solid rgba(44, 129, 97, 0.1);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 16px;
+  color: #1a3c2d;
+  padding: 10px 15px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.metaItem:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.metaIcon {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2C8161, #56BD66);
+  color: white;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.slotsAvailable {
+  color: #2C8161;
+  font-weight: 600;
+}
+
+.slotsFull {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* Workers Section */
+.workersSection {
+  padding: 0 30px 30px;
+}
+
+.workersSection h2 {
+  font-size: 26px;
+  color: #1a3c2d;
+  margin-bottom: 25px;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.workersSection h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(to right, #2C8161, #56BD66);
+  border-radius: 4px;
+}
+
+.workersList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.workerCard {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(44, 129, 97, 0.1);
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.workerCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(to bottom, #2C8161, #56BD66);
+}
+
+.workerCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(44, 129, 97, 0.15);
+}
+
+.workerAvatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 20px;
+  position: relative;
+  border: 3px solid #e0f3e9;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.workerAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarInitials {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2C8161, #56BD66);
+  color: white;
+  font-weight: bold;
+  font-size: 28px;
+}
+
+.workerInfo h3 {
+  font-size: 20px;
+  color: #1a3c2d;
+  margin: 0 0 15px 0;
+}
+
+.workerContacts {
+  margin-bottom: 15px;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #5a7c6f;
+  font-size: 15px;
+}
+
+.contactIcon {
+  color: #2C8161;
+}
+
+.workerStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.statItem {
+  background: rgba(44, 129, 97, 0.05);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statIcon {
+  color: #2C8161;
+}
+
+.reviewBadge {
+  background: rgba(255, 193, 7, 0.15);
+  color: #e6a700;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.workerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.workerActions button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  flex: 1;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.reviewButton {
+  background: linear-gradient(to right, #FFC107, #FFA000);
+  color: white;
+}
+
+.removeButton {
+  background: linear-gradient(to right, #e74c3c, #c0392b);
+  color: white;
+}
+
+.chatButton {
+  background: linear-gradient(to right, #3498db, #2980b9);
+  color: white;
+}
+
+.workerActions button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.workerActions button:active {
+  transform: translateY(1px);
+}
+
+.noWorkers {
+  text-align: center;
+  padding: 40px;
+  background: rgba(44, 129, 97, 0.03);
+  border-radius: 20px;
+  border: 2px dashed rgba(44, 129, 97, 0.2);
+}
+
+.noWorkers p {
+  font-size: 18px;
+  color: #5a7c6f;
+}
+
+/* Notifications */
+.notification {
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 1000;
+  max-width: 400px;
+  transform: translateX(120%);
+  animation: slideIn 0.5s forwards;
+}
+
+@keyframes slideIn {
+  to { transform: translateX(0); }
+}
+
+.notification.success {
+  background: linear-gradient(135deg, #e8f5e9, #d4edda);
+  border-left: 5px solid #28a745;
+}
+
+.notification.error {
+  background: linear-gradient(135deg, #fde8e8, #f8d7da);
+  border-left: 5px solid #dc3545;
+}
+
+.notificationContent {
+  flex: 1;
+}
+
+.notificationIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.notification.success .notificationIcon {
+  color: #28a745;
+}
+
+.notification.error .notificationIcon {
+  color: #dc3545;
+}
+
+.notificationClose {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.notificationClose:hover {
+  opacity: 1;
+}
+
+/* Modals */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: white;
+  border-radius: 25px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  width: 90%;
+  max-width: 500px;
+  overflow: hidden;
+  animation: modalAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalAppear {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modalHeader {
+  padding: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #f0f9f5, #e0f3e9);
+  border-bottom: 1px solid rgba(44, 129, 97, 0.1);
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #1a3c2d;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #5a7c6f;
+  transition: all 0.3s ease;
+}
+
+.modalClose:hover {
+  color: #2C8161;
+  transform: rotate(90deg);
+}
+
+.modalBody {
+  padding: 30px;
+}
+
+.ratingSection {
+  margin-bottom: 25px;
+}
+
+.ratingStars {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #e0e6ed;
+  transition: color 0.2s;
+  padding: 5px;
+}
+
+.star.filled {
+  color: #FFC107;
+}
+
+.star:hover {
+  color: #FFC107;
+  transform: scale(1.2);
+}
+
+.commentSection label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #1a3c2d;
+}
+
+.commentSection textarea {
+  width: 100%;
+  padding: 15px;
+  border-radius: 15px;
+  border: 1px solid #e0e6ed;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.commentSection textarea:focus {
+  outline: none;
+  border-color: #2C8161;
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.1);
+}
+
+.modalFooter {
+  padding: 20px 30px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  background: rgba(44, 129, 97, 0.03);
+  border-top: 1px solid rgba(44, 129, 97, 0.1);
+}
+
+.cancelButton {
+  padding: 12px 25px;
+  background: #f8f9fa;
+  border: 1px solid #e0e3e6;
+  border-radius: 15px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #5a7c6c;
+  transition: all 0.3s ease;
+}
+
+.cancelButton:hover {
+  background: #f1f3f5;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.confirmButton {
+  padding: 12px 25px;
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 15px rgba(44, 129, 97, 0.3);
+}
+
+.confirmButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(44, 129, 97, 0.4);
+}
+
+.confirmButton:disabled {
+  background: linear-gradient(to right, #bdc3c7, #95a5a6);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Loading & Errors */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 70vh;
+  text-align: center;
+}
+
+.loader {
+  width: 60px;
+  height: 60px;
+  border: 6px solid rgba(44, 129, 97, 0.2);
+  border-top: 6px solid #2C8161;
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
+  margin-bottom: 25px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.errorContainer {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  max-width: 600px;
+  margin: 50px auto;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.errorContainer h2 {
+  color: #e74c3c;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.errorContainer p {
+  font-size: 18px;
+  color: #5a7c6f;
+  margin-bottom: 30px;
+}
+
+.networkError {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.errorContent {
+  background: white;
+  border-radius: 25px;
+  padding: 40px;
+  max-width: 700px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.errorIcon {
+  color: #e74c3c;
+  margin-bottom: 20px;
+}
+
+.errorContent h2 {
+  color: #e74c3c;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.errorContent p {
+  font-size: 18px;
+  color: #5a7c6f;
+  margin-bottom: 25px;
+}
+
+.errorList {
+  text-align: left;
+  max-width: 400px;
+  margin: 0 auto 30px;
+  font-size: 17px;
+  color: #5a7c6f;
+  padding-left: 20px;
+}
+
+.debugInfo {
+  background: rgba(44, 129, 97, 0.03);
+  border-radius: 15px;
+  padding: 20px;
+  text-align: left;
+  margin-bottom: 30px;
+  font-size: 14px;
+  border: 1px solid rgba(44, 129, 97, 0.1);
+}
+
+.debugInfo p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+}
+
+.errorActions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.retryButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 30px;
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(44, 129, 97, 0.3);
+}
+
+.retryButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(44, 129, 97, 0.4);
+}
+
+.buttonIcon {
+  font-size: 18px;
+}
+
+/* Адаптивность */
+@media (max-width: 992px) {
+  .jobHeader {
+    padding: 25px;
+  }
+  
+  .jobBody {
+    padding: 25px;
+  }
+  
+  .jobMeta {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  
+  .workersList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .jobCard {
+    border-radius: 20px;
+  }
+  
+  .jobHeader h1 {
+    font-size: 28px;
+  }
+  
+  .workerCard {
+    padding: 20px;
+  }
+  
+  .modal {
+    max-width: 90%;
+  }
+}
+
+@media (max-width: 576px) {
+  .pageContainer {
+    padding: 20px 15px;
+  }
+  
+  .jobHeader {
+    padding: 20px;
+  }
+  
+  .jobBody {
+    padding: 20px;
+  }
+  
+  .workersSection {
+    padding: 0 20px 20px;
+  }
+  
+  .workerActions {
+    flex-direction: column;
+  }
+  
+  .workerActions button {
+    width: 100%;
+  }
+  
+  .modalFooter {
+    flex-direction: column;
+  }
+  
+  .modalFooter button {
+    width: 100%;
+  }
+  
+  .notification {
+    top: 15px;
+    right: 15px;
+    left: 15px;
+    max-width: calc(100% - 30px);
+  }
+}
+
+@media (max-width: 480px) {
+  .jobHeader h1 {
+    font-size: 24px;
+  }
+  
+  .jobDescription h3 {
+    font-size: 20px;
+  }
+  
+  .workersSection h2 {
+    font-size: 22px;
+  }
+  
+  .workerInfo h3 {
+    font-size: 18px;
+  }
+  
+  .modalHeader h3 {
+    font-size: 20px;
+  }
+}

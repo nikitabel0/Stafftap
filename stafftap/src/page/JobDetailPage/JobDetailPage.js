@@ -19,6 +19,7 @@ import {
 } from "react-icons/fi";
 import axios from "axios";
 import API_BASE_URL from "../../apiConfig";
+import styles from './JobDetailPage.module.css';
 
 const JobDetailPage = () => {
   const { jobId } = useParams();
@@ -33,7 +34,6 @@ const JobDetailPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [isChatLoading, setIsChatLoading] = useState(false);
-  
   
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedWorkerForReview, setSelectedWorkerForReview] = useState(null);
@@ -164,7 +164,6 @@ const JobDetailPage = () => {
     }
   };
 
-  
   const openReviewModal = (worker) => {
     setSelectedWorkerForReview(worker);
     setReviewRating(0);
@@ -172,7 +171,6 @@ const JobDetailPage = () => {
     setIsReviewModalOpen(true);
   };
 
-  
   const submitReview = async () => {
     if (!selectedWorkerForReview || reviewRating === 0) return;
     
@@ -196,7 +194,6 @@ const JobDetailPage = () => {
         type: "success",
         message: "Отзыв успешно отправлен"
       });
-      
       
       setWorkers(workers.map(w => 
         w.id === selectedWorkerForReview.id 
@@ -236,7 +233,6 @@ const JobDetailPage = () => {
     }
   };
 
-  
   const calculateNewRating = (currentRating, newRating) => {
     if (!currentRating) return newRating;
     return parseFloat(((currentRating + newRating) / 2).toFixed(1));
@@ -258,14 +254,14 @@ const JobDetailPage = () => {
 
   const formatNumber = (num) => {
     const number = Number(num);
-    return isNaN(number) ? "0" : number.toLocaleString("ru-RU");
+    return isNaN(number) ? "0" : number.toLocaleString('ru-RU');
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Дата не указана";
 
     const date = new Date(dateString);
-    return date.toLocaleDateString("ru-RU", {
+    return date.toLocaleDateString('ru-RU', {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -331,8 +327,8 @@ const JobDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="job-detail-loading">
-        <div className="loader"></div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loader}></div>
         <p>Загрузка данных о вакансии...</p>
       </div>
     );
@@ -343,19 +339,19 @@ const JobDetailPage = () => {
     const jobUrl = `${API_BASE_URL}/api/jobs/${jobId}`;
 
     return (
-      <div className="network-error-page">
-        <div className="error-content">
-          <FiWifiOff className="network-error-icon" size={48} />
+      <div className={styles.networkError}>
+        <div className={styles.errorContent}>
+          <FiWifiOff className={styles.errorIcon} size={48} />
           <h2>Проблемы с подключением</h2>
           <p>Не удалось подключиться к серверу. Пожалуйста:</p>
-          <ul>
+          <ul className={styles.errorList}>
             <li>• Проверьте подключение к интернету</li>
             <li>• Убедитесь, что VPN выключен</li>
             <li>• Проверьте настройки межсетевого экрана</li>
             <li>• Попробуйте обновить страницу</li>
           </ul>
 
-          <div className="debug-info">
+          <div className={styles.debugInfo}>
             <p>
               <strong>URL запроса:</strong> {jobUrl}
             </p>
@@ -367,12 +363,12 @@ const JobDetailPage = () => {
             </p>
           </div>
 
-          <div className="error-actions">
-            <button className="retry-button" onClick={fetchJobDetails}>
-              <FiRefreshCw className="button-icon" /> Повторить попытку
+          <div className={styles.errorActions}>
+            <button className={styles.retryButton} onClick={fetchJobDetails}>
+              <FiRefreshCw className={styles.buttonIcon} /> Повторить попытку
             </button>
-            <button className="back-button" onClick={() => navigate(-1)}>
-              <FiArrowLeft className="button-icon" /> Назад
+            <button className={styles.backButton} onClick={() => navigate(-1)}>
+              <FiArrowLeft className={styles.buttonIcon} /> Назад
             </button>
           </div>
         </div>
@@ -382,10 +378,10 @@ const JobDetailPage = () => {
 
   if (error) {
     return (
-      <div className="job-detail-error">
+      <div className={styles.errorContainer}>
         <h2>Ошибка</h2>
         <p>{error}</p>
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button className={styles.backButton} onClick={() => navigate(-1)}>
           <FiArrowLeft /> Назад
         </button>
       </div>
@@ -394,10 +390,10 @@ const JobDetailPage = () => {
 
   if (!job) {
     return (
-      <div className="job-detail-error">
+      <div className={styles.errorContainer}>
         <h2>Вакансия не найдена</h2>
         <p>Запрошенная вакансия не существует или была удалена</p>
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button className={styles.backButton} onClick={() => navigate(-1)}>
           <FiArrowLeft /> Назад
         </button>
       </div>
@@ -405,20 +401,20 @@ const JobDetailPage = () => {
   }
 
   return (
-    <div className="job-detail-page">
+    <div className={styles.pageContainer}>
       {/* Уведомления */}
       {notification.message && (
-        <div className={`notification ${notification.type}`}>
-          <div className="notification-content">
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+          <div className={styles.notificationContent}>
             {notification.type === "success" ? (
-              <FiCheck className="notification-icon" />
+              <FiCheck className={styles.notificationIcon} />
             ) : (
-              <FiX className="notification-icon" />
+              <FiX className={styles.notificationIcon} />
             )}
             <span>{notification.message}</span>
           </div>
           <button
-            className="notification-close"
+            className={styles.notificationClose}
             onClick={() => setNotification({ type: "", message: "" })}
           >
             <FiX />
@@ -428,27 +424,27 @@ const JobDetailPage = () => {
 
       {/* Модальное окно подтверждения удаления */}
       {showConfirmModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
               <h3>Подтверждение удаления</h3>
-              <button className="modal-close" onClick={closeConfirmModal}>
+              <button className={styles.modalClose} onClick={closeConfirmModal}>
                 <FiX />
               </button>
             </div>
-            <div className="modal-body">
+            <div className={styles.modalBody}>
               <p>Вы уверены, что хотите удалить этого работника с вакансии?</p>
             </div>
-            <div className="modal-footer">
+            <div className={styles.modalFooter}>
               <button
-                className="btn-cancel"
+                className={styles.cancelButton}
                 onClick={closeConfirmModal}
                 disabled={isLoading}
               >
                 Отмена
               </button>
               <button
-                className="btn-confirm"
+                className={styles.confirmButton}
                 onClick={handleRemoveWorker}
                 disabled={isLoading}
               >
@@ -461,26 +457,26 @@ const JobDetailPage = () => {
 
       {/* Модальное окно для отзыва */}
       {isReviewModalOpen && selectedWorkerForReview && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
               <h3>Отзыв о работе {selectedWorkerForReview.first_name}</h3>
               <button 
-                className="modal-close" 
+                className={styles.modalClose} 
                 onClick={() => setIsReviewModalOpen(false)}
               >
                 <FiX />
               </button>
             </div>
             
-            <div className="modal-body">
-              <div className="rating-section">
+            <div className={styles.modalBody}>
+              <div className={styles.ratingSection}>
                 <p>Оценка:</p>
-                <div className="rating-stars">
+                <div className={styles.ratingStars}>
                   {[1, 2, 3, 4, 5].map(star => (
                     <button
                       key={star}
-                      className={`star ${star <= reviewRating ? 'filled' : ''}`}
+                      className={`${styles.star} ${star <= reviewRating ? styles.filled : ''}`}
                       onClick={() => setReviewRating(star)}
                       disabled={isReviewSubmitting}
                     >
@@ -490,7 +486,7 @@ const JobDetailPage = () => {
                 </div>
               </div>
               
-              <div className="comment-section">
+              <div className={styles.commentSection}>
                 <label htmlFor="review-comment">Комментарий (необязательно):</label>
                 <textarea
                   id="review-comment"
@@ -503,16 +499,16 @@ const JobDetailPage = () => {
               </div>
             </div>
             
-            <div className="modal-footer">
+            <div className={styles.modalFooter}>
               <button
-                className="btn-cancel"
+                className={styles.cancelButton}
                 onClick={() => setIsReviewModalOpen(false)}
                 disabled={isReviewSubmitting}
               >
                 Отмена
               </button>
               <button
-                className="btn-confirm"
+                className={styles.confirmButton}
                 onClick={submitReview}
                 disabled={isReviewSubmitting || reviewRating === 0}
               >
@@ -523,16 +519,16 @@ const JobDetailPage = () => {
         </div>
       )}
 
-      <button className="back-button" onClick={() => navigate(-1)}>
+      <button className={styles.backButton} onClick={() => navigate(-1)}>
         <FiArrowLeft /> Назад
       </button>
 
-      <div className="job-detail-card">
-        <div className="job-header">
+      <div className={styles.jobCard}>
+        <div className={styles.jobHeader}>
           <h1>{job.title}</h1>
-          <div className="job-company">{job.company_name}</div>
-          <div className="job-status">
-            Статус: <span className={`status-${job.status}`}>
+          <div className={styles.jobCompany}>{job.company_name}</div>
+          <div className={styles.jobStatus}>
+            Статус: <span className={`${styles.status} ${styles['status-' + job.status]}`}>
               {job.status === 'active' && 'Активна'}
               {job.status === 'completed' && 'Завершена'}
               {job.status === 'successfully_completed' && 'Успешно завершена'}
@@ -541,58 +537,58 @@ const JobDetailPage = () => {
           </div>
         </div>
 
-        <div className="job-body">
-          <div className="job-description">
+        <div className={styles.jobBody}>
+          <div className={styles.jobDescription}>
             <h3>Описание</h3>
             <p>{job.description}</p>
           </div>
 
-          <div className="job-meta">
-            <div className="meta-item">
-              <FiDollarSign className="meta-icon" />
+          <div className={styles.jobMeta}>
+            <div className={styles.metaItem}>
+              <FiDollarSign className={styles.metaIcon} />
               <span>{formatNumber(job.rate)} ₽</span>
             </div>
 
-            <div className="meta-item">
-              <FiCalendar className="meta-icon" />
+            <div className={styles.metaItem}>
+              <FiCalendar className={styles.metaIcon} />
               <span>{formatDate(job.work_date)}</span>
             </div>
 
-            <div className="meta-item">
-              <FiClock className="meta-icon" />
+            <div className={styles.metaItem}>
+              <FiClock className={styles.metaIcon} />
               <span>
                 {job.start_time} - {job.end_time}
               </span>
             </div>
 
-            <div className="meta-item">
-              <FiMapPin className="meta-icon" />
+            <div className={styles.metaItem}>
+              <FiMapPin className={styles.metaIcon} />
               <span>{job.address}</span>
             </div>
 
-            <div className="meta-item">
-              <FiUsers className="meta-icon" />
+            <div className={styles.metaItem}>
+              <FiUsers className={styles.metaIcon} />
               <span>
                 {job.remaining_slots > 0 ? (
-                  <span className="slots-available">
+                  <span className={styles.slotsAvailable}>
                     Осталось мест: {job.remaining_slots}/{job.workers_needed}
                   </span>
                 ) : (
-                  <span className="slots-full">Все места заполнены</span>
+                  <span className={styles.slotsFull}>Все места заполнены</span>
                 )}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="workers-section">
+        <div className={styles.workersSection}>
           <h2>Подтвержденные сотрудники</h2>
 
           {workers.length > 0 ? (
-            <div className="workers-list">
+            <div className={styles.workersList}>
               {workers.map((worker) => (
-                <div key={worker.id} className="worker-card">
-                  <div className="worker-avatar">
+                <div key={worker.id} className={styles.workerCard}>
+                  <div className={styles.workerAvatar}>
                     {worker.avatar_url ? (
                       <img
                         src={worker.avatar_url}
@@ -603,49 +599,49 @@ const JobDetailPage = () => {
                         }}
                       />
                     ) : null}
-                    <div className="avatar-initials">
+                    <div className={styles.avatarInitials}>
                       {worker.first_name?.[0] || ''}
                       {worker.last_name?.[0] || ''}
                     </div>
                   </div>
 
-                  <div className="worker-info">
+                  <div className={styles.workerInfo}>
                     <h3>
                       {worker.first_name} {worker.last_name}
                     </h3>
 
-                    <div className="worker-contacts">
+                    <div className={styles.workerContacts}>
                       {worker.phone && (
-                        <div className="contact-item">
-                          <FiPhone className="contact-icon" />
+                        <div className={styles.contactItem}>
+                          <FiPhone className={styles.contactIcon} />
                           <span>{worker.phone}</span>
                         </div>
                       )}
                     </div>
 
-                    <div className="worker-stats">
-                      <div className="stat-item">
-                        <FiStar className="stat-icon" />
+                    <div className={styles.workerStats}>
+                      <div className={styles.statItem}>
+                        <FiStar className={styles.statIcon} />
                         <span>Рейтинг: {worker.rating || "нет оценок"}</span>
                       </div>
-                      <div className="stat-item">
+                      <div className={styles.statItem}>
                         <span>
                           Выполнено смен: {worker.completed_shifts || 0}
                         </span>
                       </div>
                       {worker.has_review && (
-                        <div className="stat-item review-badge">
+                        <div className={styles.reviewBadge}>
                           <span>Отзыв оставлен</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="worker-actions">
+                  <div className={styles.workerActions}>
                     {job.status === 'successfully_completed' && 
                  !worker.has_review && (
                       <button
-                        className="review-worker-btn"
+                        className={styles.reviewButton}
                         onClick={() => openReviewModal(worker)}
                         title="Оставить отзыв о работе"
                         disabled={isReviewSubmitting}
@@ -655,7 +651,7 @@ const JobDetailPage = () => {
                     )}
 
                     <button
-                      className="remove-worker-btn"
+                      className={styles.removeButton}
                       onClick={() => openConfirmModal(worker.id)}
                       disabled={isLoading}
                       title="Удалить работника с вакансии"
@@ -665,7 +661,7 @@ const JobDetailPage = () => {
                     
                     {worker.chat_id ? (
                       <button
-                        className="message-worker-btn"
+                        className={styles.chatButton}
                         onClick={() => navigate(`/chats/${worker.chat_id}`)}
                         title="Перейти в чат"
                         disabled={isChatLoading}
@@ -680,7 +676,7 @@ const JobDetailPage = () => {
                       </button>
                     ) : (
                       <button
-                        className="message-worker-btn"
+                        className={styles.chatButton}
                         onClick={() => navigateToChat(worker.booking_id)}
                         title="Создать чат"
                         disabled={isChatLoading}
@@ -699,7 +695,7 @@ const JobDetailPage = () => {
               ))}
             </div>
           ) : (
-            <div className="no-workers">
+            <div className={styles.noWorkers}>
               <p>На эту вакансию еще не приняты сотрудники</p>
             </div>
           )}

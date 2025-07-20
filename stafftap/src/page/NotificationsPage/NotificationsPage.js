@@ -1,3 +1,4 @@
+// NotificationsPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -18,7 +19,7 @@ import {
   FiStar,
 } from "react-icons/fi";
 import API_BASE_URL from "../../apiConfig";
-import "./NotificationsPage.css";
+import styles from './NotificationsPage.module.css';
 
 const NotificationsPage = ({ user }) => {
   const [notifications, setNotifications] = useState([]);
@@ -119,7 +120,6 @@ const NotificationsPage = ({ user }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      
       setNotifications(
         notifications.filter((n) => n.id !== disputeModal.notificationId)
       );
@@ -130,7 +130,6 @@ const NotificationsPage = ({ user }) => {
         notificationId: null,
       });
 
-      
       navigate("/disputes");
     } catch (error) {
       console.error("Ошибка при создании диспута:", error);
@@ -139,7 +138,6 @@ const NotificationsPage = ({ user }) => {
     }
   };
 
-  
   const parseId = (id) => {
     const parsed = Number(id);
     if (isNaN(parsed)) {
@@ -148,95 +146,106 @@ const NotificationsPage = ({ user }) => {
     return parsed;
   };
 
- const handleConfirmBooking = async (bookingId, notificationId) => {
-  try {
-    setError(null);
-    
-    
-    const parsedBookingId = parseId(bookingId);
-    const parsedNotificationId = parseId(notificationId);
-    
-    setLoadingConfirmations(prev => ({ ...prev, [parsedBookingId]: true }));
-    
-    const token = localStorage.getItem("token");
-    
-    
-    const bookingInfo = await axios.get(
-      `${API_BASE_URL}/api/bookings/${parsedBookingId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    
-    const job = bookingInfo.data.job;
-    
-    const userBalance = user.balance;
-    
-    if (userBalance < job.rate) {
-      throw new Error(`Недостаточно средств. Для подтверждения работника необходимо заморозить ${job.rate} руб. на сумму смены. Ваш текущий баланс: ${userBalance} руб. Пополните баланс!`);
-    }
-    
-    
-    await axios.post(
-      `${API_BASE_URL}/api/bookings/${parsedBookingId}/confirm`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    
-    setNotifications(notifications.filter((n) => n.id !== parsedNotificationId));
-  } catch (error) {
-    console.error("Ошибка при подтверждении бронирования:", error);
-    
-    let errorMessage = "Ошибка при подтверждении бронирования";
-    if (error.response) {
-      if (error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
-          errorMessage = error.response.data.detail;
-        } else {
-          errorMessage = JSON.stringify(error.response.data.detail);
-        }
-      } else if (error.response.status === 400) {
-        errorMessage = "Ошибка при подтверждении: неверный запрос";
-      } else if (error.response.status === 403) {
-        errorMessage = "Недостаточно прав для выполнения действия";
-      } else if (error.response.status === 404) {
-        errorMessage = "Бронирование не найдено";
-      } else {
-        errorMessage = `Ошибка сервера: ${error.response.status}`;
-      }
-    } else if (error.request) {
-      errorMessage = "Сервер не ответил. Проверьте интернет-соединение";
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    
-    setError(errorMessage);
-    setTimeout(() => setError(null), 10000);
-  } finally {
-    setLoadingConfirmations(prev => ({ ...prev, [bookingId]: false }));
-  }
-};
-
-  const handleRejectBooking = async (bookingId, notificationId) => {
+  const handleConfirmBooking = async (bookingId, notificationId) => {
     try {
-      
+      setError(null);
+
       const parsedBookingId = parseId(bookingId);
       const parsedNotificationId = parseId(notificationId);
-      
-      setLoadingConfirmations(prev => ({ ...prev, [parsedBookingId]: true }));
+
+      setLoadingConfirmations((prev) => ({ ...prev, [parsedBookingId]: true }));
+
       const token = localStorage.getItem("token");
+
+      const bookingInfo = await axios.get(
+        `${API_BASE_URL}/api/bookings/${parsedBookingId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const job = bookingInfo.data.job;
+
+      const userBalance = user.balance;
+
+      if (userBalance < bookingInfo.data.job.rate) {
+        throw new Error(
+          `Недостаточно средств. Для подтверждения работника необходимо заморозить ${job.rate} руб. на сумму смены. Ваш текущий баланс: ${userBalance} руб. Пополните баланс!`
+        );
+      }
+
       await axios.post(
-        `${API_BASE_URL}/api/bookings/${parsedBookingId}/reject`,
+        `${API_BASE_URL}/api/bookings/${parsedBookingId}/confirm`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setNotifications(notifications.filter((n) => n.id !== parsedNotificationId));
+      setNotifications(
+        notifications.filter((n) => n.id !== parsedNotificationId)
+      );
+    } catch (error) {
+      console.error("Ошибка при подтверждении бронирования:", error);
+
+      let errorMessage = "Ошибка при подтверждении бронирования";
+      if (error.response) {
+        if (error.response.data && error.response.data.detail) {
+          if (typeof error.response.data.detail === "string") {
+            errorMessage = error.response.data.detail;
+          } else {
+            errorMessage = JSON.stringify(error.response.data.detail);
+          }
+        } else if (error.response.status === 400) {
+          errorMessage = "Ошибка при подтверждении: неверный запрос";
+        } else if (error.response.status === 403) {
+          errorMessage = "Недостаточно прав для выполнения действия";
+        } else if (error.response.status === 404) {
+          errorMessage = "Бронирование не найдено";
+        } else {
+          errorMessage = `Ошибка сервера: ${error.response.status}`;
+        }
+      } else if (error.request) {
+        errorMessage = "Сервер не ответил. Проверьте интернет-соединение";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+      setTimeout(() => setError(null), 10000);
+    } finally {
+      setLoadingConfirmations((prev) => ({ ...prev, [bookingId]: false }));
+    }
+  };
+
+  const handleRejectBooking = async (
+    bookingId,
+    notificationId,
+    notificationType
+  ) => {
+    try {
+      const parsedBookingId = parseId(bookingId);
+      const parsedNotificationId = parseId(notificationId);
+
+      setLoadingConfirmations((prev) => ({ ...prev, [parsedBookingId]: true }));
+      const token = localStorage.getItem("token");
+
+      const endpoint =
+        notificationType === "employer_booking"
+          ? `${API_BASE_URL}/api/bookings/${parsedBookingId}/worker-reject`
+          : `${API_BASE_URL}/api/bookings/${parsedBookingId}/reject`;
+
+      await axios.post(
+        endpoint,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setNotifications(
+        notifications.filter((n) => n.id !== parsedNotificationId)
+      );
     } catch (error) {
       console.error("Ошибка при отклонении бронирования:", error);
-      
+
       let errorMessage = "Не удалось отклонить бронирование";
       if (error.response && error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else {
           errorMessage = JSON.stringify(error.response.data.detail);
@@ -244,19 +253,18 @@ const NotificationsPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     } finally {
-      setLoadingConfirmations(prev => ({ ...prev, [bookingId]: false }));
+      setLoadingConfirmations((prev) => ({ ...prev, [bookingId]: false }));
     }
   };
 
   const handleNavigateToChat = async (bookingId) => {
     try {
-      
       const parsedBookingId = parseId(bookingId);
-      
+
       const token = localStorage.getItem("token");
       const response = await axios.post(
         `${API_BASE_URL}/api/chats/start/${parsedBookingId}`,
@@ -266,10 +274,10 @@ const NotificationsPage = ({ user }) => {
       navigate(`/chats/${response.data.id}`);
     } catch (error) {
       console.error("Ошибка при создании чата:", error);
-      
+
       let errorMessage = "Не удалось открыть чат";
       if (error.response && error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else {
           errorMessage = JSON.stringify(error.response.data.detail);
@@ -277,7 +285,7 @@ const NotificationsPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     }
@@ -289,9 +297,8 @@ const NotificationsPage = ({ user }) => {
 
   const handleSubmitPositiveFeedback = async (jobId) => {
     try {
-      
       const parsedJobId = parseId(jobId);
-      
+
       const token = localStorage.getItem("token");
       await axios.post(
         `${API_BASE_URL}/api/jobs/${parsedJobId}/feedback`,
@@ -311,10 +318,10 @@ const NotificationsPage = ({ user }) => {
       setActiveFeedbackJob(null);
     } catch (error) {
       console.error("Ошибка при отправке фидбэка:", error);
-      
+
       let errorMessage = "Не удалось отправить обратную связь";
       if (error.response && error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else {
           errorMessage = JSON.stringify(error.response.data.detail);
@@ -322,7 +329,7 @@ const NotificationsPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     }
@@ -330,9 +337,8 @@ const NotificationsPage = ({ user }) => {
 
   const handleSubmitProblemFeedback = async (jobId) => {
     try {
-      
       const parsedJobId = parseId(jobId);
-      
+
       const token = localStorage.getItem("token");
       await axios.post(
         `${API_BASE_URL}/api/jobs/${parsedJobId}/feedback`,
@@ -344,13 +350,11 @@ const NotificationsPage = ({ user }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      
       await axios.delete(
         `${API_BASE_URL}/api/notifications/job-completed/${parsedJobId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      
       const updatedNotifications = notifications.filter(
         (n) => !(n.type === "job_completed" && n.related_id === parsedJobId)
       );
@@ -361,10 +365,10 @@ const NotificationsPage = ({ user }) => {
       setProblemDescription("");
     } catch (error) {
       console.error("Ошибка при отправке фидбэка:", error);
-      
+
       let errorMessage = "Не удалось отправить обратную связь";
       if (error.response && error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else {
           errorMessage = JSON.stringify(error.response.data.detail);
@@ -372,18 +376,20 @@ const NotificationsPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     }
   };
-  
+
   const handleConfirmWork = async (notificationId) => {
     try {
-      
       const parsedNotificationId = parseId(notificationId);
-      
-      setLoadingConfirmations(prev => ({ ...prev, [parsedNotificationId]: true }));
+
+      setLoadingConfirmations((prev) => ({
+        ...prev,
+        [parsedNotificationId]: true,
+      }));
       const token = localStorage.getItem("token");
       await axios.post(
         `${API_BASE_URL}/api/jobs/${parsedNotificationId}/confirm-work`,
@@ -391,17 +397,16 @@ const NotificationsPage = ({ user }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      
       const updatedNotifications = notifications.filter(
         (n) => n.id !== parsedNotificationId
       );
       setNotifications(updatedNotifications);
     } catch (error) {
       console.error("Ошибка при подтверждении работы:", error);
-      
+
       let errorMessage = "Не удалось подтвердить работу";
       if (error.response && error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else {
           errorMessage = JSON.stringify(error.response.data.detail);
@@ -409,19 +414,18 @@ const NotificationsPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     } finally {
-      setLoadingConfirmations(prev => ({ ...prev, [notificationId]: false }));
+      setLoadingConfirmations((prev) => ({ ...prev, [notificationId]: false }));
     }
   };
 
   const handleSubmitReview = async () => {
     try {
-      
       const parsedNotificationId = parseId(reviewForm.notificationId);
-      
+
       const token = localStorage.getItem("token");
       await axios.post(
         `${API_BASE_URL}/api/jobs/${parsedNotificationId}/submit-review`,
@@ -432,13 +436,11 @@ const NotificationsPage = ({ user }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      
       const updatedNotifications = notifications.filter(
         (n) => n.id !== parsedNotificationId
       );
       setNotifications(updatedNotifications);
 
-      
       setReviewForm({
         notificationId: null,
         bookingId: null,
@@ -447,10 +449,10 @@ const NotificationsPage = ({ user }) => {
       });
     } catch (error) {
       console.error("Ошибка при отправке отзыва:", error);
-      
+
       let errorMessage = "Не удалось отправить отзыв";
       if (error.response && error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else {
           errorMessage = JSON.stringify(error.response.data.detail);
@@ -458,7 +460,7 @@ const NotificationsPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     }
@@ -466,9 +468,8 @@ const NotificationsPage = ({ user }) => {
 
   const handleSkipReview = async (notificationId) => {
     try {
-      
       const parsedNotificationId = parseId(notificationId);
-      
+
       const token = localStorage.getItem("token");
       await axios.post(
         `${API_BASE_URL}/api/notifications/${parsedNotificationId}/skip-review`,
@@ -476,17 +477,16 @@ const NotificationsPage = ({ user }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      
       const updatedNotifications = notifications.filter(
         (n) => n.id !== parsedNotificationId
       );
       setNotifications(updatedNotifications);
     } catch (error) {
       console.error("Ошибка при пропуске отзыва:", error);
-      
+
       let errorMessage = "Не удалось пропустить отзыв";
       if (error.response && error.response.data && error.response.data.detail) {
-        if (typeof error.response.data.detail === 'string') {
+        if (typeof error.response.data.detail === "string") {
           errorMessage = error.response.data.detail;
         } else {
           errorMessage = JSON.stringify(error.response.data.detail);
@@ -494,7 +494,7 @@ const NotificationsPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
       setTimeout(() => setError(null), 5000);
     }
@@ -536,66 +536,64 @@ const NotificationsPage = ({ user }) => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case "job_moderation":
-        return <FiFileText className="notification-icon job-moderation" />;
+        return <FiFileText className={`${styles['notification-icon']} ${styles['job-moderation']}`} />;
       case "booking_request":
-        return <FiUserPlus className="notification-icon booking-request" />;
+        return <FiUserPlus className={`${styles['notification-icon']} ${styles['booking-request']}`} />;
       case "booking_confirmed":
         return (
-          <FiCheckCircle className="notification-icon booking-confirmed" />
+          <FiCheckCircle className={`${styles['notification-icon']} ${styles['booking-confirmed']}`} />
         );
       case "employer_booking":
-        return <FiBriefcase className="notification-icon employer-booking" />;
+        return <FiBriefcase className={`${styles['notification-icon']} ${styles['employer-booking']}`} />;
       case "job_canceled":
-        return <FiAlertCircle className="notification-icon job-canceled" />;
+        return <FiAlertCircle className={`${styles['notification-icon']} ${styles['job-canceled']}`} />;
       case "worker_removed":
-        return <FiUserX className="notification-icon worker-removed" />;
+        return <FiUserX className={`${styles['notification-icon']} ${styles['worker-removed']}`} />;
       case "job_completed":
-        return <FiClock className="notification-icon job-completed" />;
+        return <FiClock className={`${styles['notification-icon']} ${styles['job-completed']}`} />;
       case "worker_job_completed":
-        return <FiClock className="notification-icon worker-job-completed" />;
+        return <FiClock className={`${styles['notification-icon']} ${styles['worker-job-completed']}`} />;
       case "dispute_created":
         return (
-          <FiAlertTriangle className="notification-icon dispute-created" />
+          <FiAlertTriangle className={`${styles['notification-icon']} ${styles['dispute-created']}`} />
         );
       case "payment_released":
-        return <FiThumbsUp className="notification-icon payment-released" />;
+        return <FiThumbsUp className={`${styles['notification-icon']} ${styles['payment-released']}`} />;
       case "worker_rejected_booking":
-        return <FiXCircle className="notification-icon worker-rejected" />;
+        return <FiXCircle className={`${styles['notification-icon']} ${styles['worker-rejected']}`} />;
       case "review_request":
-        return <FiStar className="notification-icon review-request" />;
+        return <FiStar className={`${styles['notification-icon']} ${styles['review-request']}`} />;
       default:
-        return <FiBell className="notification-icon" />;
+        return <FiBell className={styles['notification-icon']} />;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="notifications-loading">
-        <div className="loader"></div>
+      <div className={styles['notifications-loading']}>
+        <div className={styles.loader}></div>
         <p>Загрузка уведомлений...</p>
       </div>
     );
   }
 
   return (
-    <div className="notifications-page">
-      <div className="notifications-header">
+    <div className={styles['notifications-page']}>
+      <div className={styles['notifications-header']}>
         <h1>
-          <FiBell className="header-icon" /> Уведомления
+          <FiBell className={styles['header-icon']} /> Уведомления
         </h1>
       </div>
 
       {/* Блок отображения ошибок */}
       {error && (
-        <div className="error-banner">
-          <FiAlertCircle className="error-icon" />
-          <div className="error-message">
-            {typeof error === 'string' 
-              ? error 
-              : JSON.stringify(error, null, 2)}
+        <div className={styles['error-banner']}>
+          <FiAlertCircle className={styles['error-icon']} />
+          <div className={styles['error-message']}>
+            {typeof error === "string" ? error : JSON.stringify(error, null, 2)}
           </div>
-          <button 
-            className="close-error" 
+          <button
+            className={styles['close-error']}
             onClick={() => setError(null)}
             aria-label="Закрыть ошибку"
           >
@@ -606,8 +604,8 @@ const NotificationsPage = ({ user }) => {
 
       {/* Модальное окно для создания диспута */}
       {disputeModal.open && (
-        <div className="dispute-modal">
-          <div className="modal-content">
+        <div className={styles['dispute-modal']}>
+          <div className={styles['modal-content']}>
             <h3>Создать диспут</h3>
             <p>Опишите проблему с оплатой смены</p>
 
@@ -623,9 +621,9 @@ const NotificationsPage = ({ user }) => {
               rows={4}
             />
 
-            <div className="modal-actions">
+            <div className={styles['modal-actions']}>
               <button
-                className="cancel-button"
+                className={styles['cancel-button']}
                 onClick={() =>
                   setDisputeModal({
                     open: false,
@@ -638,7 +636,7 @@ const NotificationsPage = ({ user }) => {
                 Отмена
               </button>
               <button
-                className="submit-button"
+                className={styles['submit-button']}
                 onClick={handleWorkerCreateDispute}
                 disabled={!disputeModal.description}
               >
@@ -651,18 +649,18 @@ const NotificationsPage = ({ user }) => {
 
       {/* Модальное окно для оставления отзыва */}
       {reviewForm.notificationId && (
-        <div className="review-modal">
-          <div className="modal-content">
+        <div className={styles['review-modal']}>
+          <div className={styles['modal-content']}>
             <h3>Оставить отзыв о работодателе</h3>
 
-            <div className="rating-section">
+            <div className={styles['rating-section']}>
               <p>Оценка:</p>
-              <div className="stars">
+              <div className={styles.stars}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <FiStar
                     key={star}
                     className={
-                      star <= reviewForm.rating ? "star-filled" : "star-empty"
+                      star <= reviewForm.rating ? styles['star-filled'] : styles['star-empty']
                     }
                     onClick={() =>
                       setReviewForm({ ...reviewForm, rating: star })
@@ -672,7 +670,7 @@ const NotificationsPage = ({ user }) => {
               </div>
             </div>
 
-            <div className="comment-section">
+            <div className={styles['comment-section']}>
               <p>Комментарий (необязательно):</p>
               <textarea
                 value={reviewForm.comment}
@@ -684,12 +682,12 @@ const NotificationsPage = ({ user }) => {
               />
             </div>
 
-            <div className="modal-actions">
-              <button className="submit-button" onClick={handleSubmitReview}>
+            <div className={styles['modal-actions']}>
+              <button className={styles['submit-button']} onClick={handleSubmitReview}>
                 Отправить отзыв
               </button>
               <button
-                className="cancel-button"
+                className={styles['cancel-button']}
                 onClick={() => handleSkipReview(reviewForm.notificationId)}
               >
                 Пропустить
@@ -700,11 +698,11 @@ const NotificationsPage = ({ user }) => {
       )}
 
       {notifications.length === 0 ? (
-        <div className="empty-notifications">
+        <div className={styles['empty-notifications']}>
           <p>У вас пока нет уведомлений</p>
         </div>
       ) : (
-        <div className="notifications-list">
+        <div className={styles['notifications-list']}>
           {notifications.map((notification) => {
             if (
               notification.type === "job_completed" &&
@@ -713,38 +711,38 @@ const NotificationsPage = ({ user }) => {
               const workers = workersForJob[notification.related_id] || [];
 
               return (
-                <div key={notification.id} className="feedback-form">
-                  <div className="feedback-header">
+                <div key={notification.id} className={styles['feedback-form']}>
+                  <div className={styles['feedback-header']}>
                     <h3>Обратная связь по смене</h3>
                     <p>Пожалуйста, оцените работу сотрудников</p>
                   </div>
 
-                  <div className="feedback-options">
+                  <div className={styles['feedback-options']}>
                     <div
-                      className="feedback-option positive-option"
+                      className={`${styles['feedback-option']} ${styles['positive-option']}`}
                       onClick={() =>
                         handleSubmitPositiveFeedback(notification.related_id)
                       }
                     >
-                      <div className="option-icon">
+                      <div className={styles['option-icon']}>
                         <FiCheck size={36} />
                       </div>
-                      <div className="option-content">
+                      <div className={styles['option-content']}>
                         <h4>Всё отлично</h4>
                         <p>Разморозить оплату всем сотрудникам</p>
                       </div>
                     </div>
 
                     <div
-                      className="feedback-option problem-option"
+                      className={`${styles['feedback-option']} ${styles['problem-option']}`}
                       onClick={() =>
                         setActiveFeedbackJob(notification.related_id)
                       }
                     >
-                      <div className="option-icon">
+                      <div className={styles['option-icon']}>
                         <FiAlertTriangle size={36} />
                       </div>
-                      <div className="option-content">
+                      <div className={styles['option-content']}>
                         <h4>Были проблемы</h4>
                         <p>Указать проблемных сотрудников</p>
                       </div>
@@ -752,24 +750,24 @@ const NotificationsPage = ({ user }) => {
                   </div>
 
                   {activeFeedbackJob === notification.related_id && (
-                    <div className="problem-workers-form">
+                    <div className={styles['problem-workers-form']}>
                       <h4>Укажите проблемных сотрудников</h4>
                       <p>Выберите сотрудников, с которыми возникли проблемы</p>
 
                       {workers.length === 0 ? (
-                        <div className="workers-loading">
-                          <div className="loader"></div>
+                        <div className={styles['workers-loading']}>
+                          <div className={styles.loader}></div>
                           <p>Загрузка списка работников...</p>
                         </div>
                       ) : (
                         <>
-                          <div className="workers-list">
+                          <div className={styles['workers-list']}>
                             {workers.map((worker) => (
                               <div
                                 key={worker.id}
-                                className={`worker-card ${
+                                className={`${styles['worker-card']} ${
                                   selectedProblemWorkers.includes(worker.id)
-                                    ? "selected"
+                                    ? styles.selected
                                     : ""
                                 }`}
                                 onClick={() => {
@@ -789,15 +787,15 @@ const NotificationsPage = ({ user }) => {
                                   }
                                 }}
                               >
-                                <div className="worker-info">
-                                  <div className="worker-avatar">
+                                <div className={styles['worker-info']}>
+                                  <div className={styles['worker-avatar']}>
                                     {worker.avatar_url ? (
                                       <img
                                         src={worker.avatar_url}
                                         alt={worker.first_name}
                                       />
                                     ) : (
-                                      <div className="avatar-initials">
+                                      <div className={styles['avatar-initials']}>
                                         {worker.first_name?.[0]}
                                         {worker.last_name?.[0]}
                                       </div>
@@ -811,13 +809,13 @@ const NotificationsPage = ({ user }) => {
                                   </div>
                                 </div>
 
-                                <div className="worker-check">
+                                <div className={styles['worker-check']}>
                                   {selectedProblemWorkers.includes(
                                     worker.id
                                   ) ? (
-                                    <FiCheck className="checked" />
+                                    <FiCheck className={styles.checked} />
                                   ) : (
-                                    <FiXCircle className="unchecked" />
+                                    <FiXCircle className={styles.unchecked} />
                                   )}
                                 </div>
                               </div>
@@ -825,7 +823,7 @@ const NotificationsPage = ({ user }) => {
                           </div>
 
                           {selectedProblemWorkers.length > 0 && (
-                            <div className="problem-description">
+                            <div className={styles['problem-description']}>
                               <h4>Опишите проблему</h4>
                               <textarea
                                 value={problemDescription}
@@ -838,9 +836,9 @@ const NotificationsPage = ({ user }) => {
                             </div>
                           )}
 
-                          <div className="form-actions">
+                          <div className={styles['form-actions']}>
                             <button
-                              className="cancel-button"
+                              className={styles['cancel-button']}
                               onClick={() => {
                                 setActiveFeedbackJob(null);
                                 setSelectedProblemWorkers([]);
@@ -850,7 +848,7 @@ const NotificationsPage = ({ user }) => {
                               Отмена
                             </button>
                             <button
-                              className="submit-button"
+                              className={styles['submit-button']}
                               onClick={() =>
                                 handleSubmitProblemFeedback(
                                   notification.related_id
@@ -873,31 +871,32 @@ const NotificationsPage = ({ user }) => {
               );
             }
 
-            const isLoading = loadingConfirmations[notification.related_id] || 
-                             loadingConfirmations[notification.id];
+            const isLoading =
+              loadingConfirmations[notification.related_id] ||
+              loadingConfirmations[notification.id];
 
             return (
               <div
                 key={notification.id}
-                className={`notification-card ${
-                  notification.is_read ? "read" : "unread"
+                className={`${styles['notification-card']} ${
+                  notification.is_read ? styles.read : styles.unread
                 }`}
               >
-                <div className="notification-header">
+                <div className={styles['notification-header']}>
                   {getNotificationIcon(notification.type)}
                   <h3>{notification.title}</h3>
-                  <span className="notification-time">
+                  <span className={styles['notification-time']}>
                     <FiClock /> {formatDateTime(notification.created_at)}
                   </span>
                 </div>
 
-                <div className="notification-body">
+                <div className={styles['notification-body']}>
                   <p>{notification.message}</p>
 
                   {notification.type === "booking_request" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="confirm-button"
+                        className={styles['confirm-button']}
                         onClick={() =>
                           handleConfirmBooking(
                             notification.related_id,
@@ -907,7 +906,7 @@ const NotificationsPage = ({ user }) => {
                         disabled={isLoading}
                       >
                         {isLoading ? (
-                          <span className="loading-spinner"></span>
+                          <span className={styles['loading-spinner']}></span>
                         ) : (
                           <>
                             <FiCheckCircle /> Подтвердить
@@ -915,7 +914,7 @@ const NotificationsPage = ({ user }) => {
                         )}
                       </button>
                       <button
-                        className="reject-button"
+                        className={styles['reject-button']}
                         onClick={() =>
                           handleRejectBooking(
                             notification.related_id,
@@ -925,7 +924,7 @@ const NotificationsPage = ({ user }) => {
                         disabled={isLoading}
                       >
                         {isLoading ? (
-                          <span className="loading-spinner"></span>
+                          <span className={styles['loading-spinner']}></span>
                         ) : (
                           <>
                             <FiXCircle /> Отклонить
@@ -936,9 +935,9 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "booking_confirmed" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="chat-button"
+                        className={styles['chat-button']}
                         onClick={() =>
                           handleNavigateToChat(notification.related_id)
                         }
@@ -949,19 +948,20 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "employer_booking" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="reject-button"
+                        className={styles['reject-button']}
                         onClick={() =>
                           handleRejectBooking(
                             notification.related_id,
-                            notification.id
+                            notification.id,
+                            notification.type
                           )
                         }
                         disabled={isLoading}
                       >
                         {isLoading ? (
-                          <span className="loading-spinner"></span>
+                          <span className={styles['loading-spinner']}></span>
                         ) : (
                           <>
                             <FiXCircle /> Отказаться
@@ -969,7 +969,7 @@ const NotificationsPage = ({ user }) => {
                         )}
                       </button>
                       <button
-                        className="chat-button"
+                        className={styles['chat-button']}
                         onClick={() =>
                           handleNavigateToChat(notification.related_id)
                         }
@@ -977,7 +977,7 @@ const NotificationsPage = ({ user }) => {
                         <FiMessageSquare /> Перейти в чат
                       </button>
                       <button
-                        className="view-job-button"
+                        className={styles['view-job-button']}
                         onClick={() => handleViewJob(notification.job_id)}
                       >
                         <FiBriefcase /> Посмотреть вакансию
@@ -987,9 +987,9 @@ const NotificationsPage = ({ user }) => {
 
                   {(notification.type === "job_moderation" ||
                     notification.type === "job_canceled") && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="view-job-button"
+                        className={styles['view-job-button']}
                         onClick={() => handleViewJob(notification.related_id)}
                       >
                         Посмотреть вакансию
@@ -998,15 +998,15 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "worker_removed" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="view-job-button"
+                        className={styles['view-job-button']}
                         onClick={() => handleViewJob(notification.job_id)}
                       >
                         <FiBriefcase /> Посмотреть вакансию
                       </button>
                       <button
-                        className="chat-button"
+                        className={styles['chat-button']}
                         onClick={() =>
                           handleNavigateToChat(notification.related_id)
                         }
@@ -1017,15 +1017,15 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "job_completed" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="feedback-button"
+                        className={styles['feedback-button']}
                         onClick={() => startFeedback(notification.related_id)}
                       >
                         <FiCheckCircle /> Подтвердить смену
                       </button>
                       <button
-                        className="view-job-button"
+                        className={styles['view-job-button']}
                         onClick={() => handleViewJob(notification.related_id)}
                       >
                         <FiBriefcase /> Посмотреть вакансию
@@ -1034,14 +1034,14 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "worker_job_completed" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="confirm-button"
+                        className={styles['confirm-button']}
                         onClick={() => handleConfirmWork(notification.id)}
                         disabled={isLoading}
                       >
                         {isLoading ? (
-                          <span className="loading-spinner"></span>
+                          <span className={styles['loading-spinner']}></span>
                         ) : (
                           <>
                             <FiCheckCircle /> Подтвердить работу
@@ -1049,7 +1049,7 @@ const NotificationsPage = ({ user }) => {
                         )}
                       </button>
                       <button
-                        className="problem-button"
+                        className={styles['problem-button']}
                         onClick={() =>
                           setDisputeModal({
                             open: true,
@@ -1065,9 +1065,9 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "review_request" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="review-button"
+                        className={styles['review-button']}
                         onClick={() =>
                           setReviewForm({
                             notificationId: notification.id,
@@ -1080,7 +1080,7 @@ const NotificationsPage = ({ user }) => {
                         <FiStar /> Оставить отзыв
                       </button>
                       <button
-                        className="skip-button"
+                        className={styles['skip-button']}
                         onClick={() => handleSkipReview(notification.id)}
                       >
                         Пропустить
@@ -1089,9 +1089,9 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "dispute_created" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="view-dispute-button"
+                        className={styles['view-dispute-button']}
                         onClick={() => navigate("/disputes")}
                       >
                         Перейти к диспуту
@@ -1100,9 +1100,9 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "payment_released" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="view-job-button"
+                        className={styles['view-job-button']}
                         onClick={() => handleViewJob(notification.job_id)}
                       >
                         <FiBriefcase /> Посмотреть смену
@@ -1111,9 +1111,9 @@ const NotificationsPage = ({ user }) => {
                   )}
 
                   {notification.type === "worker_rejected_booking" && (
-                    <div className="notification-actions">
+                    <div className={styles['notification-actions']}>
                       <button
-                        className="view-job-button"
+                        className={styles['view-job-button']}
                         onClick={() => handleViewJob(notification.job_id)}
                       >
                         <FiBriefcase /> Посмотреть вакансию
@@ -1126,7 +1126,7 @@ const NotificationsPage = ({ user }) => {
                   notification.type !== "job_completed" &&
                   notification.type !== "worker_job_completed" && (
                     <button
-                      className="mark-read-button"
+                      className={styles['mark-read-button']}
                       onClick={() => handleMarkAsRead(notification.id)}
                     >
                       Пометить как прочитанное

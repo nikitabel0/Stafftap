@@ -1,0 +1,338 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 5%;
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+}
+
+.header.transparent {
+  background: transparent;
+  box-shadow: none;
+}
+
+.header.scrolled {
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+  transform: translateY(-5px);
+}
+
+.logo {
+  color: white;
+  font-weight: 800;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 1002;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.transparent .logo {
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.desktopNav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.3s ease;
+  position: relative;
+  padding: 10px 15px;
+  border-radius: 12px;
+}
+
+.navItem.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.navItem:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+}
+
+.navIcon {
+  position: relative;
+  display: flex;
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+.navItem:hover .navIcon {
+  transform: scale(1.15);
+}
+
+.navLabel {
+  font-size: 13px;
+  margin-top: 6px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: linear-gradient(145deg, #FF5252, #FF1744);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 10px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.notificationIcon {
+  position: relative;
+  margin-left: 10px;
+  cursor: pointer;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.notificationIcon:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+.notificationIcon.active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.userActions {
+  display: flex;
+  gap: 15px;
+}
+
+.settingsBtn, .logoutBtn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 18px;
+}
+
+.settingsBtn:hover, .logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.menuToggle {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 22px;
+  z-index: 1002;
+}
+
+.menuToggle:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+.transparent .menuToggle {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.mobileNavBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
+  z-index: 999;
+  padding: 12px 5%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.15);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+
+.mobileNavBar .navItem {
+  padding: 8px 12px;
+}
+
+.mobileNavBar .navIcon {
+  font-size: 22px;
+}
+
+.mobileNavBar .navLabel {
+  font-size: 11px;
+}
+
+.mobileMenu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(145deg, #1a3c2d, #2C8161);
+  z-index: 1001;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.mobileMenuHeader {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 40px;
+}
+
+.closeMenu {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 24px;
+}
+
+.closeMenu:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg);
+}
+
+.menuItems {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  padding: 18px 20px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.menuItem:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(10px);
+}
+
+.menuIcon {
+  width: 26px;
+  height: 26px;
+  margin-right: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 22px;
+}
+
+.menuLabel {
+  flex: 1;
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.menuNotification {
+  background: linear-gradient(145deg, #FF5252, #FF1744);
+  color: white;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .desktopNav, .userActions {
+    display: none;
+  }
+  
+  .header {
+    padding: 12px 15px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobileNavBar, .menuToggle, .mobileMenu {
+    display: none;
+  }
+}

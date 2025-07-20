@@ -12,7 +12,7 @@ import {
   FiSettings,
   FiLogOut
 } from "react-icons/fi";
-import './Header.css';
+import styles from './Header.module.css'; // Используем модульный CSS
 import API_BASE_URL from '../../apiConfig';
 
 const Header = () => {
@@ -156,81 +156,75 @@ const Header = () => {
 
   return (
     <>
-      <header className={`header ${isHomePage && !scrolled ? 'transparent' : ''} ${scrolled ? 'scrolled' : ''}`}>
-        <div className="logo" onClick={() => navigate("/")}>
+      <header className={`${styles.header} ${isHomePage && !scrolled ? styles.transparent : ''} ${scrolled ? styles.scrolled : ''}`}>
+        <div className={styles.logo} onClick={() => navigate("/")}>
           StaffTap
         </div>
 
-        {!isMobile && (
-          <div className="search-container">
-            <div className="search-bar">
-              <FiSearch className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="Поиск вакансий, сотрудников..." 
-                className="search-input"
-              />
-            </div>
+        <nav className={styles.desktopNav}>
+          <NavItem 
+            icon={<FiHome />} 
+            label="Лента" 
+            active={activeTab === "feed"} 
+            onClick={() => navigateTo("/feed")}
+          />
+          
+          <NavItem 
+            icon={<FiHeart />} 
+            label="Избранное" 
+            active={activeTab === "favorites"} 
+            onClick={() => navigateTo("/favorites")}
+          />
+          
+          <NavItem 
+            icon={<FiMessageSquare />} 
+            label="Чаты" 
+            active={activeTab === "chats"} 
+            onClick={() => navigateTo("/chats")}
+            notification={chatUnreadCount}
+          />
+          
+          <NavItem 
+            icon={<FiUser />} 
+            label="Профиль" 
+            active={activeTab === "profile"} 
+            onClick={() => navigateTo("/profile")}
+          />
+          
+          <div 
+            className={`${styles.notificationIcon} ${activeTab === "notifications" ? styles.active : ''}`}
+            onClick={() => navigateTo("/notifications")}
+          >
+            <FiBell />
+            {notificationCount > 0 && (
+              <div className={styles.notificationBadge}>
+                {notificationCount > 9 ? '9+' : notificationCount}
+              </div>
+            )}
           </div>
-        )}
+        </nav>
 
-        {!isMobile && (
-          <nav className="desktop-nav">
-            <NavItem 
-              icon={<FiHome />} 
-              label="Лента" 
-              active={activeTab === "feed"} 
-              onClick={() => navigateTo("/feed")}
-            />
-            
-            <NavItem 
-              icon={<FiHeart />} 
-              label="Избранное" 
-              active={activeTab === "favorites"} 
-              onClick={() => navigateTo("/favorites")}
-            />
-            
-            <NavItem 
-              icon={<FiMessageSquare />} 
-              label="Чаты" 
-              active={activeTab === "chats"} 
-              onClick={() => navigateTo("/chats")}
-              notification={chatUnreadCount}
-            />
-            
-            <NavItem 
-              icon={<FiUser />} 
-              label="Профиль" 
-              active={activeTab === "profile"} 
-              onClick={() => navigateTo("/profile")}
-            />
-            
-            <div 
-              className={`notification-icon ${activeTab === "notifications" ? 'active' : ''}`}
-              onClick={() => navigateTo("/notifications")}
-            >
-              <FiBell />
-              {notificationCount > 0 && (
-                <div className="notification-badge">
-                  {notificationCount > 9 ? '9+' : notificationCount}
-                </div>
-              )}
-            </div>
-          </nav>
-        )}
-
-        {isMobile && (
+        {isMobile ? (
           <button 
-            className="menu-toggle"
+            className={styles.menuToggle}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <FiX /> : "☰"}
           </button>
+        ) : (
+          <div className={styles.userActions}>
+            <button className={styles.settingsBtn} onClick={() => navigateTo("/settings")}>
+              <FiSettings />
+            </button>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              <FiLogOut />
+            </button>
+          </div>
         )}
       </header>
 
       {isMobile && !isMenuOpen && (
-        <div className="mobile-nav-bar">
+        <div className={styles.mobileNavBar}>
           <NavItem 
             icon={<FiHome />} 
             label="Лента" 
@@ -267,28 +261,17 @@ const Header = () => {
       )}
 
       {isMobile && isMenuOpen && (
-        <div className="mobile-menu">
-          <div className="mobile-menu-header">
+        <div className={styles.mobileMenu}>
+          <div className={styles.mobileMenuHeader}>
             <button 
-              className="close-menu"
+              className={styles.closeMenu}
               onClick={() => setIsMenuOpen(false)}
             >
               <FiX />
             </button>
           </div>
           
-          <div className="mobile-search">
-            <div className="search-bar">
-              <FiSearch className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="Поиск..." 
-                className="search-input"
-              />
-            </div>
-          </div>
-          
-          <div className="menu-items">
+          <div className={styles.menuItems}>
             <MenuItem 
               icon={<FiBell />} 
               label="Уведомления" 
@@ -323,29 +306,29 @@ const Header = () => {
 
 const NavItem = ({ icon, label, active, notification, onClick, mobile }) => (
   <div 
-    className={`nav-item ${active ? 'active' : ''} ${mobile ? 'mobile' : ''}`} 
+    className={`${styles.navItem} ${active ? styles.active : ''} ${mobile ? styles.mobile : ''}`} 
     onClick={onClick}
   >
-    <div className="nav-icon">
+    <div className={styles.navIcon}>
       {icon}
       {notification > 0 && (
-        <div className="notification-badge">
+        <div className={styles.notificationBadge}>
           {notification > 9 ? '9+' : notification}
         </div>
       )}
     </div>
-    <span className="nav-label">{label}</span>
+    <span className={styles.navLabel}>{label}</span>
   </div>
 );
 
 const MenuItem = ({ icon, label, notification, onClick }) => (
-  <div className="menu-item" onClick={onClick}>
-    <div className="menu-icon">
+  <div className={styles.menuItem} onClick={onClick}>
+    <div className={styles.menuIcon}>
       {icon}
     </div>
-    <span className="menu-label">{label}</span>
+    <span className={styles.menuLabel}>{label}</span>
     {notification > 0 && (
-      <div className="menu-notification">
+      <div className={styles.menuNotification}>
         {notification > 9 ? '9+' : notification}
       </div>
     )}

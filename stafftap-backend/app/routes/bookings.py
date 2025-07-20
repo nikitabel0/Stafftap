@@ -7,7 +7,8 @@ from app.schemas.job import JobOut
 from app.schemas.worker import WorkerOut
 from app.schemas.booking import (
     BookingCreate, 
-    BookingOut, 
+    BookingOut,
+    BookingOutPay, 
     BookingUpdate,
     BookingWithJobOut,
     EmployerBookRequest
@@ -198,13 +199,15 @@ def worker_reject_booking(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+from decimal import Decimal
+from fastapi import HTTPException
+
 @router.post("/employer/book-worker/", response_model=BookingOut)
 def employer_book_worker(
     request: EmployerBookRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    
     if current_user.role != "employer":
         raise HTTPException(status_code=403, detail="Только работодатели могут бронировать работников")
     
@@ -219,14 +222,24 @@ def employer_book_worker(
     
     if job.status != "active":
         raise HTTPException(status_code=400, detail="Вакансия не активна")
-    amount = worker.rate_per_shift
+    
+    # Преобразование ставки в Decimal
+    try:
+        amount = Decimal(str(worker.rate_per_shift))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка конвертации ставки: {str(e)}"
+        )
+    
+    # Проверка баланса
     if current_user.balance < amount:
         raise HTTPException(
             status_code=400, 
-            detail="Недостаточно средств для бронирования"
+            detail=f"Недостаточно средств для бронирования. Требуется: {amount}, доступно: {current_user.balance}"
         )
     
-    
+    # Проверка занятости работника
     existing_booking = db.query(Booking).join(Job).filter(
         Booking.worker_id == worker.id,
         Job.work_date == job.work_date,
@@ -235,13 +248,8 @@ def employer_book_worker(
     
     if existing_booking:
         raise HTTPException(status_code=400, detail="Работник уже забронирован на эту дату")
-
     
-    amount = worker.rate_per_shift
-    if current_user.balance < amount:
-        raise HTTPException(status_code=400, detail="Недостаточно средств на балансе")
-
-    
+    # Проверка свободных мест
     occupied_count = db.query(func.count(Booking.id)).filter(
         Booking.job_id == job.id,
         Booking.status.in_(["confirmed", "employer_booked"])
@@ -249,8 +257,8 @@ def employer_book_worker(
     
     if occupied_count >= job.workers_needed:
         raise HTTPException(status_code=400, detail="Нет свободных мест на вакансии")
-
     
+    # Создание бронирования
     new_booking = Booking(
         job_id=job.id,
         worker_id=worker.id,
@@ -262,17 +270,26 @@ def employer_book_worker(
         updated_at=datetime.utcnow()
     )
     db.add(new_booking)
-    db.flush()  
-
+    db.flush()
     
-    current_user.balance -= amount
+    # Списание средств
+    try:
+        current_user.balance -= amount
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при списании средств: {str(e)}"
+        )
+    
+    # Заморозка средств
     frozen_funds = FrozenFunds(
         booking_id=new_booking.id,
         amount=amount
     )
     db.add(frozen_funds)
     
-    
+    # Создание чата
     new_chat = Chat(
         booking_id=new_booking.id,
         employer_id=current_user.id,
@@ -280,27 +297,30 @@ def employer_book_worker(
     )
     db.add(new_chat)
     
-    
+    # Уведомление работнику
     notification = Notification(
         user_id=worker.id,
         type="employer_booking",
         title="Вас забронировали!",
         message=f"{current_user.company_name} забронировал вас на вакансию '{job.title}'",
         related_id=new_booking.id,
-        job_id=job.id  
+        job_id=job.id
     )
     db.add(notification)
     
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при сохранении данных: {str(e)}"
+        )
     
-    
-    booking = db.query(Booking).options(
+    return db.query(Booking).options(
         joinedload(Booking.job),
         joinedload(Booking.worker)
     ).filter(Booking.id == new_booking.id).first()
-    
-    return booking
-
 @router.get("/", response_model=List[BookingOut])
 def get_current_user_bookings(
     job_id: Optional[int] = Query(None),
@@ -391,6 +411,61 @@ def update_booking_status(
         joinedload(Booking.worker)
     ).filter(Booking.id == booking_id).first()
 
+
+@router.get("/{booking_id}", response_model=BookingOutPay)
+def get_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Загружаем бронирование с связанными данными
+    booking = db.query(Booking).options(
+        joinedload(Booking.job).joinedload(Job.required_skill),
+        joinedload(Booking.job).joinedload(Job.employer),
+        joinedload(Booking.worker)
+    ).get(booking_id)
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Бронирование не найдено")
+    
+    # Проверка прав доступа
+    if current_user.role == "worker" and current_user.id != booking.worker_id:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    if current_user.role == "employer" and current_user.id != booking.job.employer_id:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    # Вычисляем дополнительные поля для работы
+    job = booking.job
+    
+    # Количество подтвержденных бронирований для этой работы
+    confirmed_count = db.query(func.count(Booking.id)).filter(
+        Booking.job_id == job.id,
+        Booking.status == "confirmed"
+    ).scalar()
+    
+    # Вычисляем оставшиеся слоты
+    job.remaining_slots = job.workers_needed - confirmed_count
+    
+    # Рейтинг работодателя
+    rating = db.query(func.avg(Review.rating)).filter(
+        Review.target_id == job.employer_id
+    ).scalar()
+    job.employer_rating = float(rating) if rating else 0.0
+    
+    # Количество завершенных работ работодателя
+    completed_jobs = db.query(func.count(Job.id)).filter(
+        Job.employer_id == job.employer_id,
+        Job.status == "completed"
+    ).scalar()
+    job.completed_jobs = completed_jobs
+    
+    # Заполняем остальные обязательные поля
+    job.required_skill_name = job.required_skill.name if job.required_skill else "Не указано"
+    job.company_name = job.employer.company_name
+    job.employer_verified = job.employer.is_verified
+    
+    return booking
+
 @router.post("/{booking_id}/confirm", response_model=BookingOut)
 def confirm_booking(
     booking_id: int,
@@ -400,40 +475,56 @@ def confirm_booking(
     try:
         booking = db.query(Booking).options(joinedload(Booking.job)).get(booking_id)
         if not booking:
-            raise HTTPException(status_code=404, detail="Booking not found")
+            raise HTTPException(status_code=404, detail="Бронирование не найдено")
         
         if current_user.role != "employer" or current_user.id != booking.job.employer_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise HTTPException(status_code=403, detail="Доступ запрещен")
         
         if booking.status != BookingStatus.PENDING:
-            raise HTTPException(status_code=400, detail="Cannot confirm booking in current status")
+            raise HTTPException(status_code=400, detail="Невозможно подтвердить бронирование в текущем статусе")
         
-        # Проверяем баланс работодателя
-        if current_user.balance < booking.job.rate:
+        # Преобразование ставки в Decimal
+        try:
+            amount = Decimal(str(booking.job.rate))
+        except Exception as e:
             raise HTTPException(
-                status_code=400,
-                detail="Недостаточно средств для подтверждения бронирования"
+                status_code=500,
+                detail=f"Ошибка конвертации ставки: {str(e)}"
             )
         
-        # Замораживаем средства
-        current_user.balance -= booking.job.rate
+        # Проверка баланса
+        if current_user.balance < amount:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Недостаточно средств. Требуется: {amount}, доступно: {current_user.balance}"
+            )
+        
+        # Заморозка средств
+        try:
+            current_user.balance -= amount
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Ошибка при списании средств: {str(e)}"
+            )
+        
         frozen_funds = FrozenFunds(
             booking_id=booking.id,
-            amount=booking.job.rate
+            amount=amount
         )
         db.add(frozen_funds)
         
-        # Обновляем статус бронирования
+        # Обновление статуса
         booking.status = BookingStatus.CONFIRMED
         booking.updated_at = datetime.utcnow()
         
-        # Удаляем уведомление о запросе
+        # Удаление уведомлений
         db.query(Notification).filter(
             Notification.related_id == booking_id,
             Notification.type == "booking_request"
         ).delete()
         
-        # Создаем чат (если не существует)
+
         existing_chat = db.query(Chat).filter(Chat.booking_id == booking_id).first()
         if not existing_chat:
             new_chat = Chat(
@@ -442,8 +533,7 @@ def confirm_booking(
                 worker_id=booking.worker_id
             )
             db.add(new_chat)
-        
-        # Уведомление работнику
+ 
         notification = Notification(
             user_id=booking.worker_id,
             type="booking_confirmed",
@@ -456,53 +546,101 @@ def confirm_booking(
         db.commit()
         return booking
         
+    except HTTPException as he:
+        db.rollback()
+        raise he
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
-@router.post("/{booking_id}/reject", response_model=BookingOut)
+@router.post("/{booking_id}/reject", response_model=BookingOutPay)
 def reject_booking(
     booking_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     try:
-        booking = db.query(Booking).options(joinedload(Booking.job)).get(booking_id)
+        # Загружаем бронирование с полной информацией
+        booking = db.query(Booking).options(
+            joinedload(Booking.job).joinedload(Job.required_skill),
+            joinedload(Booking.job).joinedload(Job.employer),
+            joinedload(Booking.worker)
+        ).get(booking_id)
+        
         if not booking:
-            raise HTTPException(status_code=404, detail="Booking not found")
-        
-        if current_user.role != "employer" or current_user.id != booking.job.employer_id:
-            raise HTTPException(status_code=403, detail="Access denied")
-        
-        if booking.status != BookingStatus.PENDING:
-            raise HTTPException(status_code=400, detail="Cannot reject booking in current status")
+            raise HTTPException(status_code=404, detail="Бронирование не найдено")
         
         
+       
+        
+        # Обновляем статус
         booking.status = BookingStatus.REJECTED
         booking.updated_at = datetime.utcnow()
         
-        
+        # Удаляем уведомление о запросе
         db.query(Notification).filter(
             Notification.related_id == booking_id,
             Notification.type == "booking_request"
         ).delete()
         
-        
+        # Создаем уведомление работнику
         notification = Notification(
             user_id=booking.worker_id,
             type="booking_rejected",
-            title="Booking rejected",
-            message=f"Your booking for job '{booking.job.title}' has been rejected",
+            title="Бронирование отклонено",
+            message=f"Ваше бронирование на вакансию '{booking.job.title}' отклонено",
             related_id=booking_id
         )
         db.add(notification)
         
         db.commit()
+        
+        # Перезагружаем данные после коммита
+        booking = db.query(Booking).options(
+            joinedload(Booking.job).joinedload(Job.required_skill),
+            joinedload(Booking.job).joinedload(Job.employer),
+            joinedload(Booking.worker)
+        ).get(booking_id)
+        
+        if not booking:
+            raise HTTPException(status_code=404, detail="Бронирование не найдено после обновления")
+        
+        # Расчет дополнительных полей для вакансии
+        job = booking.job
+        
+        # Расчет оставшихся слотов
+        confirmed_count = db.query(func.count(Booking.id)).filter(
+            Booking.job_id == job.id,
+            Booking.status.in_(["confirmed", "employer_booked"])
+        ).scalar()
+        job.remaining_slots = job.workers_needed - confirmed_count
+        
+        # Расчет рейтинга работодателя
+        rating = db.query(func.avg(Review.rating)).filter(
+            Review.target_id == job.employer_id
+        ).scalar()
+        job.employer_rating = float(rating) if rating else 0.0
+        
+        # Расчет количества завершенных работ
+        completed_jobs = db.query(func.count(Job.id)).filter(
+            Job.employer_id == job.employer_id,
+            Job.status == "completed"
+        ).scalar()
+        job.completed_jobs = completed_jobs
+        
+        # Заполнение обязательных полей
+        job.required_skill_name = job.required_skill.name if job.required_skill else "Не указано"
+        job.company_name = job.employer.company_name
+        job.employer_verified = job.employer.is_verified
+        
         return booking
         
+    except HTTPException as he:
+        db.rollback()
+        raise he
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
     
 @router.delete("/{booking_id}")
 def delete_booking_record(

@@ -7,8 +7,14 @@
   background-color: transparent;
 }
 
+/* Новый градиентный фон для шапки */
 .feed-header {
   margin-bottom: 25px;
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
+  border-radius: 16px;
+  padding: 20px;
+  color: white;
+  box-shadow: 0 8px 20px rgba(44, 129, 97, 0.2);
 }
 
 .header-top {
@@ -21,22 +27,26 @@
 }
 
 .feed-header h1 {
-  font-size: 24px;
-  color: #2C8161;
+  font-size: 28px;
+  font-weight: 700;
   margin: 0;
-  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Стиль баланса - стеклянный морфизм */
 .balance-info {
-  background: linear-gradient(to right, #2C8161, #56BD66);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
   color: white;
-  padding: 8px 15px;
+  padding: 10px 20px;
   border-radius: 20px;
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 16px;
   white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+/* Улучшенный поиск с неоморфизмом */
 .search-container {
   margin-bottom: 5px;
 }
@@ -44,14 +54,16 @@
 .search-bar {
   display: flex;
   align-items: center;
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.9);
   border-radius: 30px;
-  padding: 8px 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 5px 15px;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    inset 2px 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .search-icon {
-  color: #9CA3AF;
+  color: #2C8161;
   margin-right: 10px;
   flex-shrink: 0;
 }
@@ -62,87 +74,131 @@
   outline: none;
   background-color: transparent;
   font-size: 16px;
-  padding: 8px 0;
+  padding: 12px 0;
   min-width: 50px;
 }
 
+/* Кнопка фильтров - 3D эффект */
 .filter-toggle {
-  background: linear-gradient(to right, #2C8161, #56BD66);
-  color: white;
+  background: white;
+  color: #2C8161;
   border: none;
-  padding: 8px 15px;
-  border-radius: 20px;
-  font-weight: 500;
-  font-size: 14px;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 16px;
   cursor: pointer;
-  transition: opacity 0.3s;
+  transition: all 0.3s;
+  box-shadow: 
+    0 4px 0 #1f5d47,
+    0 6px 10px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
   margin-left: 10px;
 }
 
 .filter-toggle:hover {
-  opacity: 0.9;
+  transform: translateY(2px);
+  box-shadow: 
+    0 2px 0 #1f5d47,
+    0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.filter-wrapper {
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
-  max-height: 0;
-  overflow: hidden;
+.filter-toggle:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1f5d47;
 }
 
-.filter-wrapper.visible {
-  max-height: 500px;
+/* Карточки с параллакс-эффектом */
+.vacancies-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 25px;
 }
 
-.filters-info {
+/* ИСПРАВЛЕНИЕ: Для десктопа - выравнивание карточек по высоте */
+.workers-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 25px;
+  align-items: stretch; /* Растягиваем карточки по высоте строки */
+}
+
+/* Анимация при наведении на карточку */
+.vacancy-card, .worker-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: perspective(1000px) translateZ(0);
+}
+
+.vacancy-card:hover, .worker-card:hover {
+  transform: perspective(1000px) translateZ(20px) rotateZ(0.5deg);
+  box-shadow: 0 20px 30px rgba(44, 129, 97, 0.2);
+}
+
+/* Новый дизайн плавающей кнопки */
+.floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 30px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  gap: 15px;
-}
-
-.active-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-.active-filters span {
-  font-size: 14px;
-  color: #666;
-}
-
-.filter-tag {
-  display: flex;
-  align-items: center;
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-}
-
-.filter-tag button {
-  background: none;
-  border: none;
-  margin-left: 8px;
-  font-size: 16px;
+  justify-content: center;
+  font-weight: 600;
   cursor: pointer;
-  color: #2e7d32;
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border-radius: 30px; /* Закругление для текста */
+  padding: 0 25px;
+  box-shadow: 
+    0 6px 0 #1f5d47,
+    0 10px 20px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #2C8161 0%, #56BD66 100%);
+  color: white;
+ 
 }
 
-.vacancies-count {
-  background-color: #f0f7ff;
-  color: #2C8161;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 14px;
+.floating-button:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 
+    0 8px 0 #1f5d47,
+    0 15px 25px rgba(0, 0, 0, 0.25);
 }
 
+.floating-button:active {
+  transform: translateY(4px);
+  box-shadow: 
+    0 2px 0 #1f5d47,
+    0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.floating-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0);
+  transition: all 0.5s ease;
+}
+
+.floating-button:hover::after {
+  transform: scale(1.5);
+  opacity: 0;
+}
+
+.floating-button.employer {
+  background: linear-gradient(135deg, #1a5276 0%, #3498db 100%);
+  box-shadow: 
+    0 6px 0 #0d3a5c,
+    0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Анимация загрузки */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -153,13 +209,28 @@
 }
 
 .loader {
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #2C8161;
+  width: 60px;
+  height: 60px;
+  position: relative;
+}
+
+.loader::before,
+.loader::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
+  border: 5px solid transparent;
+  border-top-color: #2C8161;
   animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+}
+
+.loader::after {
+  border-top-color: #56BD66;
+  animation-delay: 0.2s;
 }
 
 @keyframes spin {
@@ -167,105 +238,15 @@
   100% { transform: rotate(360deg); }
 }
 
-.vacancies-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-}
-
-.no-results {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 40px;
-  color: #666;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.no-results-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background-color: #f0f7ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.no-results h3 {
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-
-.no-results p {
-  margin-bottom: 20px;
-  max-width: 400px;
-}
-
-.reset-filters {
-  background: linear-gradient(to right, #2C8161, #56BD66);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 30px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-
-.reset-filters:hover {
-  opacity: 0.9;
-}
-
-.floating-button {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: linear-gradient(to right, #2C8161, #56BD66);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  z-index: 100;
-  transition: transform 0.3s, box-shadow 0.3s;
-  border-radius: 30px;
-  padding: 12px 20px;
-  height: 50px;
-}
-
-.floating-button.employer {
-  background: linear-gradient(to right, #1a5276, #3498db);
-}
-
-.floating-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
-}
-
-.button-icon {
-  font-size: 20px;
-  margin-right: 8px;
-}
-
-.button-text {
-  font-size: 16px;
-  white-space: nowrap;
-}
-
+/* Стили для мобильной адаптации */
 @media (max-width: 768px) {
   .feed-page {
-    padding: 80px 15px 140px;
+    padding: 70px 15px 120px;
   }
   
-  .header-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+  .feed-header {
+    padding: 15px;
+    border-radius: 12px;
   }
   
   .feed-header h1 {
@@ -273,43 +254,39 @@
   }
   
   .balance-info {
-    font-size: 13px;
-    padding: 6px 12px;
+    padding: 8px 15px;
+    font-size: 14px;
   }
   
   .search-bar {
-    border-radius: 12px;
+    flex-direction: column;
+    padding: 15px;
+    border-radius: 16px;
+  }
+  
+  .search-input {
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px 0;
   }
   
   .filter-toggle {
-    padding: 8px 12px;
-    font-size: 13px;
+    width: 100%;
+    margin: 10px 0 0;
   }
   
-  .filters-info {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .vacancies-list {
+  .vacancies-list, .workers-list {
     grid-template-columns: 1fr;
   }
   
   .floating-button {
-    bottom: 100px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    padding: 0;
-  }
-  
-  .button-text {
-    display: none;
-  }
-  
-  .button-icon {
-    margin-right: 0;
-    font-size: 24px;
+    bottom: 91px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    box-shadow: 
+      0 4px 0 #1f5d47,
+      0 6px 15px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -318,68 +295,79 @@
     font-size: 20px;
   }
   
-  .balance-info {
-    font-size: 12px;
-  }
-  
   .floating-button {
-    bottom: 90px;
-    width: 45px;
-    height: 45px;
+    bottom: 91px;
+    right: 15px;
+    width: 55px;
+    height: 55px;
   }
   
-  .button-icon {
-    font-size: 20px;
+  .loader {
+    width: 50px;
+    height: 50px;
   }
 }
 
-
-/* Стили для карточек работников */
-.workers-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+/* Анимация появления элементов */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
+.vacancy-card, .worker-card, .filter-panel {
+  animation: fadeInUp 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+/* Задержка для анимации карточек */
+.vacancies-list > *:nth-child(1) { animation-delay: 0.1s; }
+.vacancies-list > *:nth-child(2) { animation-delay: 0.2s; }
+.vacancies-list > *:nth-child(3) { animation-delay: 0.3s; }
+.vacancies-list > *:nth-child(4) { animation-delay: 0.4s; }
+
+/* Модернизированные карточки работников */
 .worker-card {
-  background-color: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s, box-shadow 0.3s;
-  cursor: pointer;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  height: auto; /* Автоматическая высота */
 }
 
-.worker-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+.worker-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
 }
 
 .worker-header {
   display: flex;
-  align-items: center;
-  margin-bottom: 15px;
+  padding: 20px;
+  position: relative;
 }
 
 .worker-avatar {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 15px;
-  border: 2px solid #e0e0e0;
-}
-
-.avatar-placeholder {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background-color: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 15px;
-  color: #999;
+  border: 3px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-right: 20px;
 }
 
 .worker-info {
@@ -387,463 +375,63 @@
 }
 
 .worker-info h3 {
-  margin: 0 0 5px 0;
-  font-size: 18px;
+  margin: 5px 0;
+  font-size: 20px;
   color: #333;
 }
 
 .worker-meta {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 15px;
+  margin-top: 5px;
 }
 
 .worker-age {
-  font-size: 14px;
-  color: #666;
+  background: #e8f5e9;
+  color: #2C8161;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .worker-rating {
   display: flex;
   align-items: center;
-  background-color: #fff8e1;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 14px;
-  gap: 5px;
+  background: #fff8e1;
+  color: #e6b400;
+  padding: 3px 10px 3px 6px;
+  border-radius: 12px;
+  font-weight: 600;
+  gap: 4px;
 }
 
 .worker-details {
-  border-top: 1px solid #eee;
-  padding-top: 15px;
-}
-
-.detail-row {
-  display: flex;
-  margin-bottom: 10px;
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: #555;
-  gap: 5px;
-}
-
-.worker-skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.skill-tag {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-}
-
-/* Стили для модальных окон */
-.applications-modal,
-.job-selection-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal-content {
-  background-color: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  z-index: 1001;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  position: relative;
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: #333;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #666;
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  transition: background-color 0.3s;
-}
-
-.close-button:hover {
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-/* Стили для заявок */
-.applications-list {
+  padding: 0 20px 20px;
+  flex: 1; /* Растягиваем на доступное пространство */
   display: flex;
   flex-direction: column;
-  gap: 15px;
 }
 
-.application-card {
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 15px;
-  border: 1px solid #eee;
-  transition: all 0.3s;
-  cursor: pointer;
-}
-
-.application-card:hover {
-  background-color: #f0f0f0;
-  border-color: #ddd;
-}
-
-.application-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.application-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #333;
-}
-
-.application-status {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
+/* Стили для статусов заявок */
 .status-pending {
-  background-color: #fff8e1;
-  color: #f57c00;
+  background: linear-gradient(to right, #ffd166, #ffb347);
+  color: #7d5a00;
 }
 
 .status-confirmed {
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  background: linear-gradient(to right, #06d6a0, #1b9aaa);
+  color: white;
 }
 
 .status-rejected {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-.status-completed {
-  background-color: #e3f2fd;
-  color: #1565c0;
-}
-
-.status-canceled {
-  background-color: #f5f5f5;
-  color: #616161;
-}
-
-.application-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.detail-row {
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.detail-item {
-  display: flex;
-  gap: 5px;
-  font-size: 14px;
-}
-
-.detail-label {
-  font-weight: 500;
-  color: #555;
-}
-
-/* Стили для списка вакансий в модальном окне */
-.jobs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.job-item {
-  padding: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: #f9f9f9;
-}
-
-.job-item:hover {
-  background-color: #f0f0f0;
-  border-color: #c0c0c0;
-}
-
-.job-info h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  color: #333;
-}
-
-.job-date, .job-rate {
-  margin: 5px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.job-slots {
-  margin-top: 10px;
-  font-size: 14px;
-  color: #e67e22;
-  font-weight: 500;
-}
-
-/* Стили для состояния отсутствия вакансий */
-.no-jobs {
-  text-align: center;
-  padding: 30px 0;
-}
-
-.no-jobs .empty-icon {
-  margin-bottom: 20px;
-  color: #ccc;
-}
-
-.no-jobs h3 {
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  color: #333;
-}
-
-.no-jobs p {
-  margin: 0 0 20px 0;
-  color: #666;
-}
-
-.create-vacancy-button {
-  background: linear-gradient(to right, #2C8161, #56BD66);
+  background: linear-gradient(to right, #ef476f, #ff5666);
   color: white;
-  border: none;
-  border-radius: 30px;
-  padding: 10px 20px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: opacity 0.3s;
 }
 
-.create-vacancy-button:hover {
-  opacity: 0.9;
-}
-
-/* Стили для кнопки бронирования */
-.book-worker-button {
-  background: linear-gradient(to right, #2C8161, #56BD66);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 0;
-  margin-top: 15px;
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 16px;
-  transition: opacity 0.3s;
-  width: 100%;
-  display: block;
-  text-align: center;
-}
-
-.book-worker-button:hover {
-  opacity: 0.9;
-}
-
-/* Стили для состояния загрузки */
-.loading-applications,
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  min-height: 200px;
-  text-align: center;
-}
-
-.loading-applications .loader,
-.loading-container .loader {
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #2C8161;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Стили для пустых состояний */
-.no-applications {
-  text-align: center;
-  padding: 30px 0;
-}
-
-.no-applications .empty-icon {
-  margin-bottom: 20px;
-  color: #ccc;
-}
-
-.no-applications h3 {
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  color: #333;
-}
-
-.no-applications p {
-  margin: 0 0 20px 0;
-  color: #666;
-}
-
-/* Адаптивные стили */
-@media (max-width: 768px) {
-  .worker-card {
-    padding: 15px;
-  }
-  
-  .worker-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .worker-avatar, .avatar-placeholder {
-    margin-right: 0;
-    margin-bottom: 10px;
-  }
-  
-  .worker-rating {
-    align-self: flex-start;
-    margin-top: 10px;
-  }
-  
-  .modal-content {
-    width: 95%;
-  }
-  
-  .detail-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .jobs-list {
-    gap: 10px;
-  }
-  
-  .job-item {
-    padding: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .workers-list,
-  .vacancies-list {
-    grid-template-columns: 1fr;
-  }
-  
-  .worker-card {
-    padding: 12px;
-  }
-  
-  .modal-header h2 {
-    font-size: 20px;
-  }
-  
-  .book-worker-button {
-    padding: 8px 0;
-    font-size: 14px;
-  }
-}
-
-/* Стили для баннера ошибок */
+/* Анимация баннера ошибок */
 .error-banner {
-  background-color: #ffebee;
-  color: #b71c1c;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 4px;
-  margin: 10px 0;
-  animation: slideIn 0.3s ease-out;
-  position: relative;
-  z-index: 100;
-}
-
-.error-close {
-  background: none;
-  border: none;
-  color: #b71c1c;
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0;
-  display: flex;
-  align-items: center;
+  animation: slideIn 0.5s ease, pulse 2s infinite;
 }
 
 @keyframes slideIn {
@@ -857,24 +445,323 @@
   }
 }
 
-/* Анимация исчезновения при закрытии */
-.error-banner.closing {
-  animation: slideOut 0.3s ease-in;
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 71, 111, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 71, 111, 0); }
 }
 
-@keyframes slideOut {
-  from {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
+/* Стили для скелетона при загрузке */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
 }
 
-/* Дополнительные стили для модальных окон */
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Дополнительные стили для выравнивания */
+.detail-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: #555;
+  flex: 1;
+  min-width: 200px;
+}
+
+.worker-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skill-tag {
+  background: linear-gradient(to right, #1a5276, #3498db);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.book-worker-button {
+  margin-top: auto; /* Прижимаем кнопку к низу */
+  padding: 12px;
+  font-size: 15px;
+}
+
+/* Фильтры и счетчик */
+.filters-info {
+  margin-bottom: 20px;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.filter-tag {
+  background: #e3f2fd;
+  color: #1a5276;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-tag button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #1a5276;
+}
+
+.vacancies-count {
+  font-size: 16px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* Результаты поиска */
+.no-results {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f9f9f9;
+  border-radius: 16px;
+  margin-top: 20px;
+}
+
+.no-results-icon {
+  margin-bottom: 20px;
+  color: #aaa;
+}
+
+.no-results h3 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+.no-results p {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.reset-filters {
+  background: #2C8161;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.reset-filters:hover {
+  background: #1f5d47;
+  transform: translateY(-2px);
+}
+
+/* Модальные окна */
+.applications-modal, .job-selection-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
 .modal-content {
   position: relative;
-  z-index: 101;
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+  z-index: 1001;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: modalAppear 0.4s ease;
+}
+
+@keyframes modalAppear {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  padding: 20px;
+  background: linear-gradient(135deg, #2C8161 0%, #56BD66 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 20px;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: calc(90vh - 80px);
+  overflow-y: auto;
+}
+
+/* Адаптивность для карточек работников */
+@media (max-width: 768px) {
+  .worker-card {
+    border-radius: 14px;
+  }
+  
+  .worker-header {
+    padding: 15px;
+  }
+  
+  .worker-avatar {
+    width: 70px;
+    height: 70px;
+    margin-right: 15px;
+  }
+  
+  .worker-info h3 {
+    font-size: 18px;
+  }
+  
+  .worker-details {
+    padding: 0 15px 15px;
+  }
+  
+  .detail-item {
+    min-width: 100%;
+    font-size: 14px;
+  }
+  
+  .book-worker-button {
+    padding: 10px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .worker-card {
+    border-radius: 12px;
+  }
+  
+  .worker-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 15px;
+  }
+  
+  .worker-avatar {
+    margin: 0 auto 15px;
+    width: 80px;
+    height: 80px;
+  }
+  
+  .worker-info h3 {
+    font-size: 19px;
+  }
+  
+  .worker-meta {
+    justify-content: center;
+  }
+  
+  .detail-row {
+    gap: 10px;
+  }
+}
+
+
+.book-worker-button {
+  background: linear-gradient(to right, #1a5276, #3498db);
+  color: white;
+  border: none;
+  padding: 14px 0;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-size: 16px;
+  box-shadow: 0 6px 15px rgba(26, 82, 118, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.book-worker-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(26, 82, 118, 0.35);
+}
+
+.book-worker-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.book-worker-button:hover::after {
+  transform: translateX(100%);
 }

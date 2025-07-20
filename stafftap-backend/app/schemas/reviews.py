@@ -7,6 +7,8 @@ class ReviewOut(BaseModel):
     rating: int
     comment: str
     created_at: datetime
+    class Config:
+        orm_mode = True
 
 class ReviewResponse(BaseModel):
     rating: float

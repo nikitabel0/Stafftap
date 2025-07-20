@@ -1,0 +1,912 @@
+/* NotificationsPage.module.css */
+.notifications-page {
+  max-width: 1200px;
+  margin: 80px auto 0;
+  padding: 30px 20px;
+  min-height: calc(100vh - 80px);
+
+}
+
+/* Заголовок страницы */
+.notifications-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(44, 129, 97, 0.15);
+  position: relative;
+}
+
+.notifications-header h1 {
+  font-size: 36px;
+  color: #1a3c2d;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 0;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.notifications-header h1::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 150px;
+  height: 4px;
+  background: linear-gradient(90deg, #2C8161, #56BD66);
+  border-radius: 4px;
+}
+
+.header-icon {
+  color: #2C8161;
+  font-size: 36px;
+  background: rgba(44, 129, 97, 0.1);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(44, 129, 97, 0.2);
+}
+
+/* Состояние загрузки */
+.notifications-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.notifications-loading p {
+  margin-top: 25px;
+  color: #2C8161;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.loader {
+  border: 5px solid rgba(44, 129, 97, 0.1);
+  border-top: 5px solid #2C8161;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Пустой список */
+.empty-notifications {
+  text-align: center;
+  padding: 80px 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(44, 129, 97, 0.1);
+  border: 2px dashed rgba(44, 129, 97, 0.2);
+  transition: all 0.4s ease;
+}
+
+.empty-notifications:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(44, 129, 97, 0.2);
+}
+
+.empty-notifications p {
+  font-size: 22px;
+  color: #2C8161;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Список уведомлений */
+.notifications-list {
+  display: grid;
+  gap: 25px;
+}
+
+/* Карточка уведомления */
+.notification-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(44, 129, 97, 0.1);
+}
+
+.notification-card:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 15px 40px rgba(44, 129, 97, 0.2);
+}
+
+.notification-card.unread {
+  border-left: 5px solid #2C8161;
+  background: linear-gradient(to right, #ffffff 0%, #f8fdfa 100%);
+}
+
+.notification-card.unread::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  background: #2C8161;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(44, 129, 97, 0.2);
+}
+
+/* Заголовок карточки */
+.notification-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.notification-icon {
+  font-size: 28px;
+  min-width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.notification-card:hover .notification-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Цвета иконок по типам */
+.notification-icon.job-moderation {
+  background: linear-gradient(135deg, #e1eaf0 0%, #d1e0ed 100%);
+  color: #1a5276;
+}
+
+.notification-icon.booking-request {
+  background: linear-gradient(135deg, #e1f0e9 0%, #d1eae1 100%);
+  color: #2C8161;
+}
+
+.notification-icon.booking-confirmed {
+  background: linear-gradient(135deg, #e1f0e9 0%, #d1eae1 100%);
+  color: #2C8161;
+}
+
+.notification-icon.employer-booking {
+  background: linear-gradient(135deg, #f0e1f0 0%, #ead1ea 100%);
+  color: #9C27B0;
+}
+
+.notification-icon.job-canceled {
+  background: linear-gradient(135deg, #fde8e8 0%, #fadada 100%);
+  color: #e74c3c;
+}
+
+.notification-icon.worker-removed {
+  background: linear-gradient(135deg, #f5ede8 0%, #f0e4dc 100%);
+  color: #795548;
+}
+
+.notification-icon.job-completed {
+  background: linear-gradient(135deg, #e8f0f2 0%, #dbe7eb 100%);
+  color: #607D8B;
+}
+
+.notification-icon.dispute-created {
+  background: linear-gradient(135deg, #fff2e6 0%, #ffe9d6 100%);
+  color: #FF5722;
+}
+
+.notification-icon.payment-released {
+  background: linear-gradient(135deg, #e8f5e9 0%, #dbf0de 100%);
+  color: #8BC34A;
+}
+
+.notification-icon.worker-rejected {
+  background: linear-gradient(135deg, #fce4ec 0%, #fadbe8 100%);
+  color: #E91E63;
+}
+
+.notification-icon.review-request {
+  background: linear-gradient(135deg, #fff8e1 0%, #fff2cc 100%);
+  color: #FFC107;
+}
+
+.notification-header h3 {
+  flex: 1;
+  font-size: 22px;
+  color: #1a3c2d;
+  margin: 0;
+  font-weight: 600;
+}
+
+.notification-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  color: #5a7c6c;
+  font-weight: 500;
+}
+
+/* Тело уведомления */
+.notification-body p {
+  margin: 0 0 25px 0;
+  color: #4a6b5f;
+  line-height: 1.6;
+  font-size: 17px;
+  padding-left: 10px;
+  border-left: 3px solid rgba(44, 129, 97, 0.2);
+}
+
+/* Кнопки действий */
+.notification-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.notification-actions button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 25px;
+  border-radius: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-size: 16px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.notification-actions button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.notification-actions button:hover::after {
+  transform: translateX(100%);
+}
+
+.notification-actions button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.notification-actions button:active {
+  transform: translateY(1px);
+}
+
+.confirm-button {
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+}
+
+.reject-button {
+  background: linear-gradient(to right, #e74c3c, #c0392b);
+  color: white;
+}
+
+.chat-button {
+  background: linear-gradient(to right, #3498db, #2980b9);
+  color: white;
+}
+
+.view-job-button {
+  background: linear-gradient(to right, #9C27B0, #8E44AD);
+  color: white;
+}
+
+.dispute-button {
+  background: linear-gradient(to right, #FF9800, #F57C00);
+  color: white;
+}
+
+.feedback-button {
+  background: linear-gradient(to right, #607D8B, #546E7A);
+  color: white;
+}
+
+.review-button {
+  background: linear-gradient(to right, #FFC107, #FFA000);
+  color: white;
+}
+
+.skip-button {
+  background: linear-gradient(to right, #95a5a6, #7f8c8d);
+  color: white;
+}
+
+/* Кнопка "Пометить как прочитанное" */
+.mark-read-button {
+  margin-top: 20px;
+  background: none;
+  border: none;
+  color: #7f9c8d;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.mark-read-button:hover {
+  color: #2C8161;
+  transform: translateX(5px);
+}
+
+/* Формы обратной связи */
+.feedback-form {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(44, 129, 97, 0.15);
+  border: 1px solid rgba(44, 129, 97, 0.15);
+  margin-top: 20px;
+}
+
+.feedback-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.feedback-header h3 {
+  font-size: 26px;
+  color: #1a3c2d;
+  margin-bottom: 10px;
+}
+
+.feedback-header p {
+  color: #5a7c6c;
+  font-size: 18px;
+}
+
+.feedback-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.feedback-option {
+  border-radius: 20px;
+  padding: 30px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  border: 2px solid transparent;
+}
+
+.feedback-option:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.positive-option {
+  background: linear-gradient(135deg, #f0f9f0 0%, #e0f3e0 100%);
+}
+
+.positive-option:hover {
+  border-color: #4CAF50;
+}
+
+.problem-option {
+  background: linear-gradient(135deg, #fdf0f0 0%, #fbe0e0 100%);
+}
+
+.problem-option:hover {
+  border-color: #F44336;
+}
+
+.option-icon {
+  margin-bottom: 20px;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  font-size: 36px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.feedback-option:hover .option-icon {
+  transform: rotate(10deg) scale(1.1);
+}
+
+.positive-option .option-icon {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: white;
+}
+
+.problem-option .option-icon {
+  background: linear-gradient(135deg, #F44336, #EF5350);
+  color: white;
+}
+
+.option-content h4 {
+  font-size: 22px;
+  color: #1a3c2d;
+  margin-bottom: 10px;
+}
+
+.option-content p {
+  color: #5a7c6c;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Стили для списка работников */
+.problem-workers-form {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(44, 129, 97, 0.1);
+  margin-top: 30px;
+}
+
+.problem-workers-form h4 {
+  font-size: 22px;
+  color: #1a3c2d;
+  margin-bottom: 10px;
+}
+
+.problem-workers-form p {
+  color: #5a7c6c;
+  font-size: 17px;
+  margin-bottom: 25px;
+}
+
+.workers-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin: 25px 0;
+}
+
+.worker-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-radius: 15px;
+  cursor: pointer;
+  background: #f8fbfa;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.worker-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.worker-card.selected {
+  border-color: #2C8161;
+  background: rgba(44, 129, 97, 0.05);
+  box-shadow: 0 4px 15px rgba(44, 129, 97, 0.15);
+}
+
+.worker-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.worker-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #2C8161, #56BD66);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.worker-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initials {
+  font-weight: bold;
+  color: white;
+  font-size: 20px;
+}
+
+.worker-info-content h5 {
+  font-size: 18px;
+  color: #1a3c2d;
+  margin: 0 0 5px 0;
+}
+
+.worker-info-content p {
+  color: #5a7c6c;
+  font-size: 15px;
+  margin: 0;
+}
+
+.worker-check .checked {
+  color: #2C8161;
+  font-size: 24px;
+}
+
+.worker-check .unchecked {
+  color: #bdc3c7;
+  font-size: 24px;
+}
+
+.problem-description textarea {
+  width: 100%;
+  padding: 20px;
+  border-radius: 15px;
+  min-height: 150px;
+  margin-top: 15px;
+  resize: vertical;
+  border: 1px solid rgba(44, 129, 97, 0.2);
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: #f8fbfa;
+}
+
+.problem-description textarea:focus {
+  outline: none;
+  border-color: #2C8161;
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.cancel-button {
+  padding: 14px 30px;
+  background: #f8f9fa;
+  border: 1px solid #e0e3e6;
+  border-radius: 15px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #5a7c6c;
+  transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+  background: #f1f3f5;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.submit-button {
+  padding: 14px 30px;
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 15px rgba(44, 129, 97, 0.3);
+}
+
+.submit-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(44, 129, 97, 0.4);
+}
+
+.submit-button:disabled {
+  background: linear-gradient(to right, #bdc3c7, #95a5a6);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Адаптивность */
+@media (max-width: 992px) {
+  .notifications-page {
+    padding: 25px 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .notifications-header h1 {
+    font-size: 28px;
+  }
+  
+  .notification-header {
+    flex-wrap: wrap;
+  }
+  
+  .notification-time {
+    width: 100%;
+    padding-left: 80px;
+    margin-top: 10px;
+  }
+  
+  .feedback-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .notifications-page {
+    margin-top: 70px;
+    padding: 20px 10px;
+  }
+  
+  .notification-card {
+    padding: 20px;
+  }
+  
+  .notification-actions {
+    flex-direction: column;
+  }
+  
+  .notification-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .notification-header h3 {
+    font-size: 20px;
+  }
+  
+  .notification-body p {
+    font-size: 16px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .cancel-button,
+  .submit-button {
+    width: 100%;
+  }
+}
+
+/* Анимации для кнопок */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(44, 129, 97, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(44, 129, 97, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(44, 129, 97, 0); }
+}
+
+.unread .notification-icon {
+  animation: pulse 2s infinite;
+}
+
+/* Эффект параллакса */
+.notification-card {
+  perspective: 1000px;
+}
+
+.notification-card-inner {
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+
+.notification-card:hover .notification-card-inner {
+  transform: rotateY(5deg) rotateX(2deg);
+}
+
+/* Микровзаимодействия */
+.confirm-button:active,
+.reject-button:active,
+.chat-button:active,
+.view-job-button:active,
+.submit-button:active {
+  transform: translateY(2px) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Блок ошибок */
+.error-banner {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  background: #fdecea;
+  border-left: 4px solid #e74c3c;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.15);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.error-icon {
+  color: #e74c3c;
+  font-size: 24px;
+  margin-right: 15px;
+}
+
+.error-message {
+  flex: 1;
+  color: #c0392b;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.close-error {
+  background: none;
+  border: none;
+  color: #c0392b;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  transition: all 0.2s ease;
+}
+
+.close-error:hover {
+  transform: scale(1.2);
+}
+
+/* Модальные окна */
+.dispute-modal,
+.review-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: #1a3c2d;
+  font-size: 24px;
+}
+
+.modal-content p {
+  color: #5a7c6c;
+  margin-bottom: 20px;
+}
+
+.modal-content textarea {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #e0e6ed;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+  font-size: 16px;
+  margin-bottom: 20px;
+  transition: border-color 0.3s;
+}
+
+.modal-content textarea:focus {
+  outline: none;
+  border-color: #2C8161;
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Специфичные стили для модалки отзыва */
+.rating-section {
+  margin-bottom: 25px;
+}
+
+.stars {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.star-filled {
+  color: #FFC107;
+  cursor: pointer;
+}
+
+.star-empty {
+  color: #e0e6ed;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.star-empty:hover {
+  color: #FFC107;
+}
+
+.comment-section textarea {
+  min-height: 100px;
+}
+
+/* Индикатор загрузки */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+/* Нотификации для работников */
+.workers-loading {
+  text-align: center;
+  padding: 30px;
+}
+
+.workers-loading .loader {
+  margin: 0 auto 15px;
+}
+
+.workers-loading p {
+  color: #5a7c6c;
+}
