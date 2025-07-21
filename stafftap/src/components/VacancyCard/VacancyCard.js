@@ -1,3 +1,4 @@
+// VacancyCard.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,7 +11,7 @@ import {
   FiCheck
 } from "react-icons/fi";
 import axios from 'axios';
-import './VacancyCard.css';
+import styles from './VacancyCard.module.css'; // Импорт модульных стилей
 import API_BASE_URL from '../../apiConfig';
 
 const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
@@ -154,67 +155,72 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
   };
 
   return (
-    <div onClick={() => navigate(`/vacancy/${id}`)} className="vacancy-card">
-      <div className="card-header">
-        <div className="company-info">
-          <div className="company-logo">{company?.charAt(0) || 'C'}</div>
-          <div className="header-content">
+    <div 
+      onClick={() => navigate(`/vacancy/${id}`)} 
+      className={styles.vacancyCard}
+    >
+      <div className={styles.cardHeader}>
+        <div className={styles.companyInfo}>
+          <div className={styles.companyLogo}>
+            {company?.charAt(0) || 'C'}
+          </div>
+          <div className={styles.headerContent}>
             <h3>{title}</h3>
-            <div className="company-name">{company}</div>
+            <div className={styles.companyName}>{company}</div>
           </div>
         </div>
         <button
-          className={`favorite-btn ${isFavoriteLocal ? "active" : ""}`}
+          className={`${styles.favoriteBtn} ${isFavoriteLocal ? styles.active : ""}`}
           onClick={handleFavoriteClick}
           aria-label={isFavoriteLocal ? "Удалить из избранного" : "Добавить в избранное"}
         >
-          <FiHeart className="favorite-icon" />
+          <FiHeart className={styles.favoriteIcon} />
           {isFavoriteLocal && (
-            <FiHeart className="filled-heart" />
+            <FiHeart className={styles.filledHeart} />
           )}
         </button>
       </div>
 
-      <div className="card-content">
-        <p className="description">{description}</p>
+      <div className={styles.cardContent}>
+        <p className={styles.description}>{description}</p>
 
-        <div className="details-grid">
-          <div className="detail-item">
-            <FiMapPin className="icon" />
+        <div className={styles.detailsGrid}>
+          <div className={styles.detailItem}>
+            <FiMapPin className={styles.icon} />
             <span>
               {address} {distance && `(${distance} км)`}
             </span>
           </div>
 
-          <div className="detail-item">
-            <FiClock className="icon" />
+          <div className={styles.detailItem}>
+            <FiClock className={styles.icon} />
             <span>
               {formatDate(date)}, {startTime} - {endTime}
             </span>
           </div>
 
-          <div className="detail-item">
-            <FiDollarSign className="icon" />
+          <div className={styles.detailItem}>
+            <FiDollarSign className={styles.icon} />
             <span>{salary.toLocaleString()} ₽ за смену</span>
           </div>
 
-          <div className="detail-item">
-            <FiUser className="icon" />
+          <div className={styles.detailItem}>
+            <FiUser className={styles.icon} />
             <span>
               {profession} {experience && `• ${experience}`}
             </span>
           </div>
 
           {companyRating && (
-            <div className="detail-item">
-              <FiStar className="icon" />
+            <div className={styles.detailItem}>
+              <FiStar className={styles.icon} />
               <span>Рейтинг: {companyRating}</span>
             </div>
           )}
         </div>
 
         {requirements.length > 0 && (
-          <div className="requirements">
+          <div className={styles.requirements}>
             <strong>Требования:</strong>
             <ul>
               {requirements.map((req, index) => (
@@ -225,14 +231,14 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
         )}
         
         {applyError && (
-          <div className="apply-error">
+          <div className={styles.applyError}>
             {applyError}
           </div>
         )}
       </div>
 
-      <div className="card-footer">
-        <div className="workers-needed">
+      <div className={styles.cardFooter}>
+        <div className={styles.workersNeeded}>
           {remainingSlots > 0 ? (
             `Осталось мест: ${remainingSlots}/${workersNeeded}`
           ) : (
@@ -242,12 +248,12 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
         
         {role === "worker" ? (
           hasApplied ? (
-            <button className="apply-btn applied" disabled>
-              <FiCheck className="icon" /> Отправлено
+            <button className={`${styles.applyBtn} ${styles.applied}`} disabled>
+              <FiCheck className={styles.icon} /> Отправлено
             </button>
           ) : (
             <button
-              className={`apply-btn ${isApplying ? "sending" : ""}`}
+              className={`${styles.applyBtn} ${isApplying ? styles.sending : ""}`}
               onClick={handleApplyClick}
               disabled={isApplying || remainingSlots <= 0}
             >
@@ -255,7 +261,7 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
             </button>
           )
         ) : (
-          <button className={`apply-btn ${role === "employer" ? "employer" : ""}`}>
+          <button className={`${styles.applyBtn} ${role === "employer" ? styles.employer : ""}`}>
             {role === "worker" ? "Я готов!" : "Забронировать"}
           </button>
         )}

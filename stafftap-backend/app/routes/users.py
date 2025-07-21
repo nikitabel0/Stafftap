@@ -1,3 +1,4 @@
+from decimal import Decimal
 import os
 import uuid
 import shutil
@@ -12,7 +13,9 @@ from app.database import get_db
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.models.notification import Notification
 from app.models.user import User, UserRole
+from app.models.WithdrawalRequest import WithdrawalRequest
 from app.schemas.worker import WorkerAvailabilityOut, WorkerOut, WorkerSkillOut
 from typing import List
 from sqlalchemy.orm import selectinload  
@@ -24,7 +27,7 @@ from sqlalchemy import func
 from app.schemas.reviews import ReviewOut, ReviewResponse, ReviewCreate
 from app.schemas.user import (
     UserProfileResponse, SkillOut, AvailabilityOut,
-    AvailabilityInput, DocumentOut, VacancyOut,UserOut, UserUpdate
+    AvailabilityInput, DocumentOut, VacancyOut,UserOut, UserUpdate, WithdrawalRequestCreate, WithdrawalRequestOut
 )
 from app.dependencies import get_current_user
 
@@ -336,6 +339,73 @@ def get_user_reviews(id: int, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/withdraw", response_model=WithdrawalRequestOut)
+async def create_withdrawal_request(
+    withdrawal_data: WithdrawalRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Преобразуем float в Decimal
+    amount_decimal = Decimal(str(withdrawal_data.amount))
+    
+    if current_user.balance < amount_decimal:
+        raise HTTPException(status_code=400, detail="Недостаточно средств")
+    
+    if amount_decimal <= 0:
+        raise HTTPException(status_code=400, detail="Сумма должна быть положительной")
+
+    # Замораживаем средства
+    current_user.balance -= amount_decimal
+    current_user.frozen_balance = (current_user.frozen_balance or Decimal('0')) + amount_decimal
+
+    # Создаем запрос на вывод
+    withdrawal_request = WithdrawalRequest(
+        user_id=current_user.id,
+        amount=amount_decimal,
+        status="pending",
+        payment_method=withdrawal_data.payment_method,
+        wallet_address=withdrawal_data.wallet_address
+    )
+    
+    db.add(withdrawal_request)
+    db.commit()
+    db.refresh(withdrawal_request)
+    
+    # Уведомление администраторам
+    admins = db.query(User).filter(User.role == "admin").all()
+    for admin in admins:
+        admin_notification = Notification(
+            user_id=admin.id,
+            type="new_withdrawal_request",
+            title="Новая заявка на вывод средств",
+            message=f"Пользователь {current_user.email} подал заявку на вывод {amount_decimal} руб.",
+            related_id=withdrawal_request.id
+        )
+        db.add(admin_notification)
+    
+    # Уведомление пользователю
+    user_notification = Notification(
+        user_id=current_user.id,
+        type="withdrawal_requested",
+        title="Заявка на вывод создана",
+        message=f"Ваша заявка на вывод {amount_decimal} руб. принята в обработку",
+        related_id=withdrawal_request.id
+    )
+    db.add(user_notification)
+    
+    db.commit()
+    
+    return withdrawal_request
+
+@router.get("/withdraw", response_model=List[WithdrawalRequestOut])
+def get_my_withdrawal_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return db.query(WithdrawalRequest).filter(
+        WithdrawalRequest.user_id == current_user.id
+    ).order_by(WithdrawalRequest.created_at.desc()).all()
+    
 @router.post("/{id}/documents")
 def upload_document(
     id: int,

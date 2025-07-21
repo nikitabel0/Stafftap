@@ -1,3 +1,4 @@
+/* Header.module.css */
 .header {
   position: fixed;
   top: 0;
@@ -159,6 +160,11 @@
   font-size: 18px;
 }
 
+.settingsBtn.active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px);
+}
+
 .settingsBtn:hover, .logoutBtn:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: translateY(-3px);
@@ -230,12 +236,11 @@
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes slideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+.mobileMenu.open {
+  transform: translateX(0);
 }
 
 .mobileMenuHeader {
@@ -283,6 +288,10 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.menuItem.active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .menuItem:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateX(10px);
@@ -321,6 +330,16 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Анимация бейджа */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.notificationBadge {
+  animation: bounce 0.5s ease-in-out 2;
+}
+
 @media (max-width: 768px) {
   .desktopNav, .userActions {
     display: none;
@@ -329,10 +348,44 @@
   .header {
     padding: 12px 15px;
   }
+  
+  .logo {
+    font-size: 24px;
+  }
 }
 
 @media (min-width: 769px) {
   .mobileNavBar, .menuToggle, .mobileMenu {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 10px 12px;
+  }
+  
+  .logo {
+    font-size: 22px;
+  }
+  
+  .mobileNavBar {
+    padding: 8px 3%;
+  }
+  
+  .navLabel {
+    font-size: 10px;
+  }
+  
+  .menuItems {
+    gap: 15px;
+  }
+  
+  .menuItem {
+    padding: 14px 16px;
+  }
+  
+  .menuLabel {
+    font-size: 16px;
   }
 }

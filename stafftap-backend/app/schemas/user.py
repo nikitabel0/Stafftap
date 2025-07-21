@@ -79,6 +79,37 @@ class UserUpdate(BaseModel):
         if isinstance(value, str):
             return date.fromisoformat(value)
         return value
+    
+
+class WithdrawalRequestCreate(BaseModel):
+    amount: float
+    payment_method: str
+    wallet_address: str
+
+class BasicUserOut(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    avatar_url: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+class WithdrawalRequestOut(BaseModel):
+    id: int
+    user_id: int
+    amount: float
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    admin_comment: Optional[str] = None
+    payment_method: str
+    wallet_address: str
+    user: BasicUserOut  # Добавлено поле пользователя
+
+    class Config:
+        orm_mode = True
 
 class DocumentOut(BaseModel):
     id: int

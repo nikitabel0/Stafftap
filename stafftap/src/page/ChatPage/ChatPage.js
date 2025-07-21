@@ -1,7 +1,8 @@
+// ChatPage.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiSend, FiChevronLeft, FiMoreVertical } from "react-icons/fi";
+import { FiSend, FiChevronLeft, FiMoreVertical, FiImage, FiSmile } from "react-icons/fi";
 import "./ChatPage.css";
 import API_BASE_URL from "../../apiConfig";
 
@@ -20,27 +21,18 @@ const ChatPage = ({ user }) => {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   const ws = useRef(null);
+  const [isOnline, setIsOnline] = useState(false);
 
-  // Функция для генерации красивой аватарки по имени
+  // Генерация аватарки по имени
   const generateAvatar = useCallback((name) => {
     const colors = [
-      "#FF6B6B",
-      "#4ECDC4",
-      "#45B7D1",
-      "#FFA07A",
-      "#98D8C8",
-      "#2C8161",
-      "#56BD66",
+      "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", 
+      "#98D8C8", "#2C8161", "#56BD66", "#9C89B8"
     ];
     const char = name.charAt(0).toUpperCase();
-    const colorIndex =
-      [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0) %
-      colors.length;
+    const colorIndex = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0) % colors.length;
     return (
-      <div
-        className="avatar-placeholder"
-        style={{ backgroundColor: colors[colorIndex] }}
-      >
+      <div className="avatar-placeholder" style={{ backgroundColor: colors[colorIndex] }}>
         {char}
       </div>
     );
@@ -49,15 +41,13 @@ const ChatPage = ({ user }) => {
   useEffect(() => {
     const fetchChatData = async () => {
       try {
+        setIsLoading(true);
         const token = localStorage.getItem("token");
 
-        // Загрузка информации о чате и собеседнике
-        const chatRes = await axios.get(
-          ` ${API_BASE_URL}/api/chats/${chatId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        // Загрузка информации о чате
+        const chatRes = await axios.get(`${API_BASE_URL}/api/chats/${chatId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         const chatData = chatRes.data;
         setInterlocutor({
@@ -68,50 +58,43 @@ const ChatPage = ({ user }) => {
         });
 
         // Загрузка сообщений
-        const messagesRes = await axios.get(
-          ` ${API_BASE_URL}/api/chats/${chatId}/messages`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const messagesRes = await axios.get(`${API_BASE_URL}/api/chats/${chatId}/messages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setMessages(messagesRes.data);
-
-        setIsLoading(false);
-        scrollToBottom();
-
+        
         // Подключение к WebSocket
-        const connectWebSocket = () => {
-            ws.current = new WebSocket(`ws://${API_BASE_URL}/api/chats/ws/${user.id}`);
-
-          
-          ws.current.onopen = () => {
-            console.log("WebSocket connected");
-          };
-
-          ws.current.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            if (message.chat_id === parseInt(chatId)) {
-              setMessages((prev) => [...prev, message]);
-              scrollToBottom();
-            }
-          };
-
-          ws.current.onerror = (error) => {
-            console.error("WebSocket error:", error);
-            // Переподключение через 5 секунд
-            setTimeout(() => connectWebSocket(), 5000);
-          };
-
-          ws.current.onclose = () => {
-            console.log("WebSocket disconnected");
-          };
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/api/chats/ws/${user.id}`;
+        ws.current = new WebSocket(wsUrl);
+        
+        ws.current.onopen = () => {
+          console.log("WebSocket connected");
+          setIsOnline(true);
         };
 
-        connectWebSocket();
+        ws.current.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.chat_id === parseInt(chatId)) {
+            setMessages(prev => [...prev, message]);
+          }
+        };
+
+        ws.current.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          setIsOnline(false);
+        };
+
+        ws.current.onclose = () => {
+          console.log("WebSocket disconnected");
+          setIsOnline(false);
+        };
+
       } catch (error) {
         console.error("Ошибка при загрузке чата:", error);
-        setIsLoading(false);
         alert("Не удалось загрузить чат. Попробуйте позже.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -122,7 +105,7 @@ const ChatPage = ({ user }) => {
         ws.current.close();
       }
     };
-  }, [chatId, user.id, generateAvatar]);
+  }, [chatId, user.id]);
 
   // Автоматическая прокрутка к последнему сообщению
   useEffect(() => {
@@ -137,12 +120,11 @@ const ChatPage = ({ user }) => {
     if (!newMessage.trim() || isSending) return;
 
     let tempMessage;
-
     try {
       setIsSending(true);
       const token = localStorage.getItem("token");
 
-      // Создаем временное сообщение
+      // Временное сообщение
       tempMessage = {
         id: `temp-${Date.now()}`,
         chat_id: parseInt(chatId),
@@ -153,33 +135,27 @@ const ChatPage = ({ user }) => {
         is_temp: true,
       };
 
-      setMessages((prev) => [...prev, tempMessage]);
+      setMessages(prev => [...prev, tempMessage]);
       setNewMessage("");
-      scrollToBottom();
 
-      // Отправка сообщения через API
+      // Отправка на сервер
       const response = await axios.post(
-        ` ${API_BASE_URL}/api/chats/${chatId}/messages`,
+        `${API_BASE_URL}/api/chats/${chatId}/messages`,
         { content: newMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Заменяем временное сообщение на постоянное
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === tempMessage.id ? { ...response.data, is_temp: false } : msg
-        )
-      );
+      // Замена временного сообщения
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempMessage.id ? { ...response.data, is_temp: false } : msg
+      ));
     } catch (error) {
-      console.error("Ошибка при отправке сообщения:", error);
+      console.error("Ошибка при отправке:", error);
       if (tempMessage) {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempMessage.id ? { ...msg, error: true } : msg
-          )
-        );
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempMessage.id ? { ...msg, error: true } : msg
+        ));
       }
-      alert("Не удалось отправить сообщение. Проверьте соединение.");
     } finally {
       setIsSending(false);
     }
@@ -193,18 +169,12 @@ const ChatPage = ({ user }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const today = new Date();
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Сегодня";
-    }
-
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === yesterday.toDateString()) {
-      return "Вчера";
-    }
-
+    if (date.toDateString() === today.toDateString()) return "Сегодня";
+    if (date.toDateString() === yesterday.toDateString()) return "Вчера";
+    
     return date.toLocaleDateString("ru-RU", {
       day: "numeric",
       month: "long",
@@ -220,8 +190,6 @@ const ChatPage = ({ user }) => {
       return groups;
     }, {});
   };
-
-  const groupedMessages = groupMessagesByDate();
 
   return (
     <div className="chat-page">
@@ -243,15 +211,19 @@ const ChatPage = ({ user }) => {
 
         <div className="interlocutor-info">
           <h2>{interlocutor.name}</h2>
-          <p className="status">
-            <span className={`status-dot ${interlocutor.status}`}></span>
-            {interlocutor.status === "online" ? "В сети" : "Не в сети"}
-          </p>
+     
         </div>
 
-        <button className="menu-button">
-          <FiMoreVertical size={20} />
-        </button>
+        <div className="connection-status">
+          {isOnline ? (
+            <div className="online-indicator">Online</div>
+          ) : (
+            <div className="offline-indicator">Offline</div>
+          )}
+          <button className="menu-button">
+            <FiMoreVertical size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="messages-container">
@@ -260,7 +232,7 @@ const ChatPage = ({ user }) => {
             <div className="loader"></div>
             <p>Загрузка сообщений...</p>
           </div>
-        ) : Object.keys(groupedMessages).length === 0 ? (
+        ) : messages.length === 0 ? (
           <div className="no-messages">
             <div className="no-messages-icon">
               <div className="icon-wrapper">
@@ -271,7 +243,7 @@ const ChatPage = ({ user }) => {
             <p>Отправьте первое сообщение {interlocutor.name}</p>
           </div>
         ) : (
-          Object.entries(groupedMessages).map(([date, messages]) => (
+          Object.entries(groupMessagesByDate()).map(([date, messages]) => (
             <div key={date} className="message-group">
               <div className="date-divider">
                 <span>{formatDate(date)}</span>
@@ -282,7 +254,7 @@ const ChatPage = ({ user }) => {
                   key={message.id}
                   className={`message ${
                     message.sender_id === user.id ? "sent" : "received"
-                  }`}
+                  } ${message.is_temp ? "temp" : ""}`}
                 >
                   <div className="message-content">
                     <div className="message-text">
@@ -309,7 +281,9 @@ const ChatPage = ({ user }) => {
         )}
         <div ref={messagesEndRef} />
       </div>
+      
       <div className="message-input-container">
+        
         <div className="input-wrapper">
           <input
             type="text"

@@ -1,9 +1,10 @@
+// FilterPanel.jsx
 import React, { useState } from 'react';
 import { FiFilter, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import './FilterPanel.css';
+import styles from './FilterPanel.module.css';
 
-const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
+const FilterPanel = ({ filters, onFilterChange, onClose }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
   
@@ -41,28 +42,40 @@ const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
     if (isExpanded && onClose) onClose();
   };
 
+  const activeFiltersCount = Object.values(filters).filter(val => val !== '').length;
+
   return (
-    <div className={`filter-panel ${isExpanded ? 'expanded' : ''}`}>
-      <div className="filter-header" onClick={handleExpand}>
-        <FiFilter className="filter-icon" />
+    <div className={styles.container}>
+      <div 
+        className={`${styles.filterHeader} ${isExpanded ? styles.active : ''}`}
+        onClick={handleExpand}
+      >
+        <FiFilter className={styles.filterIcon} />
         <span>Фильтры</span>
-        <div className="active-filters-count">
-          {Object.values(filters).filter(val => val !== '').length}
-        </div>
+        {activeFiltersCount > 0 && (
+          <div className={styles.activeFiltersCount}>
+            {activeFiltersCount}
+          </div>
+        )}
       </div>
       
       {isExpanded && (
-        <div className="filter-content">
-          <button className="close-filters" onClick={handleExpand}>
+        <div className={styles.filterContent}>
+          <button 
+            className={styles.closeFilters} 
+            onClick={handleExpand}
+            aria-label="Закрыть фильтры"
+          >
             <FiX />
           </button>
           
-          <div className="filter-group">
+          <div className={styles.filterGroup}>
             <label>Профессия</label>
             <select 
               name="profession" 
               value={localFilters.profession}
               onChange={handleInputChange}
+              className={styles.select}
             >
               <option value="">Все профессии</option>
               {professions.map(prof => (
@@ -71,7 +84,7 @@ const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
             </select>
           </div>
           
-          <div className="filter-group">
+          <div className={styles.filterGroup}>
             <label>Дата</label>
             <input 
               type="date" 
@@ -81,18 +94,18 @@ const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
                 const selectedDate = e.target.value;
                 const today = new Date().toISOString().split('T')[0];
                 
-                // Проверка, что выбранная дата не раньше сегодня
                 if (selectedDate < today) {
                   toast.error("Нельзя выбирать прошедшие даты");
                   return;
                 }
                 handleInputChange(e);
               }}
-              min={new Date().toISOString().split('T')[0]} // устанавливаем минимальную дату - сегодня
+              min={new Date().toISOString().split('T')[0]}
+              className={styles.input}
             />
           </div>
           
-          <div className="filter-group">
+          <div className={styles.filterGroup}>
             <label>Минимальная ставка (₽)</label>
             <input 
               type="number" 
@@ -101,10 +114,11 @@ const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
               value={localFilters.minRate}
               onChange={handleInputChange}
               min="0"
+              className={styles.input}
             />
           </div>
           
-          <div className="filter-group">
+          <div className={styles.filterGroup}>
             <label>Макс. расстояние (км)</label>
             <input 
               type="number" 
@@ -114,14 +128,21 @@ const FilterPanel = ({ filters, onFilterChange, role, onClose }) => {
               onChange={handleInputChange}
               min="0"
               step="0.1"
+              className={styles.input}
             />
           </div>
           
-          <div className="filter-actions">
-            <button className="reset-btn" onClick={resetFilters}>
+          <div className={styles.filterActions}>
+            <button 
+              className={styles.resetBtn} 
+              onClick={resetFilters}
+            >
               Сбросить
             </button>
-            <button className="apply-btn" onClick={applyFilters}>
+            <button 
+              className={styles.applyBtn} 
+              onClick={applyFilters}
+            >
               Применить
             </button>
           </div>

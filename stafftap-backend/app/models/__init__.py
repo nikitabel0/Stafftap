@@ -8,7 +8,7 @@ from .jobs import Job
 from .bookings import Booking
 from .availability import WorkerAvailability
 from .transactions import Transaction
-from .withdrawal_requests import WithdrawalRequest
+from .WithdrawalRequest import WithdrawalRequest
 from .chats import Chat, Message
 from .employer_documents import EmployerDocument
 from .disputes import Dispute

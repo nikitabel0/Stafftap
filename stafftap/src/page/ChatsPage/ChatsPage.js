@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FiMessageSquare, FiSearch } from "react-icons/fi";
-import "./ChatsPage.css";
+import styles from './ChatsPage.module.css';
 import API_BASE_URL from '../../apiConfig';
 
 const ChatsPage = ({ user }) => {
@@ -60,42 +60,40 @@ const ChatsPage = ({ user }) => {
   );
 
   return (
-    <div className="chats-page">
-      <div className="chats-header" ref={headerRef}>
-        <div className="header-content">
-          <h1>Чаты</h1>
-          <div className="search-container">
-            <div className="search-bar">
-              <FiSearch className="search-icon" />
-              <input
-                type="text"
-                placeholder="Поиск собеседников..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-            </div>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader} ref={headerRef}>
+        <h1>Чаты</h1>
+        <div className={styles.searchContainer}>
+          <div className={styles.searchBar}>
+            <FiSearch className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Поиск собеседников..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.searchInput}
+            />
           </div>
         </div>
       </div>
 
-      <div className="chats-content">
+      <div className={styles.chatsContent}>
         {isLoading ? (
-          <div className="loading-container">
-            <div className="loader"></div>
+          <div className={styles.loadingContainer}>
+            <div className={styles.loader}></div>
             <p>Загрузка чатов...</p>
           </div>
         ) : (
-          <div className="chats-list">
+          <div className={styles.chatsList}>
             {filteredChats.length > 0 ? (
               filteredChats.map((chat) => (
                 <div
                   key={chat.id}
-                  className="chat-item"
+                  className={styles.chatItem}
                   onClick={() => navigate(`/chats/${chat.id}`)}
                 >
-                  <div className="avatar-container">
-                    <div className="avatar-placeholder">
+                  <div className={styles.avatarContainer}>
+                    <div className={styles.avatarPlaceholder}>
                       {chat.interlocutor_name
                         .split(" ")
                         .map((n) => n[0])
@@ -103,31 +101,31 @@ const ChatsPage = ({ user }) => {
                     </div>
                   </div>
 
-                  <div className="message-info">
-                    <div className="sender-row">
-                      <div className="sender-name">
+                  <div className={styles.messageInfo}>
+                    <div className={styles.senderRow}>
+                      <div className={styles.senderName}>
                         {chat.interlocutor_name}
                       </div>
-                      <div className="message-time">
+                      <div className={styles.messageTime}>
                         {formatDate(chat.last_message_time)} •{" "}
                         {formatTime(chat.last_message_time)}
                       </div>
                     </div>
 
-                    <div className="preview-row">
-                      <div className="message-preview">
+                    <div className={styles.previewRow}>
+                      <div className={styles.messagePreview}>
                         {chat.last_message || "Нет сообщений"}
                       </div>
                       {chat.unread_count > 0 && (
-                        <div className="unread-count">{chat.unread_count}</div>
+                        <div className={styles.unreadCount}>{chat.unread_count}</div>
                       )}
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="no-chats">
-                <div className="no-chats-icon">
+              <div className={styles.noChats}>
+                <div className={styles.noChatsIcon}>
                   <FiMessageSquare size={48} />
                 </div>
                 <h3>Нет чатов</h3>

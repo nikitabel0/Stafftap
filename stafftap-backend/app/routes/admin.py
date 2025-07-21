@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
 from app.models import Notification
+from app.models import WithdrawalRequest
 from app.database import get_db
 from app.models import User, Job, EmployerDocument, Booking, Dispute, FrozenFunds
 from app.schemas.job import JobOut
@@ -12,6 +13,7 @@ from app.schemas.Document import DocumentResponse, DocumentStatusUpdate
 from app.dependencies import get_current_user
 from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased
+from app.schemas.user import  WithdrawalRequestOut
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -457,6 +459,65 @@ def get_disputes_for_admin(
 
     return disputes
 
+
+@router.get("/withdrawals", response_model=List[WithdrawalRequestOut])
+def get_withdrawal_requests(
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    query = db.query(WithdrawalRequest).options(joinedload(WithdrawalRequest.user))
+    
+    if status:
+        query = query.filter(WithdrawalRequest.status == status)
+    
+    return query.order_by(WithdrawalRequest.created_at.desc()).all()
+
+@router.patch("/withdrawals/{request_id}")
+def update_withdrawal_request_status(
+    request_id: int,
+    status: str = Body(..., embed=True),
+    admin_comment: Optional[str] = Body(None, embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    if status not in ["paid", "rejected"]:
+        raise HTTPException(status_code=400, detail="Недопустимый статус")
+
+    withdrawal_request = db.query(WithdrawalRequest).options(joinedload(WithdrawalRequest.user)).get(request_id)
+    if not withdrawal_request:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+
+    user = withdrawal_request.user
+    amount_decimal = withdrawal_request.amount  # Уже Decimal
+    
+    # Обновляем статус
+    withdrawal_request.status = status
+    withdrawal_request.admin_comment = admin_comment
+    withdrawal_request.processed_at = datetime.utcnow()
+
+    if status == "paid":
+        # Списание замороженных средств
+        user.frozen_balance -= amount_decimal
+    elif status == "rejected":
+        # Возврат средств на баланс
+        user.frozen_balance -= amount_decimal
+        user.balance += amount_decimal
+
+    # Создаем уведомление пользователю
+    notification = Notification(
+        user_id=withdrawal_request.user_id,
+        type="withdrawal_status",
+        title=f"Заявка на вывод {amount_decimal} руб. {status}",
+        message=f"Статус вашей заявки на вывод изменен на {status}." + 
+                (f" Комментарий: {admin_comment}" if admin_comment else ""),
+        related_id=withdrawal_request.id
+    )
+    
+    db.add(notification)
+    db.commit()
+    
+    return {"status": "updated"}
 @router.post("/disputes/{dispute_id}/resolve")
 def resolve_dispute(
     dispute_id: int,

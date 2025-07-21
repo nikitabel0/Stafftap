@@ -23,6 +23,7 @@ import {
   FiSearch,
   FiUpload,
   FiType,
+  FiDollarSign,
 } from "react-icons/fi";
 import {
   BarChart,
@@ -46,6 +47,8 @@ import API_BASE_URL from "../../apiConfig";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AdminDisputesManagement from "../../components/AdminDisputesManagement/AdminDisputesManagement";
+import WithdrawModal from "../../components/WithdrawModal/WithdrawModal";
+import AdminWithdrawalsManagement from "../../components/AdminWithdrawalsManagement/AdminWithdrawalsManagement";
 
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
@@ -1334,26 +1337,32 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   const [employerJobs, setEmployerJobs] = useState([]);
   const [workerBookings, setWorkerBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-    const [reviews, setReviews] = useState({
+  const [reviews, setReviews] = useState({
     rating: 0,
     reviews_count: 0,
-    reviews: []
+    reviews: [],
   });
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawalRequests, setWithdrawalRequests] = useState([]);
+  const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false);
 
   const loadUserReviews = async (userId) => {
     setIsLoadingReviews(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/users/${userId}/reviews`);
+      const response = await axios.get(
+        `${API_BASE_URL}/api/users/${userId}/reviews`
+      );
       setReviews(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки отзывов:', error);
-      toast.error('Не удалось загрузить отзывы');
+      console.error("Ошибка загрузки отзывов:", error);
+      toast.error("Не удалось загрузить отзывы");
     } finally {
       setIsLoadingReviews(false);
     }
   };
-   useEffect(() => {
+
+  useEffect(() => {
     if (activeTab === "reviews" && user?.id) {
       loadUserReviews(user.id);
     }
@@ -1387,6 +1396,30 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       }
     }
   }, [user]);
+
+  const loadWithdrawalRequests = async () => {
+    setIsLoadingWithdrawals(true);
+    try {
+      const token = getAuthToken();
+      const response = await axios.get(`${API_BASE_URL}/api/users/withdraw`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setWithdrawalRequests(response.data);
+    } catch (error) {
+      console.error("Ошибка загрузки заявок:", error);
+      toast.error("Не удалось загрузить историю выводов");
+    } finally {
+      setIsLoadingWithdrawals(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "withdrawals" && user?.id) {
+      loadWithdrawalRequests();
+    }
+  }, [activeTab, user]);
 
   const loadEmployerJobs = async (employerId) => {
     setIsLoading(true);
@@ -1522,6 +1555,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     setErrors(newErrors);
     return isValid;
   };
+
   useEffect(() => {
     const fetchSkills = async () => {
       try {
@@ -1541,7 +1575,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     try {
       const token = getAuthToken();
       const response = await axios.post(
-         `${API_BASE_URL}/api/users/skills/create`,
+        `${API_BASE_URL}/api/users/skills/create`,
         { name },
         {
           headers: {
@@ -1558,6 +1592,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       throw error;
     }
   };
+  
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1863,7 +1898,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           {!isAdmin && (
             <div className="balance-info">
               <span>Баланс: {formatBalance(currentProfile.balance)} ₽</span>
-              <button className="withdraw-btn">Вывести средства</button>
+              <button
+                className="withdraw-btn"
+                onClick={() => setIsWithdrawModalOpen(true)}
+              >
+                Вывести средства
+              </button>
             </div>
           )}
         </div>
@@ -1951,6 +1991,14 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             >
               <FiFile /> Документы
             </button>
+            <button
+              className={`tab-btn ${
+                activeTab === "admin-withdrawals" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("admin-withdrawals")}
+            >
+              <FiDollarSign /> Заявки на вывод
+            </button>
           </>
         ) : (
           <>
@@ -1964,15 +2012,27 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 Доступность
               </button>
             )}
-                 {currentProfile.role === "employer" && (
-        <button
-          className={`tab-btn ${activeTab === "vacancies" ? "active" : ""}`}
-          onClick={() => setActiveTab("vacancies")}
-        >
-          Мои вакансии
-        </button>
-      )}
+            {currentProfile.role === "employer" && (
+              <button
+                className={`tab-btn ${
+                  activeTab === "vacancies" ? "active" : ""
+                }`}
+                onClick={() => setActiveTab("vacancies")}
+              >
+                Мои вакансии
+              </button>
+            )}
           </>
+        )}
+        
+        {/* Вкладка "Мои выводы" только для обычных пользователей */}
+        {!isAdmin && (
+          <button
+            className={`tab-btn ${activeTab === "withdrawals" ? "active" : ""}`}
+            onClick={() => setActiveTab("withdrawals")}
+          >
+            <FiDollarSign /> Мои выводы
+          </button>
         )}
         
         <button
@@ -1984,6 +2044,69 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       </div>
 
       <div className="profile-content">
+        {/* Управление заявками для администратора */}
+        {isAdmin && activeTab === "admin-withdrawals" && (
+          <AdminWithdrawalsManagement />
+        )}
+
+        {/* Просмотр заявок пользователя */}
+        {!isAdmin && activeTab === "withdrawals" && (
+          <div className="section" title="Мои заявки на вывод">
+            {isLoadingWithdrawals ? (
+              <div className="loading">
+                <div className="loader"></div>
+                <p>Загрузка истории выводов...</p>
+              </div>
+            ) : withdrawalRequests.length > 0 ? (
+              <div className="withdrawal-requests">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Дата</th>
+                      <th>Сумма</th>
+                      <th>Способ</th>
+                      <th>Статус</th>
+                      <th>Комментарий</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {withdrawalRequests.map((request) => (
+                      <tr key={request.id}>
+                        <td>{new Date(request.created_at).toLocaleString()}</td>
+                        <td>{request.amount} ₽</td>
+                        <td>
+                          {request.payment_method === 'bank_card' && 'Банковская карта'}
+                          {request.payment_method === 'sbp' && 'СБП'}
+                          {request.payment_method === 'yoomoney' && 'ЮMoney'}
+                          {request.payment_method === 'qiwi' && 'QIWI'}
+                          {request.payment_method === 'crypto' && 'Криптовалюта'}
+                        </td>
+                        <td className={`status-${request.status}`}>
+                          {request.status === "pending" && "⏳ На рассмотрении"}
+                          {request.status === "paid" && "✅ Оплачено"}
+                          {request.status === "rejected" && "❌ Отклонено"}
+                        </td>
+                        <td>{request.admin_comment || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="no-withdrawals">
+                <FiDollarSign className="icon" />
+                <p>У вас пока нет заявок на вывод средств</p>
+                <button
+                  className="create-withdrawal-btn"
+                  onClick={() => setIsWithdrawModalOpen(true)}
+                >
+                  Создать заявку на вывод
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "info" && (
           <>
             <div className="section" title="Основная информация">
@@ -2239,27 +2362,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                     />
                   )}
                 </div>
-
-                {/* <div className="section" title="Рейтинг и отзывы">
-                  <div className="rating-container">
-                    <div className="rating-value">
-                      {safeFormatNumber(currentProfile.rating)}
-                    </div>
-                    <div className="stars">
-                      {"★".repeat(Math.floor(currentProfile.rating || 0))}
-                      {"☆".repeat(5 - Math.floor(currentProfile.rating || 0))}
-                    </div>
-                    <div className="reviews-count">
-                      {currentProfile.reviews_count || 0} отзывов
-                    </div>
-                  </div>
-                  <button
-                    className="view-reviews-btn"
-                    onClick={() => setActiveTab("reviews")}
-                  >
-                    Посмотреть все отзывы
-                  </button>
-                </div> */}
               </>
             )}
           </>
@@ -2364,9 +2466,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         {activeTab === "reviews" && (
           <div className="section" title="Отзывы">
             <div className="reviews-summary">
-              <div className="rating-value">
-                {reviews.rating.toFixed(1)}
-              </div>
+              <div className="rating-value">{reviews.rating.toFixed(1)}</div>
               <div className="stars">
                 {"★".repeat(Math.floor(reviews.rating))}
                 {"☆".repeat(5 - Math.floor(reviews.rating))}
@@ -2383,7 +2483,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
               </div>
             ) : reviews.reviews.length > 0 ? (
               <div className="reviews-list">
-                {reviews.reviews.map(review => (
+                {reviews.reviews.map((review) => (
                   <div key={review.id} className="review-card">
                     <div className="review-header">
                       <div className="review-author">{review.author}</div>
@@ -2392,7 +2492,9 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                         {"☆".repeat(5 - review.rating)}
                       </div>
                       <div className="review-date">
-                        {new Date(review.created_at).toLocaleDateString("ru-RU")}
+                        {new Date(review.created_at).toLocaleDateString(
+                          "ru-RU"
+                        )}
                       </div>
                     </div>
                     {review.comment && (
@@ -2428,6 +2530,14 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         onClose={() => setIsDocumentModalOpen(false)}
         onUpload={handleUploadDocument}
       />
+
+      {isWithdrawModalOpen && (
+        <WithdrawModal
+          user={user}
+          onClose={() => setIsWithdrawModalOpen(false)}
+          onWithdrawSuccess={loadWithdrawalRequests}
+        />
+      )}
     </div>
   );
 };

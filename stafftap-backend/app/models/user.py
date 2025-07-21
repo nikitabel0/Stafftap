@@ -41,7 +41,9 @@ class User(Base):
         back_populates="user", 
         cascade="all, delete-orphan"
     )
-    
+
+    frozen_balance = Column(Numeric(10, 2), default=0.0)
+    withdrawal_requests = relationship("WithdrawalRequest", back_populates="user")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     skills = relationship("Skill", secondary="user_skills", back_populates="users")
     availability = relationship("WorkerAvailability", back_populates="worker", cascade="all, delete-orphan")

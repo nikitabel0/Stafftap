@@ -1,21 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
+// Header.js
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { 
-  FiHome, 
-  FiHeart, 
-  FiMessageSquare, 
-  FiUser, 
-  FiBell, 
-  FiSearch, 
-  FiX,
-  FiSettings,
-  FiLogOut
+  FiHome, FiHeart, FiMessageSquare, FiUser, 
+  FiBell, FiSearch, FiX, FiSettings, FiLogOut 
 } from "react-icons/fi";
-import styles from './Header.module.css'; // Используем модульный CSS
+import styles from './Header.module.css';
 import API_BASE_URL from '../../apiConfig';
 
 const Header = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Переносим все хуки в начало
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeTab, setActiveTab] = useState("feed");
@@ -24,15 +22,18 @@ const Header = () => {
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   
   const wsRef = useRef(null);
-  const location = useLocation();
-  const navigate = useNavigate();
+  const isMountedRef = useRef(true);
+  
+  // Проверка пути для скрытия хедера
+  const shouldHideHeader = location.pathname.startsWith('/chats/');
   
   const isHomePage = location.pathname === "/";
   
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-      if (window.innerWidth > 768) setIsMenuOpen(false);
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsMenuOpen(false);
     };
     
     window.addEventListener("resize", handleResize);
@@ -52,31 +53,34 @@ const Header = () => {
     else if (path.includes("/chats")) setActiveTab("chats");
     else if (path.includes("/profile")) setActiveTab("profile");
     else if (path.includes("/notifications")) setActiveTab("notifications");
+    else if (path.includes("/settings")) setActiveTab("settings");
   }, [location]);
 
-  const getCurrentUserId = () => {
+  const getCurrentUserId = useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) return null;
     
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const payload = JSON.parse(window.atob(base64));
+      const text = window.atob(base64);
+      const payload = JSON.parse(decodeURIComponent(escape(text)));
       return payload.sub;
     } catch (e) {
       console.error('Failed to parse user ID', e);
       return null;
     }
-  };
+  }, []);
 
-  const connectWebSocket = () => {
+  const connectWebSocket = useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
     
     const userId = getCurrentUserId();
     if (!userId) return;
     
-    const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/api/chats/ws?token=${token}`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/api/chats/ws?token=${token}`;
     wsRef.current = new WebSocket(wsUrl);
     
     wsRef.current.onopen = () => {
@@ -84,11 +88,13 @@ const Header = () => {
     };
     
     wsRef.current.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      console.log('WebSocket message:', message);
-      
-      if (message.type === 'chat_unread_update') {
-        setChatUnreadCount(message.count);
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'chat_unread_update' && isMountedRef.current) {
+          setChatUnreadCount(message.count);
+        }
+      } catch (e) {
+        console.error('WebSocket message error:', e);
       }
     };
     
@@ -97,63 +103,81 @@ const Header = () => {
     };
     
     wsRef.current.onclose = () => {
-      console.log('WebSocket disconnected. Reconnecting in 5 seconds...');
+      if (!isMountedRef.current) return;
+      console.log('WebSocket disconnected. Reconnecting...');
       setTimeout(connectWebSocket, 5000);
     };
-  };
+  }, [getCurrentUserId]);
 
-  const fetchCounts = async () => {
+  const fetchCounts = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      if (token) {
-        // Уведомления
-        const notificationsResponse = await axios.get(
-          `${API_BASE_URL}/api/notifications/unread-count`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setNotificationCount(notificationsResponse.data.count);
-        
-        // Непрочитанные сообщения
-        const chatsResponse = await axios.get(
-          `${API_BASE_URL}/api/chats/unread-total`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setChatUnreadCount(chatsResponse.data.total_unread);
+      if (!token) return;
+      
+      const [notifications, chats] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/notifications/unread-count`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_BASE_URL}/api/chats/unread-total`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      
+      if (isMountedRef.current) {
+        setNotificationCount(notifications.data.count);
+        setChatUnreadCount(chats.data.total_unread);
       }
     } catch (error) {
       console.error('Ошибка при загрузке данных:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Не выполняем запросы, если хедер скрыт
+    if (shouldHideHeader) return;
+    
     fetchCounts();
     connectWebSocket();
     
-    // Периодическая проверка каждые 30 секунд
     const intervalId = setInterval(fetchCounts, 30000);
     
     return () => {
+      isMountedRef.current = false;
       clearInterval(intervalId);
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, []);
+  }, [fetchCounts, connectWebSocket, shouldHideHeader]);
 
-  const navigateTo = (path) => {
+  const navigateTo = useCallback((path) => {
     navigate(path);
-    setActiveTab(path.split("/")[1]);
+    setActiveTab(path.split("/")[1] || "");
     if (isMobile) setIsMenuOpen(false);
-  };
+  }, [navigate, isMobile]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
+    setNotificationCount(0);
+    setChatUnreadCount(0);
+    
     if (wsRef.current) {
       wsRef.current.close();
     }
+    
     navigate('/login');
-  };
+  }, [navigate]);
 
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
+  // Возвращаем null после всех хуков
+  if (shouldHideHeader) {
+    return null;
+  }
   return (
     <>
       <header className={`${styles.header} ${isHomePage && !scrolled ? styles.transparent : ''} ${scrolled ? styles.scrolled : ''}`}>
@@ -162,34 +186,50 @@ const Header = () => {
         </div>
 
         <nav className={styles.desktopNav}>
-          <NavItem 
-            icon={<FiHome />} 
-            label="Лента" 
-            active={activeTab === "feed"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "feed" ? styles.active : ''}`} 
             onClick={() => navigateTo("/feed")}
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiHome />
+            </div>
+            <span className={styles.navLabel}>Лента</span>
+          </div>
           
-          <NavItem 
-            icon={<FiHeart />} 
-            label="Избранное" 
-            active={activeTab === "favorites"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "favorites" ? styles.active : ''}`} 
             onClick={() => navigateTo("/favorites")}
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiHeart />
+            </div>
+            <span className={styles.navLabel}>Избранное</span>
+          </div>
           
-          <NavItem 
-            icon={<FiMessageSquare />} 
-            label="Чаты" 
-            active={activeTab === "chats"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "chats" ? styles.active : ''}`} 
             onClick={() => navigateTo("/chats")}
-            notification={chatUnreadCount}
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiMessageSquare />
+              {chatUnreadCount > 0 && (
+                <div className={styles.notificationBadge}>
+                  {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                </div>
+              )}
+            </div>
+            <span className={styles.navLabel}>Чаты</span>
+          </div>
           
-          <NavItem 
-            icon={<FiUser />} 
-            label="Профиль" 
-            active={activeTab === "profile"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "profile" ? styles.active : ''}`} 
             onClick={() => navigateTo("/profile")}
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiUser />
+            </div>
+            <span className={styles.navLabel}>Профиль</span>
+          </div>
           
           <div 
             className={`${styles.notificationIcon} ${activeTab === "notifications" ? styles.active : ''}`}
@@ -213,7 +253,10 @@ const Header = () => {
           </button>
         ) : (
           <div className={styles.userActions}>
-            <button className={styles.settingsBtn} onClick={() => navigateTo("/settings")}>
+            <button 
+              className={`${styles.settingsBtn} ${activeTab === "settings" ? styles.active : ''}`} 
+              onClick={() => navigateTo("/settings")}
+            >
               <FiSettings />
             </button>
             <button className={styles.logoutBtn} onClick={handleLogout}>
@@ -225,114 +268,119 @@ const Header = () => {
 
       {isMobile && !isMenuOpen && (
         <div className={styles.mobileNavBar}>
-          <NavItem 
-            icon={<FiHome />} 
-            label="Лента" 
-            active={activeTab === "feed"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "feed" ? styles.active : ''}`} 
             onClick={() => navigateTo("/feed")}
-            mobile
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiHome />
+            </div>
+            <span className={styles.navLabel}>Лента</span>
+          </div>
           
-          <NavItem 
-            icon={<FiHeart />} 
-            label="Избранное" 
-            active={activeTab === "favorites"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "favorites" ? styles.active : ''}`} 
             onClick={() => navigateTo("/favorites")}
-            mobile
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiHeart />
+            </div>
+            <span className={styles.navLabel}>Избранное</span>
+          </div>
           
-          <NavItem 
-            icon={<FiMessageSquare />} 
-            label="Чаты" 
-            active={activeTab === "chats"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "chats" ? styles.active : ''}`} 
             onClick={() => navigateTo("/chats")}
-            mobile
-            notification={chatUnreadCount}
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiMessageSquare />
+              {chatUnreadCount > 0 && (
+                <div className={styles.notificationBadge}>
+                  {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                </div>
+              )}
+            </div>
+            <span className={styles.navLabel}>Чаты</span>
+          </div>
           
-          <NavItem 
-            icon={<FiUser />} 
-            label="Профиль" 
-            active={activeTab === "profile"} 
+          <div 
+            className={`${styles.navItem} ${activeTab === "profile" ? styles.active : ''}`} 
             onClick={() => navigateTo("/profile")}
-            mobile
-          />
+          >
+            <div className={styles.navIcon}>
+              <FiUser />
+            </div>
+            <span className={styles.navLabel}>Профиль</span>
+          </div>
         </div>
       )}
 
       {isMobile && isMenuOpen && (
-        <div className={styles.mobileMenu}>
+        <div className={`${styles.mobileMenu} ${isMenuOpen ? styles.open : ''}`}>
           <div className={styles.mobileMenuHeader}>
             <button 
               className={styles.closeMenu}
-              onClick={() => setIsMenuOpen(false)}
+              onClick={closeMenu}
             >
               <FiX />
             </button>
           </div>
           
           <div className={styles.menuItems}>
-            <MenuItem 
-              icon={<FiBell />} 
-              label="Уведомления" 
-              notification={notificationCount}
+            <div 
+              className={`${styles.menuItem} ${activeTab === "notifications" ? styles.active : ''}`}
               onClick={() => navigateTo("/notifications")}
-            />
+            >
+              <div className={styles.menuIcon}>
+                <FiBell />
+              </div>
+              <span className={styles.menuLabel}>Уведомления</span>
+              {notificationCount > 0 && (
+                <div className={styles.menuNotification}>
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </div>
+              )}
+            </div>
             
-            <MenuItem 
-              icon={<FiMessageSquare />}
-              label="Чаты" 
-              notification={chatUnreadCount}
+            <div 
+              className={`${styles.menuItem} ${activeTab === "chats" ? styles.active : ''}`}
               onClick={() => navigateTo("/chats")}
-            />
+            >
+              <div className={styles.menuIcon}>
+                <FiMessageSquare />
+              </div>
+              <span className={styles.menuLabel}>Чаты</span>
+              {chatUnreadCount > 0 && (
+                <div className={styles.menuNotification}>
+                  {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                </div>
+              )}
+            </div>
             
-            <MenuItem 
-              icon={<FiSettings />}
-              label="Настройки" 
+            <div 
+              className={`${styles.menuItem} ${activeTab === "settings" ? styles.active : ''}`}
               onClick={() => navigateTo("/settings")}
-            />
+            >
+              <div className={styles.menuIcon}>
+                <FiSettings />
+              </div>
+              <span className={styles.menuLabel}>Настройки</span>
+            </div>
             
-            <MenuItem 
-              icon={<FiLogOut />}
-              label="Выйти" 
+            <div 
+              className={styles.menuItem}
               onClick={handleLogout}
-            />
+            >
+              <div className={styles.menuIcon}>
+                <FiLogOut />
+              </div>
+              <span className={styles.menuLabel}>Выйти</span>
+            </div>
           </div>
         </div>
       )}
     </>
   );
 };
-
-const NavItem = ({ icon, label, active, notification, onClick, mobile }) => (
-  <div 
-    className={`${styles.navItem} ${active ? styles.active : ''} ${mobile ? styles.mobile : ''}`} 
-    onClick={onClick}
-  >
-    <div className={styles.navIcon}>
-      {icon}
-      {notification > 0 && (
-        <div className={styles.notificationBadge}>
-          {notification > 9 ? '9+' : notification}
-        </div>
-      )}
-    </div>
-    <span className={styles.navLabel}>{label}</span>
-  </div>
-);
-
-const MenuItem = ({ icon, label, notification, onClick }) => (
-  <div className={styles.menuItem} onClick={onClick}>
-    <div className={styles.menuIcon}>
-      {icon}
-    </div>
-    <span className={styles.menuLabel}>{label}</span>
-    {notification > 0 && (
-      <div className={styles.menuNotification}>
-        {notification > 9 ? '9+' : notification}
-      </div>
-    )}
-  </div>
-);
 
 export default Header;
