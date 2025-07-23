@@ -20,6 +20,7 @@ import FavoritesPage from "./page/FavoritesPage/FavoritesPage";
 import NotificationsPage from "./page/NotificationsPage/NotificationsPage";
 import API_BASE_URL from "./apiConfig";
 import JobDetailPage from "./page/JobDetailPage/JobDetailPage";
+import BalancePage from "./BalancePage";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -148,6 +149,17 @@ function App() {
           <Route
             path="/notifications"
             element={<NotificationsPage user={user} />}
+          />
+
+          <Route 
+            path="/balance" 
+            element={
+              user ? (
+                <BalancePage user={user} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            } 
           />
           <Route
             path="/register"

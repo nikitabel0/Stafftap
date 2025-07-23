@@ -3,6 +3,7 @@ import { FiX, FiDollarSign, FiCreditCard, FiUser } from 'react-icons/fi';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import API_BASE_URL from "../../apiConfig";
+import styles from './WithdrawModal.module.css';
 
 // Список банков для СБП
 const SBP_BANKS = [
@@ -24,17 +25,16 @@ const SBP_BANKS = [
 const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('bank_card');
-  const [bank, setBank] = useState(''); // Для СБП
-  const [phone, setPhone] = useState(''); // Для СБП
-  const [cardNumber, setCardNumber] = useState(''); // Для банковской карты
-  const [cardHolder, setCardHolder] = useState(''); // Для банковской карты
+  const [bank, setBank] = useState('');
+  const [phone, setPhone] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardHolder, setCardHolder] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
   const validateForm = () => {
     const newErrors = {};
     
-    // Валидация суммы
     if (!amount || isNaN(amount) || Number(amount) <= 0) {
       newErrors.amount = "Введите корректную сумму";
     } else if (Number(amount) > user.balance) {
@@ -43,21 +43,17 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
       newErrors.amount = "Минимальная сумма вывода 500 ₽";
     }
     
-    // Валидация в зависимости от метода
     if (paymentMethod === 'sbp') {
       if (!bank) newErrors.bank = "Выберите банк";
       if (!phone.trim()) newErrors.phone = "Введите номер телефона";
       else if (!/^[\d+]{10,15}$/.test(phone)) newErrors.phone = "Некорректный номер телефона";
-    } 
-    else if (paymentMethod === 'bank_card') {
+    } else if (paymentMethod === 'bank_card') {
       if (!cardNumber.trim()) newErrors.cardNumber = "Введите номер карты";
       else if (!/^\d{16,19}$/.test(cardNumber.replace(/\s/g, ''))) {
         newErrors.cardNumber = "Некорректный номер карты";
       }
       if (!cardHolder.trim()) newErrors.cardHolder = "Введите имя владельца";
-    }
-    else {
-      // Для других методов
+    } else {
       if (!cardNumber.trim()) newErrors.cardNumber = "Введите реквизиты";
     }
     
@@ -70,14 +66,10 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
       case 'sbp':
         const bankName = SBP_BANKS.find(b => b.id === bank)?.name || bank;
         return `СБП: ${bankName}, Телефон: ${phone}`;
-        
       case 'bank_card':
         return `Карта: ${cardNumber}, Владелец: ${cardHolder}`;
-        
       case 'yoomoney':
         return `ЮMoney: ${cardNumber}`;
-        
-        
       default:
         return cardNumber;
     }
@@ -129,7 +121,6 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
     }
   };
 
-  // Форматирование номера карты (добавляем пробелы)
   const formatCardNumber = (value) => {
     const cleaned = value.replace(/\D/g, '');
     let formatted = '';
@@ -143,41 +134,41 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content withdraw-modal">
-        <div className="modal-header">
+    <div className={styles.modalOverlay}>
+      <div className={styles.withdrawModal}>
+        <div className={styles.modalHeader}>
           <h2>Заявка на вывод средств</h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className={styles.closeBtn} onClick={onClose}>
             <FiX />
           </button>
         </div>
         
-        <div className="balance-info">
-          <FiDollarSign className="icon" />
+        <div className={styles.balanceInfo}>
+          <FiDollarSign className={styles.icon} />
           <span>Доступный баланс: {user.balance.toFixed(2)} ₽</span>
         </div>
         
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Сумма вывода (₽)</label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="Введите сумму"
-              className={errors.amount ? "error-input" : ""}
+              className={errors.amount ? styles.errorInput : ''}
               min="500"
               step="100"
             />
-            {errors.amount && <p className="error-text">{errors.amount}</p>}
+            {errors.amount && <p className={styles.errorText}>{errors.amount}</p>}
           </div>
           
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Способ вывода</label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="payment-select"
+              className={styles.paymentSelect}
             >
               <option value="bank_card">Банковская карта</option>
               <option value="sbp">СБП (Система быстрых платежей)</option>
@@ -187,15 +178,14 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
             </select>
           </div>
           
-          {/* Поля для СБП */}
           {paymentMethod === 'sbp' && (
-            <div className="sbp-fields">
-              <div className="form-group">
+            <div className={styles.sbpFields}>
+              <div className={styles.formGroup}>
                 <label>Банк получателя</label>
                 <select
                   value={bank}
                   onChange={(e) => setBank(e.target.value)}
-                  className={errors.bank ? "error-input" : ""}
+                  className={errors.bank ? styles.errorInput : ''}
                 >
                   <option value="">Выберите банк</option>
                   {SBP_BANKS.map(bank => (
@@ -204,27 +194,26 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
                     </option>
                   ))}
                 </select>
-                {errors.bank && <p className="error-text">{errors.bank}</p>}
+                {errors.bank && <p className={styles.errorText}>{errors.bank}</p>}
               </div>
               
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label>Номер телефона</label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+7 XXX XXX XX XX"
-                  className={errors.phone ? "error-input" : ""}
+                  className={errors.phone ? styles.errorInput : ''}
                 />
-                {errors.phone && <p className="error-text">{errors.phone}</p>}
+                {errors.phone && <p className={styles.errorText}>{errors.phone}</p>}
               </div>
             </div>
           )}
           
-          {/* Поля для банковской карты */}
           {paymentMethod === 'bank_card' && (
-            <div className="card-fields">
-              <div className="form-group">
+            <div className={styles.cardFields}>
+              <div className={styles.formGroup}>
                 <label>Номер карты</label>
                 <input
                   type="text"
@@ -232,31 +221,30 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
                   onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                   placeholder="0000 0000 0000 0000"
                   maxLength={19}
-                  className={errors.cardNumber ? "error-input" : ""}
+                  className={errors.cardNumber ? styles.errorInput : ''}
                 />
-                {errors.cardNumber && <p className="error-text">{errors.cardNumber}</p>}
+                {errors.cardNumber && <p className={styles.errorText}>{errors.cardNumber}</p>}
               </div>
               
-              <div className="form-group">
+              <div className={styles.formGroup}>
                 <label>Имя владельца карты</label>
-                <div className="input-with-icon">
-                  <FiUser className="input-icon" />
+                <div className={styles.inputWithIcon}>
+                  <FiUser className={styles.inputIcon} />
                   <input
                     type="text"
                     value={cardHolder}
                     onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
                     placeholder="IVAN IVANOV"
-                    className={errors.cardHolder ? "error-input" : ""}
+                    className={errors.cardHolder ? styles.errorInput : ''}
                   />
                 </div>
-                {errors.cardHolder && <p className="error-text">{errors.cardHolder}</p>}
+                {errors.cardHolder && <p className={styles.errorText}>{errors.cardHolder}</p>}
               </div>
             </div>
           )}
           
-          {/* Поле для других методов */}
           {!['sbp', 'bank_card'].includes(paymentMethod) && (
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label>
                 {paymentMethod === "yoomoney" 
                   ? "Номер кошелька ЮMoney" 
@@ -275,13 +263,13 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
                     ? "Введите крипто-адрес" 
                     : "Введите реквизиты"
                 }
-                className={errors.cardNumber ? "error-input" : ""}
+                className={errors.cardNumber ? styles.errorInput : ''}
               />
-              {errors.cardNumber && <p className="error-text">{errors.cardNumber}</p>}
+              {errors.cardNumber && <p className={styles.errorText}>{errors.cardNumber}</p>}
             </div>
           )}
           
-          <div className="form-note">
+          <div className={styles.formNote}>
             <p>Обработка заявки занимает 1-3 рабочих дня</p>
             <p>Минимальная сумма вывода: 500 ₽</p>
             {paymentMethod === 'sbp' && (
@@ -289,10 +277,10 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
             )}
           </div>
           
-          <div className="modal-actions">
+          <div className={styles.modalActions}>
             <button
               type="button"
-              className="cancel-btn"
+              className={styles.cancelBtn}
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -300,7 +288,7 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
             </button>
             <button
               type="submit"
-              className="submit-btn"
+              className={styles.submitBtn}
               disabled={isSubmitting}
             >
               {isSubmitting ? "Отправка..." : "Подать заявку"}

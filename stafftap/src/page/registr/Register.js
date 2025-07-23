@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import GradientButton from "../../components/GradientButton/GradientButton";
 import API_BASE_URL from '../../apiConfig';
+import styles from './Register.module.css'; // Импорт модульных стилей
+
 // Компонент для шага выбора роли
 const RoleSelectionStep = ({ onNext, selectedRole, setSelectedRole }) => {
   const handleRoleSelect = (role) => {
@@ -10,113 +12,43 @@ const RoleSelectionStep = ({ onNext, selectedRole, setSelectedRole }) => {
   };
 
   return (
-    <div style={{ width: "100%", maxWidth: "800px", margin: "0 auto" }}>
-      <h1 style={{
-        textAlign: "center",
-        color: "#373737",
-        fontSize: "clamp(1.5rem, 4vw, 2rem)",
-        fontWeight: 700,
-        marginBottom: "2rem"
-      }}>
-        Выберите вашу роль:
-      </h1>
+    <div className={styles.roleSelectionContainer}>
+      <h1 className={styles.roleHeading}>Выберите вашу роль:</h1>
       
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-        gap: "20px",
-        width: "100%"
-      }}>
+      <div className={styles.roleCards}>
         <div 
           onClick={() => handleRoleSelect("worker")}
-          style={{
-            background: selectedRole === "worker" 
-              ? "linear-gradient(#f7efed, #f7efed) padding-box, linear-gradient(to right, #2C8161, #56BD66) border-box" 
-              : "#f7efed",
-            border: "3px solid transparent",
-            borderRadius: "16px",
-            transition: "all 0.2s ease",
-            cursor: "pointer",
-            padding: "15px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "300px",
-          }}
+          className={`${styles.roleCard} ${selectedRole === "worker" ? styles.selectedCard : ''}`}
         >
           <img 
             src="/barista.svg" 
             alt="Работник"
-            style={{
-              width: "100%",
-              maxWidth: "250px",
-              height: "auto",
-              aspectRatio: "1/1",
-              objectFit: "contain"
-            }} 
+            className={styles.roleImage}
           />
-          <span style={{
-            marginTop: "1rem",
-            fontSize: "clamp(1rem, 3vw, 1.2rem)",
-            fontWeight: 600,
-            textAlign: "center",
-            color: selectedRole === "worker" ? "#2C8161" : "#373737"
-          }}>
+          <span className={styles.roleText}>
             Я хочу найти работу!
           </span>
         </div>
         
         <div 
           onClick={() => handleRoleSelect("employer")}
-          style={{
-            background: selectedRole === "employer" 
-              ? "linear-gradient(#f7efed, #f7efed) padding-box, linear-gradient(to right, #2C8161, #56BD66) border-box" 
-              : "#f7efed",
-            border: "3px solid transparent",
-            borderRadius: "16px",
-            transition: "all 0.2s ease",
-            cursor: "pointer",
-            padding: "15px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "300px",
-          }}
+          className={`${styles.roleCard} ${selectedRole === "employer" ? styles.selectedCard : ''}`}
         >
           <img 
             src="/raboradatel.svg"
             alt="Работодатель"
-            style={{
-              width: "100%",
-              maxWidth: "250px",
-              height: "auto",
-              aspectRatio: "1/1",
-              objectFit: "contain"
-            }} 
+            className={styles.roleImage}
           />
-          <span style={{
-            marginTop: "1rem",
-            fontSize: "clamp(1rem, 3vw, 1.2rem)",
-            fontWeight: 600,
-            textAlign: "center",
-            color: selectedRole === "employer" ? "#2C8161" : "#373737"
-          }}>
+          <span className={styles.roleText}>
             Я хочу найти сотрудника!
           </span>
         </div>
       </div>
       
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        marginTop: "2.5rem"
-      }}>
+      <div className={styles.buttonContainer}>
         <GradientButton 
           onClick={onNext}
           disabled={!selectedRole}
-     
         >
           Продолжить
         </GradientButton>
@@ -124,6 +56,7 @@ const RoleSelectionStep = ({ onNext, selectedRole, setSelectedRole }) => {
     </div>
   );
 };
+
 const RegistrationStep = ({ selectedRole, onRegister }) => {
   const [formData, setFormData] = useState({
     first_name: "",
@@ -197,16 +130,12 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
-  const getInputStyle = (name) => {
+  const getInputClassName = (name) => {
     const isValid = validateField(name, formData[name]);
     const isTouched = touched[name];
     const showValid = isTouched && isValid && formData[name] !== "";
 
-    return {
-      ...inputStyle,
-      border: showValid ? "3px solid #2C8161" : "3px solid #A5A29D80",
-      color: showValid ? "#2C8161" : "#A5A29D80",
-    };
+    return showValid ? styles.inputValid : '';
   };
 
   const handleSubmit = async (e) => {
@@ -250,19 +179,19 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
   };
 
   return (
-    <div>
+    <div className={styles.registrationContainer}>
       {/* Логотип */}
-      <div style={logoContainerStyle}>
-        <img src="/smallLogo.svg" alt="Логотип" style={logoStyle} />
+      <div className={styles.logoContainer}>
+        <img src="/smallLogo.svg" alt="Логотип" className={styles.logo} />
       </div>
 
       {/* Заголовок "Давайте зарегистрируемся!" */}
-      <h1 style={headingStyle}>Давайте зарегистрируемся!</h1>
+      <h1 className={styles.heading}>Давайте зарегистрируемся!</h1>
 
       {/* Подзаголовок "Заполните поля ниже" */}
-      <p style={subheadingStyle}>Заполните поля ниже</p>
+      <p className={styles.subheading}>Заполните поля ниже</p>
 
-      <form onSubmit={handleSubmit} style={formStyle}>
+      <form onSubmit={handleSubmit} className={styles.form}>
         <input
           name="first_name"
           placeholder="Имя"
@@ -270,7 +199,7 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
           onChange={handleChange}
           onBlur={handleBlur}
           required
-          style={getInputStyle("first_name")}
+          className={`${styles.input} ${getInputClassName("first_name")}`}
         />
         <input
           name="last_name"
@@ -279,7 +208,7 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
           onChange={handleChange}
           onBlur={handleBlur}
           required
-          style={getInputStyle("last_name")}
+          className={`${styles.input} ${getInputClassName("last_name")}`}
         />
         <input
           name="phone"
@@ -288,7 +217,7 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
           onChange={handleChange}
           onBlur={handleBlur}
           required
-          style={getInputStyle("phone")}
+          className={`${styles.input} ${getInputClassName("phone")}`}
         />
         <input
           type="date"
@@ -297,7 +226,7 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
           onChange={handleChange}
           onBlur={handleBlur}
           required
-          style={getInputStyle("birth_date")}
+          className={`${styles.input} ${getInputClassName("birth_date")}`}
         />
         <input
           name="email"
@@ -307,7 +236,7 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
           onChange={handleChange}
           onBlur={handleBlur}
           required
-          style={getInputStyle("email")}
+          className={`${styles.input} ${getInputClassName("email")}`}
         />
         <input
           type="password"
@@ -317,7 +246,7 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
           onChange={handleChange}
           onBlur={handleBlur}
           required
-          style={getInputStyle("password")}
+          className={`${styles.input} ${getInputClassName("password")}`}
         />
 
         {selectedRole === "worker" && (
@@ -328,7 +257,7 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
             onChange={handleChange}
             onBlur={handleBlur}
             required
-            style={getInputStyle("profession")}
+            className={`${styles.input} ${getInputClassName("profession")}`}
           />
         )}
 
@@ -336,17 +265,18 @@ const RegistrationStep = ({ selectedRole, onRegister }) => {
           Зарегистрироваться
         </GradientButton>
       </form>
-   <div style={authPromptStyle}>
-        <span style={authTextStyle}>У вас уже есть учетная запись?</span>
+      
+      <div className={styles.authPrompt}>
+        <span className={styles.authText}>У вас уже есть учетная запись?</span>
         <span 
-          style={authLinkStyle}
+          className={styles.authLink}
           onClick={() => navigate("/login")}
         >
           Авторизоваться
         </span>
       </div>
 
-      {error && <p style={errorStyle}>{error}</p>}
+      {error && <p className={styles.error}>{error}</p>}
     </div>
   );
 };
@@ -363,7 +293,7 @@ function Register({ onRegister }) {
   };
 
   return (
-    <div style={pageContainerStyle}>
+    <div className={styles.pageContainer}>
       {currentStep === 1 && (
         <RoleSelectionStep
           onNext={handleNextStep}
@@ -378,180 +308,5 @@ function Register({ onRegister }) {
     </div>
   );
 }
-const stepContainerStyle = {
-  width: "90%",
-  maxWidth: "500px",
-  backgroundColor: "white",
-  borderRadius: "20px",
-  padding: "20px",
-  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-  margin: "0 auto",
-};
 
-
-
-
-const authPromptStyle = {
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: "5px",
-  marginTop: "20px",
-};
-
-const authTextStyle = {
-  color: "#373737",
-  fontSize: "16px",
-};
-
-const authLinkStyle = {
-  color: "#56BD66",
-  fontWeight: "600",
-  cursor: "pointer",
-  transition: "text-decoration 0.3s",
-  
-  "&:hover": {
-    textDecoration: "underline",
-  }
-};
-
-const roleButtonsContainer = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "15px",
-};
-
-const roleButtonStyle = {
-  width: "100%",
-  minHeight: "110px",
-  borderRadius: "16px",
-  cursor: "pointer",
-  padding: "15px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  transition: "all 0.3s ease",
-};
-
-const roleButtonContent = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "10px",
-};
-
-const roleIconContainer = {
-  width: "250px",
-  height: "250px",
-  borderRadius: "50%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  transition: "background 0.3s ease",
-};
-
-const roleButtonText = {
-  fontSize: "16px",
-  fontWeight: "600",
-  textAlign: "center",
-  transition: "color 0.3s ease",
-};
-
-const buttonContainerStyle = {
-  display: "flex",
-  justifyContent: "center",
-  marginTop: "25px",
-};
-
-// Адаптивные стили
-const roleHeadingStyle = {
-  textAlign: "center",
-  color: "#373737",
-  fontSize: "clamp(22px, 5vw, 28px)", // Адаптивный размер
-  fontWeight: "700",
-  marginBottom: "25px",
-};
-
-// Стили
-const pageContainerStyle = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "100vh",
-
-  padding: "20px",
-  fontFamily: "'Roboto', sans-serif",
-};
-
-const topLogoContainer = {
-  marginBottom: "40px",
-};
-
-const topLogoStyle = {
-  height: "60px",
-};
-
-
-const logoContainerStyle = {
-  display: "flex",
-  justifyContent: "flex-start",
-  marginBottom: "20px",
-};
-
-const logoStyle = {
-  height: "60px",
-};
-
-const headingStyle = {
-  textAlign: "left",
-  marginBottom: "5px",
-  color: "#373737",
-  fontSize: "24px",
-  fontWeight: "700",
-};
-
-const subheadingStyle = {
-  textAlign: "left",
-  marginBottom: "30px",
-  color: "#ACACAD",
-  fontSize: "16px",
-  fontWeight: "400",
-};
-
-const formStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "15px",
-};
-
-const inputStyle = {
-  width: "100%",
-  height: "56px",
-  borderRadius: "12px",
-  backgroundColor: "#F7F7FD",
-  padding: "16px 20px 16px 10px",
-  boxSizing: "border-box",
-  fontSize: "16px",
-  outline: "none",
-  transition: "border 0.3s, color 0.3s",
-};
-
-const errorStyle = {
-  color: "#EF4444",
-  textAlign: "center",
-  marginTop: "10px",
-  fontSize: "14px",
-};
-
-const roleTextButtonStyle = {
-  background: "none",
-  border: "none",
-  padding: "0",
-  color: "#373737",
-  fontSize: "18px",
-  fontWeight: "600",
-  cursor: "pointer",
-};
 export default Register;

@@ -15,3 +15,4 @@ from .disputes import Dispute
 from .admin_actions import AdminAction
 from .notification import Notification
 from .FrozenFunds import FrozenFunds
+from .commission import CommissionSetting

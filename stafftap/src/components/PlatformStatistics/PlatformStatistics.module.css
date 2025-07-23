@@ -1,0 +1,110 @@
+.platformStatistics {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  color: var(--text-dark);
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  animation: fadeIn 0.5s ease;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.statCard {
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: var(--transition);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.statCard:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+
+.statIcon {
+  font-size: 36px;
+  color: var(--primary);
+  margin-bottom: 15px;
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 10px;
+}
+
+.statLabel {
+  font-size: 1rem;
+  color: var(--text-medium);
+}
+
+.statsCharts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 40px;
+}
+
+.chartContainer {
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+}
+
+.chartContainer h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--primary-dark);
+}
+
+.chartWrapper {
+  width: 100%;
+  height: 300px;
+}
+
+.roleDistribution {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.statsLoading {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.statsError {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--error);
+}
+
+.statsError button {
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.statsError button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-3px);
+}

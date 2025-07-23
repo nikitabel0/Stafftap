@@ -25,7 +25,10 @@ const Header = () => {
   const isMountedRef = useRef(true);
   
   // Проверка пути для скрытия хедера
-  const shouldHideHeader = location.pathname.startsWith('/chats/');
+const shouldHideHeader = 
+    location.pathname.startsWith('/chats/') || 
+    location.pathname === '/login' || 
+    location.pathname === '/register';
   
   const isHomePage = location.pathname === "/";
   
@@ -124,7 +127,7 @@ const Header = () => {
       ]);
       
       if (isMountedRef.current) {
-        setNotificationCount(notifications.data.count);
+        setNotificationCount(Number(notifications.data.count));
         setChatUnreadCount(chats.data.total_unread);
       }
     } catch (error) {
@@ -238,7 +241,7 @@ const Header = () => {
             <FiBell />
             {notificationCount > 0 && (
               <div className={styles.notificationBadge}>
-                {notificationCount > 9 ? '9+' : notificationCount}
+                {notificationCount}
               </div>
             )}
           </div>

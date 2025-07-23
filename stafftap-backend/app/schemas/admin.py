@@ -40,3 +40,26 @@ class DisputeDetail(BaseModel):
 
     class Config:
         orm_mode = True
+class PaymentHistoryItem(BaseModel):
+    id: int
+    created_at: datetime
+    user_id: int
+    user_email: str
+    amount: float
+    commission: float
+    status: str
+    payment_id: str
+    is_processed: bool
+
+class PaginatedPaymentHistory(BaseModel):
+    history: List[PaymentHistoryItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class FinanceSummaryResponse(BaseModel):
+    total_amount: float
+    total_commission: float
+    total_transactions: int
+    daily_stats: list

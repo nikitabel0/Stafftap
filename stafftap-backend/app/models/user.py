@@ -30,6 +30,7 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     balance = Column(Numeric(10, 2), default=0.00)
     is_blocked = Column(Boolean, default=False)
+    payments = relationship("Payment", back_populates="user")
     documents = relationship(
         "EmployerDocument", 
         back_populates="user",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FiPlus,
   FiStar,
@@ -49,6 +49,12 @@ import "react-toastify/dist/ReactToastify.css";
 import AdminDisputesManagement from "../../components/AdminDisputesManagement/AdminDisputesManagement";
 import WithdrawModal from "../../components/WithdrawModal/WithdrawModal";
 import AdminWithdrawalsManagement from "../../components/AdminWithdrawalsManagement/AdminWithdrawalsManagement";
+import FinanceHistory from "../../components/FinanceHistory/FinanceHistory";
+import PlatformStatistics from "../../components/PlatformStatistics/PlatformStatistics";
+import AdminJobsModeration from "../../components/AdminJobsModeration/AdminJobsModeration";
+import AdminUsersManagement from "../../components/AdminUsersManagement/AdminUsersManagement";
+import AdminDocumentsModeration from "../../components/AdminDocumentsModeration/AdminDocumentsModeration";
+import styles from './BalanceDepositModal.module.css';
 
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
@@ -265,1059 +271,203 @@ const transformUser = (userData) => {
   };
 };
 
-const PlatformStatistics = () => {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) => {
+  const [amount, setAmount] = useState(100);
+  const [commission, setCommission] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [paymentUrl, setPaymentUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [testCardInfo, setTestCardInfo] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const location = useLocation();
 
+  // Расчет комиссии при изменении суммы
   useEffect(() => {
-    const fetchStats = async () => {
+    const calculateCommission = async () => {
+      if (amount < 10) {
+        setCommission(0);
+        setTotalAmount(amount);
+        return;
+      }
+
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `${API_BASE_URL}/api/admin/statistics`,
+          `${API_BASE_URL}/api/payments/calculate-commission?amount=${amount}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setStats(response.data);
-      } catch (err) {
-        setError("Ошибка загрузки статистики");
-        console.error("Ошибка загрузки статистики:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="platform-statistics">
-        <h2>Статистика платформы</h2>
-        <div className="stats-loading">
-          <div className="loader-spinner"></div>
-          <p>Загрузка статистики...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="platform-statistics">
-        <h2>Статистика платформы</h2>
-        <div className="stats-error">
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Повторить</button>
-        </div>
-      </div>
-    );
-  }
-
-  const COLORS = ["#2C8161", "#3DA05E", "#56BD66", "#76D192"];
-  const ROLE_COLORS = ["#2C8161", "#3498DB", "#9B59B6"];
-
-  const roleData = [
-    { name: "Админы", value: stats.admins, icon: <FiUser /> },
-    { name: "Работодатели", value: stats.employers, icon: <FiBriefcase /> },
-    { name: "Сотрудники", value: stats.workers, icon: <FiShield /> },
-  ];
-
-  const formatRegistrationData = () => {
-    return stats.user_registrations.map((item) => ({
-      ...item,
-
-      formattedDate: new Date(item.date).toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "short",
-      }),
-    }));
-  };
-
-  const registrationData = formatRegistrationData();
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="custom-tooltip">
-          <p className="tooltip-label">{label}</p>
-          <p className="tooltip-value">
-            <span
-              className="color-indicator"
-              style={{ backgroundColor: payload[0].color }}
-            ></span>
-            {payload[0].name}: <strong>{payload[0].value}</strong>
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const renderCustomizedLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
-    index,
-  }) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
-    const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={12}
-        fontWeight={600}
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
-  };
-
-  return (
-    <div className="platform-statistics">
-      <h2>Статистика платформы</h2>
-
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiUsers />
-          </div>
-          <div className="stat-value">{stats.total_users}</div>
-          <div className="stat-label">Всего пользователей</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiBarChart2 />
-          </div>
-          <div className="stat-value">{stats.active_jobs}</div>
-          <div className="stat-label">Активных вакансий</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiCheckCircle />
-          </div>
-          <div className="stat-value">{stats.completed_jobs}</div>
-          <div className="stat-label">Завершенных смен</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiFileText />
-          </div>
-          <div className="stat-value">{stats.pending_documents}</div>
-          <div className="stat-label">Документов на проверке</div>
-        </div>
-      </div>
-
-      <div className="stats-charts">
-        <div className="chart-container">
-          <h3>Регистрации пользователей (последние 7 дней)</h3>
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={registrationData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 15 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#f0f0f0"
-                />
-                <XAxis
-                  dataKey="formattedDate"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#666", fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#666", fontSize: 12 }}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{ fill: "rgba(44, 129, 97, 0.1)" }}
-                />
-                <Bar
-                  dataKey="count"
-                  name="Регистраций"
-                  radius={[4, 4, 0, 0]}
-                  barSize={30}
-                >
-                  {registrationData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-container">
-          <h3>Распределение пользователей по ролям</h3>
-          <div className="chart-wrapper">
-            <div className="role-distribution">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={roleData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    innerRadius={60}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={renderCustomizedLabel}
-                    labelLine={false}
-                  >
-                    {roleData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={ROLE_COLORS[index % ROLE_COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [value, "пользователей"]}
-                    contentStyle={{
-                      borderRadius: "8px",
-                      border: "1px solid #eee",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                    }}
-                  />
-                  <Legend
-                    iconType="circle"
-                    iconSize={12}
-                    layout="vertical"
-                    verticalAlign="middle"
-                    align="right"
-                    wrapperStyle={{
-                      paddingLeft: "20px",
-                      fontSize: "14px",
-                    }}
-                    formatter={(value, entry, index) => (
-                      <span className="legend-item">
-                        {roleData[index].icon}
-                        {value}: {roleData[index].value}
-                      </span>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const AdminJobsModeration = () => {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `${API_BASE_URL}/api/admin/jobs/moderation`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setJobs(response.data);
-      } catch (err) {
-        setError("Ошибка загрузки вакансий");
-        console.error("Ошибка загрузки вакансий:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJobs();
-  }, []);
-
-  const handleStatusChange = async (jobId, status) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.patch(
-        `${API_BASE_URL}/api/admin/jobs/${jobId}/status`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setJobs(jobs.filter((job) => job.id !== jobId));
-    } catch (err) {
-      console.error("Ошибка изменения статуса:", err);
-      setError("Не удалось изменить статус");
-    }
-  };
-
-  if (loading) {
-    return <div className="admin-loading">Загрузка вакансий...</div>;
-  }
-
-  if (error) {
-    return <div className="admin-error">{error}</div>;
-  }
-
-  return (
-    <div className="admin-jobs-moderation">
-      <h2>Вакансии на модерации</h2>
-
-      {jobs.length === 0 ? (
-        <div className="no-jobs">
-          <p>Нет вакансий для модерации</p>
-        </div>
-      ) : (
-        <div className="jobs-list">
-          {jobs.map((job) => (
-            <div key={job.id} className="moderation-job-card">
-              <div className="job-header">
-                <h3>{job.title}</h3>
-                <span className="company">{job.company_name}</span>
-              </div>
-
-              <div className="job-details">
-                <div className="detail">
-                  <strong>Описание:</strong>
-                  <p>{job.description}</p>
-                </div>
-
-                <div className="detail-row">
-                  <div className="detail">
-                    <strong>Дата:</strong>
-                    <span>
-                      {new Date(job.work_date).toLocaleDateString("ru-RU")}
-                    </span>
-                  </div>
-
-                  <div className="detail">
-                    <strong>Время:</strong>
-                    <span>
-                      {job.start_time} - {job.end_time}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="detail-row">
-                  <div className="detail">
-                    <strong>Ставка:</strong>
-                    <span>{job.rate} ₽</span>
-                  </div>
-
-                  <div className="detail">
-                    <strong>Требуемый навык:</strong>
-                    <span>{job.required_skill_name}</span>
-                  </div>
-                </div>
-
-                <div className="detail">
-                  <strong>Адрес:</strong>
-                  <span>{job.address}</span>
-                </div>
-              </div>
-
-              <div className="job-actions">
-                <button
-                  className="approve-btn"
-                  onClick={() => handleStatusChange(job.id, "active")}
-                >
-                  <FiCheckCircle /> Одобрить
-                </button>
-                <button
-                  className="reject-btn"
-                  onClick={() => handleStatusChange(job.id, "rejected")}
-                >
-                  <FiXCircle /> Отклонить
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const AdminUsersManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    role: "all",
-    verified: "all",
-    status: "all",
-    sort: "newest",
-  });
-
-  const pageSize = 10;
-  const searchTimeoutRef = useRef(null);
-  const searchInputRef = useRef(null);
-  const shouldRestoreFocusRef = useRef(false);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-
-      const params = {
-        page: currentPage,
-        page_size: pageSize,
-        ...(searchTerm && { search: searchTerm }),
-        ...(filters.role !== "all" && { role: filters.role }),
-        ...(filters.verified !== "all" && {
-          is_verified: filters.verified === "verified",
-        }),
-        ...(filters.status !== "all" && {
-          is_blocked: filters.status === "blocked",
-        }),
-        sort: filters.sort,
-      };
-
-      const response = await axios.get(`${API_BASE_URL}/api/admin/users`, {
-        params,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setUsers(response.data.users || []);
-      setTotalPages(response.data.total_pages || 1);
-      setError(null);
-    } catch (err) {
-      setError("Ошибка загрузки пользователей");
-      console.error("Ошибка загрузки пользователей:", err);
-    } finally {
-      setLoading(false);
-
-      if (shouldRestoreFocusRef.current && searchInputRef.current) {
-        searchInputRef.current.focus();
-        shouldRestoreFocusRef.current = false;
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, [currentPage, filters]);
-
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    shouldRestoreFocusRef.current = true;
-
-    searchTimeoutRef.current = setTimeout(() => {
-      if (searchTerm.length === 0 || searchTerm.length > 2) {
-        setCurrentPage(1);
-        fetchUsers();
-      }
-    }, 500);
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchTerm]);
-
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  const handleFilterChange = (filterName, value) => {
-    setFilters((prev) => ({ ...prev, [filterName]: value }));
-    setCurrentPage(1);
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      role: "all",
-      verified: "all",
-      status: "all",
-      sort: "newest",
-    });
-    setSearchTerm("");
-    setCurrentPage(1);
-  };
-
-  const handleBlockToggle = async (userId, isBlocked) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.patch(
-        `${API_BASE_URL}/api/admin/users/${userId}/block`,
-        { is_blocked: !isBlocked },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchUsers();
-    } catch (err) {
-      console.error("Ошибка изменения статуса блокировки:", err);
-      setError("Не удалось изменить статус блокировки");
-    }
-  };
-
-  const handleVerifyToggle = async (userId, isVerified) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.patch(
-        `${API_BASE_URL}/api/admin/users/${userId}/verify`,
-        { is_verified: !isVerified },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchUsers();
-    } catch (err) {
-      console.error("Ошибка изменения статуса верификации:", err);
-      setError("Не удалось изменить статус верификации");
-    }
-  };
-
-  const handleRoleChange = async (userId, newRole) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.patch(
-        `${API_BASE_URL}/api/admin/users/${userId}/role`,
-        { role: newRole },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchUsers();
-    } catch (err) {
-      console.error("Ошибка изменения роли:", err);
-      setError("Не удалось изменить роль пользователя");
-    }
-  };
-
-  return (
-    <div className="admin-users-management">
-      <div className="admin-section-header">
-        <h2>Управление пользователями</h2>
-        <div className="admin-filters-summary">
-          {filters.role !== "all" && (
-            <span className="filter-tag">
-              Роль:{" "}
-              {filters.role === "worker"
-                ? "Сотрудники"
-                : filters.role === "employer"
-                ? "Работодатели"
-                : "Администраторы"}
-            </span>
-          )}
-          {filters.verified !== "all" && (
-            <span className="filter-tag">
-              Верификация:{" "}
-              {filters.verified === "verified"
-                ? "Подтвержденные"
-                : "Неподтвержденные"}
-            </span>
-          )}
-          {filters.status !== "all" && (
-            <span className="filter-tag">
-              Статус:{" "}
-              {filters.status === "active" ? "Активные" : "Заблокированные"}
-            </span>
-          )}
-          {(filters.role !== "all" ||
-            filters.verified !== "all" ||
-            filters.status !== "all") && (
-            <button className="reset-filters-btn" onClick={resetFilters}>
-              <FiRefreshCw /> Сбросить фильтры
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="admin-controls">
-        <div className="admin-search">
-          <FiSearch className="search-icon" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Поиск по email, имени или компании..."
-            value={searchTerm}
-            onChange={handleSearch}
-          />
-          {searchTerm && (
-            <button
-              className="clear-search-btn"
-              onClick={() => setSearchTerm("")}
-            >
-              &times;
-            </button>
-          )}
-        </div>
-
-        <div className="filter-controls">
-          <div className="filter-group">
-            <label>Роль:</label>
-            <select
-              value={filters.role}
-              onChange={(e) => handleFilterChange("role", e.target.value)}
-            >
-              <option value="all">Все роли</option>
-              <option value="worker">Сотрудники</option>
-              <option value="employer">Работодатели</option>
-              <option value="admin">Администраторы</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Верификация:</label>
-            <select
-              value={filters.verified}
-              onChange={(e) => handleFilterChange("verified", e.target.value)}
-            >
-              <option value="all">Все</option>
-              <option value="verified">Подтвержденные</option>
-              <option value="unverified">Неподтвержденные</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Статус:</label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange("status", e.target.value)}
-            >
-              <option value="all">Все</option>
-              <option value="active">Активные</option>
-              <option value="blocked">Заблокированные</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Сортировка:</label>
-            <select
-              value={filters.sort}
-              onChange={(e) => handleFilterChange("sort", e.target.value)}
-            >
-              <option value="newest">Сначала новые</option>
-              <option value="oldest">Сначала старые</option>
-              <option value="name_asc">По имени (А-Я)</option>
-              <option value="name_desc">По имени (Я-А)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {loading && (
-        <div className="loader-overlay">
-          <div className="loader-spinner"></div>
-        </div>
-      )}
-
-      <div className="users-table-container">
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Пользователь</th>
-              <th>Email</th>
-              <th>Роль</th>
-              <th>Статус</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className={user.is_blocked ? "blocked" : ""}>
-                <td>{user.id}</td>
-                <td>
-                  <div className="user-info-cell">
-                    <div className="user-avatar">
-                      {user.avatar_url ? (
-                        <img src={user.avatar_url} alt="Avatar" />
-                      ) : (
-                        <div className="avatar-initials">
-                          {user.first_name?.[0]}
-                          {user.last_name?.[0]}
-                        </div>
-                      )}
-                    </div>
-                    <div className="user-details">
-                      <div className="user-name">
-                        {user.first_name} {user.last_name}
-                      </div>
-                      <div className="user-company">
-                        {user.company_name || "Без компании"}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td>{user.email}</td>
-                <td>
-                  <select
-                    value={user.role}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    className={`role-select ${user.role}`}
-                  >
-                    <option value="worker">Сотрудник</option>
-                    <option value="employer">Работодатель</option>
-                    <option value="admin">Администратор</option>
-                  </select>
-                </td>
-                <td>
-                  <div className="status-indicators">
-                    <span
-                      className={`status-badge ${
-                        user.is_verified ? "verified" : "not-verified"
-                      }`}
-                    >
-                      {user.is_verified ? (
-                        <>
-                          <FiCheck className="verified-icon" /> Подтвержден
-                        </>
-                      ) : (
-                        "Неподтвержден"
-                      )}
-                    </span>
-                    <span
-                      className={`status-badge ${
-                        user.is_blocked ? "blocked" : "active"
-                      }`}
-                    >
-                      {user.is_blocked ? (
-                        <>
-                          <FiLock className="blocked-icon" /> Заблокирован
-                        </>
-                      ) : (
-                        <>
-                          <FiUnlock className="active-icon" /> Активен
-                        </>
-                      )}
-                    </span>
-                  </div>
-                </td>
-                <td className="actions">
-                  <button
-                    className={`action-btn ${
-                      user.is_verified ? "unverify" : "verify"
-                    }`}
-                    onClick={() =>
-                      handleVerifyToggle(user.id, user.is_verified)
-                    }
-                  >
-                    {user.is_verified ? <FiX /> : <FiCheck />}
-                    {user.is_verified
-                      ? " Снять верификацию"
-                      : " Верифицировать"}
-                  </button>
-                  <button
-                    className={`action-btn ${
-                      user.is_blocked ? "unblock" : "block"
-                    }`}
-                    onClick={() => handleBlockToggle(user.id, user.is_blocked)}
-                  >
-                    {user.is_blocked ? <FiUnlock /> : <FiLock />}
-                    {user.is_blocked ? " Разблокировать" : " Заблокировать"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {users.length === 0 && !loading && (
-        <div className="no-results">
-          <FiSearch className="no-results-icon" />
-          <p>Пользователи не найдены</p>
-          <button className="reset-filters-btn" onClick={resetFilters}>
-            Сбросить фильтры
-          </button>
-        </div>
-      )}
-
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button
-            className="page-btn prev-next"
-            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            Назад
-          </button>
-
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let page;
-            if (totalPages <= 5) {
-              page = i + 1;
-            } else if (currentPage <= 3) {
-              page = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              page = totalPages - 4 + i;
-            } else {
-              page = currentPage - 2 + i;
+              Authorization: `Bearer ${token}`
             }
+          }
+        );
+        
+        // Защита от отсутствующих значений в ответе
+        const safeCommission = response.data.commission || 0;
+        const safeTotal = response.data.total || amount;
+        
+        setCommission(safeCommission);
+        setTotalAmount(safeTotal);
+      } catch (err) {
+        console.error("Ошибка расчета комиссии", err);
+        setCommission(0);
+        setTotalAmount(amount);
+      }
+    };
 
-            return (
-              <button
-                key={page}
-                className={`page-btn ${currentPage === page ? "active" : ""}`}
-                onClick={() => handlePageChange(page)}
-                disabled={currentPage === page}
-              >
-                {page}
-              </button>
+    calculateCommission();
+  }, [amount]);
+
+  // Вспомогательная функция для безопасного форматирования чисел
+  const safeToFixed = (value, decimals = 2) => {
+    const num = parseFloat(value);
+    return isNaN(num) ? "0.00" : num.toFixed(decimals);
+  };
+
+  // Создание платежа
+  const handleDeposit = async () => {
+    if (amount < 10) {
+      setError("Минимальная сумма пополнения - 10 рублей");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setSuccessMessage("");
+    setTestCardInfo(false);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_BASE_URL}/api/payments/deposit`,
+        { amount },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      setPaymentUrl(response.data.confirmation_url);
+      setTestCardInfo(true);
+
+      // Открываем страницу оплаты
+      const paymentWindow = window.open(
+        response.data.confirmation_url,
+        "_blank",
+        "width=600,height=800"
+      );
+
+      // Проверка статуса платежа
+      const checkInterval = setInterval(async () => {
+        if (paymentWindow.closed) {
+          clearInterval(checkInterval);
+          return;
+        }
+
+        try {
+          const statusResponse = await axios.get(
+            `${API_BASE_URL}/api/payments/${response.data.payment_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+
+          const paymentData = statusResponse.data;
+          
+          if (paymentData.status === "succeeded") {
+            clearInterval(checkInterval);
+            paymentWindow.close();
+            
+            // Безопасное форматирование значений
+            const safeAmount = paymentData.amount || 0;
+            const safeCommission = paymentData.commission || 0;
+            
+            setSuccessMessage(
+              `Платеж на сумму ${safeAmount.toFixed(2)} руб. (комиссия: ${safeCommission.toFixed(2)} руб.) успешно завершен!`
             );
-          })}
-
-          {totalPages > 5 && currentPage < totalPages - 2 && (
-            <span className="page-dots">...</span>
-          )}
-
-          {totalPages > 5 && currentPage < totalPages - 1 && (
-            <button
-              className={`page-btn ${
-                currentPage === totalPages ? "active" : ""
-              }`}
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-            >
-              {totalPages}
-            </button>
-          )}
-
-          <button
-            className="page-btn prev-next"
-            onClick={() =>
-              handlePageChange(Math.min(totalPages, currentPage + 1))
+            
+            // Обновление данных пользователя
+            const userResponse = await axios.get(`${API_BASE_URL}/api/users/me`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            updateUser(userResponse.data);
+            
+            if (onDepositSuccess) {
+              onDepositSuccess();
             }
-            disabled={currentPage === totalPages}
-          >
-            Вперед
-          </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="admin-error-message">
-          {error}
-          <button onClick={fetchUsers}>Повторить попытку</button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const AdminDocumentsModeration = () => {
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reviewComment, setReviewComment] = useState("");
-  const [currentDocumentId, setCurrentDocumentId] = useState(null);
-
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `${API_BASE_URL}/api/admin/documents/pending`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
           }
-        );
-        setDocuments(response.data);
-      } catch (err) {
-        setError("Ошибка загрузки документов");
-        console.error("Ошибка загрузки документов:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDocuments();
-  }, []);
-
-  const handleStatusChange = async (docId, status, comment = "") => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_BASE_URL}/api/admin/documents/${docId}/review`,
-        { status, comment },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        } catch (err) {
+          console.error("Ошибка проверки статуса:", err);
         }
-      );
-      setDocuments(documents.filter((doc) => doc.id !== docId));
-      setCurrentDocumentId(null);
-      setReviewComment("");
-      toast.success(
-        `Документ ${status === "approved" ? "одобрен" : "отклонен"}`
-      );
+      }, 5000);
     } catch (err) {
-      console.error("Ошибка изменения статуса документа:", err);
-      setError("Не удалось изменить статус");
-      toast.error("Ошибка при обновлении статуса документа");
+      setError(err.response?.data?.detail || "Ошибка при создании платежа");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const openReviewModal = (docId) => {
-    setCurrentDocumentId(docId);
-  };
-
-  const closeReviewModal = () => {
-    setCurrentDocumentId(null);
-    setReviewComment("");
-  };
-
-  if (loading) {
-    return <div className="admin-loading">Загрузка документов...</div>;
-  }
-
-  if (error) {
-    return <div className="admin-error">{error}</div>;
-  }
-
   return (
-    <div className="admin-documents-moderation">
-      <h2>Документы на проверке</h2>
-
-      {documents.length === 0 ? (
-        <div className="no-documents">
-          <p>Нет документов для проверки</p>
+    <div className={styles.modalOverlay}>
+      <div className={styles.depositModal}>
+        <div className={styles.modalHeader}>
+          <h2>Пополнение баланса</h2>
+          <button className={styles.closeBtn} onClick={onClose}>
+            <FiX />
+          </button>
         </div>
-      ) : (
-        <div className="documents-list">
-          {documents.map((doc) => (
-            <div key={doc.id} className="moderation-doc-card">
-              <div className="doc-header">
-                <h3>{doc.document_type}</h3>
-                <span className="user">
-                  От: {doc.user_email} ({doc.company_name})
-                </span>
-              </div>
-
-              <div className="doc-details">
-                <div className="detail">
-                  <strong>Загружено:</strong>
-                  <span>
-                    {new Date(doc.uploaded_at).toLocaleDateString("ru-RU", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              <div className="doc-preview">
-                <a
-                  href={doc.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="preview-link"
-                >
-                  <FiFile className="file-icon" />
-                  <span>Просмотреть документ</span>
-                </a>
-              </div>
-
-              <div className="doc-actions">
-                <button
-                  className="approve-btn"
-                  onClick={() => handleStatusChange(doc.id, "approved")}
-                >
-                  <FiCheck /> Одобрить
-                </button>
-                <button
-                  className="reject-btn"
-                  onClick={() => openReviewModal(doc.id)}
-                >
-                  <FiX /> Отклонить
-                </button>
-              </div>
-            </div>
-          ))}
+        
+        <div className={styles.balanceInfo}>
+          <FiDollarSign className={styles.icon} />
+          <span>Доступный баланс: {safeToFixed(user.balance)} ₽</span>
         </div>
-      )}
-
-      {/* Модальное окно для отклонения документа */}
-      {currentDocumentId && (
-        <div className="modal-overlay">
-          <div className="modal-content document-review-modal">
-            <h2>Отклонение документа</h2>
-            <p>Укажите причину отклонения документа:</p>
-
-            <textarea
-              value={reviewComment}
-              onChange={(e) => setReviewComment(e.target.value)}
-              placeholder="Причина отклонения..."
-              rows={4}
+        
+        <div className={styles.depositForm}>
+          <div className={styles.formGroup}>
+            <label>Сумма пополнения (₽)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                setAmount(isNaN(value) ? 0 : value);
+              }}
+              min="10"
+              step="10"
+              className={styles.amountInput}
             />
-
-            <div className="modal-actions">
-              <button className="cancel-btn" onClick={closeReviewModal}>
-                Отмена
-              </button>
-              <button
-                className="reject-confirm-btn"
-                onClick={() =>
-                  handleStatusChange(
-                    currentDocumentId,
-                    "rejected",
-                    reviewComment
-                  )
-                }
-                disabled={!reviewComment.trim()}
-              >
-                Подтвердить отклонение
-              </button>
+          </div>
+          
+          <div className={styles.commissionDetails}>
+            <div className={styles.detailRow}>
+              <span>Сумма пополнения:</span>
+              <span>{safeToFixed(amount)} ₽</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span>Комиссия:</span>
+              <span>{safeToFixed(commission)} ₽</span>
+            </div>
+            <div className={`${styles.detailRow} ${styles.totalRow}`}>
+              <span>Итого к оплате:</span>
+              <span>{safeToFixed(totalAmount)} ₽</span>
             </div>
           </div>
+
+          <button
+            onClick={handleDeposit}
+            disabled={isLoading}
+            className={styles.depositButton}
+          >
+            {isLoading ? "Обработка..." : "Пополнить баланс"}
+          </button>
+
+          {error && <p className={styles.errorMessage}>{error}</p>}
+
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -1337,6 +487,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   const [employerJobs, setEmployerJobs] = useState([]);
   const [workerBookings, setWorkerBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [reviews, setReviews] = useState({
     rating: 0,
     reviews_count: 0,
@@ -1592,7 +743,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       throw error;
     }
   };
-  
+
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1899,6 +1050,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             <div className="balance-info">
               <span>Баланс: {formatBalance(currentProfile.balance)} ₽</span>
               <button
+                className="deposit-btn"
+                onClick={() => setIsDepositModalOpen(true)}
+              >
+                Пополнить
+              </button>
+              <button
                 className="withdraw-btn"
                 onClick={() => setIsWithdrawModalOpen(true)}
               >
@@ -2024,7 +1181,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             )}
           </>
         )}
-        
+
         {/* Вкладка "Мои выводы" только для обычных пользователей */}
         {!isAdmin && (
           <button
@@ -2034,7 +1191,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             <FiDollarSign /> Мои выводы
           </button>
         )}
-        
+
         <button
           className={`tab-btn ${activeTab === "reviews" ? "active" : ""}`}
           onClick={() => setActiveTab("reviews")}
@@ -2047,6 +1204,18 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         {/* Управление заявками для администратора */}
         {isAdmin && activeTab === "admin-withdrawals" && (
           <AdminWithdrawalsManagement />
+        )}
+        {isAdmin && (
+          <>
+            <button
+              className={`tab-btn ${
+                activeTab === "admin-finance" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("admin-finance")}
+            >
+              <FiDollarSign /> Финансы
+            </button>
+          </>
         )}
 
         {/* Просмотр заявок пользователя */}
@@ -2075,11 +1244,13 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                         <td>{new Date(request.created_at).toLocaleString()}</td>
                         <td>{request.amount} ₽</td>
                         <td>
-                          {request.payment_method === 'bank_card' && 'Банковская карта'}
-                          {request.payment_method === 'sbp' && 'СБП'}
-                          {request.payment_method === 'yoomoney' && 'ЮMoney'}
-                          {request.payment_method === 'qiwi' && 'QIWI'}
-                          {request.payment_method === 'crypto' && 'Криптовалюта'}
+                          {request.payment_method === "bank_card" &&
+                            "Банковская карта"}
+                          {request.payment_method === "sbp" && "СБП"}
+                          {request.payment_method === "yoomoney" && "ЮMoney"}
+                          {request.payment_method === "qiwi" && "QIWI"}
+                          {request.payment_method === "crypto" &&
+                            "Криптовалюта"}
                         </td>
                         <td className={`status-${request.status}`}>
                           {request.status === "pending" && "⏳ На рассмотрении"}
@@ -2519,6 +1690,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         {isAdmin && activeTab === "admin-disputes" && (
           <AdminDisputesManagement />
         )}
+        {isAdmin && activeTab === "admin-finance" && <FinanceHistory />}
 
         {isAdmin && activeTab === "admin-users" && <AdminUsersManagement />}
 
@@ -2536,6 +1708,17 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           user={user}
           onClose={() => setIsWithdrawModalOpen(false)}
           onWithdrawSuccess={loadWithdrawalRequests}
+        />
+      )}
+
+      {isDepositModalOpen && (
+        <BalanceDepositModal
+          user={user}
+          updateUser={onSave}
+          onClose={() => setIsDepositModalOpen(false)}
+          onDepositSuccess={() => {
+            toast.success("Баланс успешно пополнен!");
+          }}
         />
       )}
     </div>

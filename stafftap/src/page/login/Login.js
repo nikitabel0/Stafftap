@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios"; // Импортируем axios напрямую
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import GradientButton from "../../components/GradientButton/GradientButton";
-import API_BASE_URL from "../../apiConfig"; // Импортируем базовый URL
+import API_BASE_URL from "../../apiConfig";
+import styles from './Login.module.css'; // Импорт модульных стилей
 
 function Login({ onLogin }) {
     const [email, setEmail] = useState("");
@@ -17,7 +18,6 @@ function Login({ onLogin }) {
         setError("");
         
         try {
-            // Используем axios напрямую с полным путем
             const response = await axios.post(
                 `${API_BASE_URL}/auth/login`, 
                 { email, password }
@@ -27,7 +27,6 @@ function Login({ onLogin }) {
             localStorage.setItem("token", token);
             onLogin(token);
         } catch (err) {
-            // Более точная обработка ошибки
             if (err.response && err.response.data && err.response.data.detail) {
                 setError(`❌ ${err.response.data.detail}`);
             } else {
@@ -38,124 +37,24 @@ function Login({ onLogin }) {
         }
     };
 
-    // Стили (аналогичные регистрации)
-    const pageContainerStyle = {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100vh",
-        padding: "20px",
-        fontFamily: "'Roboto', sans-serif",
-    };
-
-    const logoContainerStyle = {
-        display: "flex",
-        justifyContent: "flex-start",
-        marginBottom: "20px",
-        width: "100%",
-        maxWidth: "500px",
-    };
-
-    const logoStyle = {
-        height: "60px",
-    };
-
-    const headingStyle = {
-        textAlign: "left",
-        marginBottom: "5px",
-        color: "#373737",
-        fontSize: "24px",
-        fontWeight: "700",
-        width: "100%",
-        maxWidth: "500px",
-    };
-
-    const subheadingStyle = {
-        textAlign: "left",
-        marginBottom: "30px",
-        color: "#ACACAD",
-        fontSize: "16px",
-        fontWeight: "400",
-        width: "100%",
-        maxWidth: "500px",
-    };
-
-    const formStyle = {
-        display: "flex",
-        flexDirection: "column",
-        gap: "15px",
-        width: "100%",
-        maxWidth: "500px",
-    };
-
-    const inputStyle = {
-        width: "100%",
-        height: "56px",
-        borderRadius: "12px",
-        backgroundColor: "#F7F7FD",
-        padding: "16px 20px",
-        boxSizing: "border-box",
-        fontSize: "16px",
-        outline: "none",
-        border: "3px solid #A5A29D80",
-        color: "#A5A29D80",
-        transition: "all 0.3s",
-        
-        "&:focus": {
-            borderColor: "#2C8161",
-            color: "#2C8161",
-        }
-    };
-
-    const authPromptStyle = {
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        gap: "5px",
-        marginTop: "20px",
-        width: "100%",
-        maxWidth: "500px",
-    };
-
-    const authTextStyle = {
-        color: "#373737",
-        fontSize: "16px",
-    };
-
-    const authLinkStyle = {
-        color: "#56BD66",
-        fontWeight: "600",
-        cursor: "pointer",
-        transition: "text-decoration 0.3s",
-        
-        "&:hover": {
-            textDecoration: "underline",
-        }
-    };
-
-    const errorStyle = {
-        color: "#EF4444",
-        textAlign: "center",
-        marginTop: "10px",
-        fontSize: "14px",
-    };
-
     return (
-        <div style={pageContainerStyle}>
+        <div className={styles.pageContainer}>
             {/* Логотип */}
-            <div style={logoContainerStyle}>
-                <img src="./smallLogo.svg" alt="Логотип" style={logoStyle} />
+            <div className={styles.logoContainer}>
+                <img 
+                    src="./smallLogo.svg" 
+                    alt="Логотип" 
+                    className={styles.logo} 
+                />
             </div>
 
             {/* Заголовок "Давайте войдём в систему!" */}
-            <h1 style={headingStyle}>Давайте войдём в систему!</h1>
+            <h1 className={styles.heading}>Давайте войдём в систему!</h1>
 
             {/* Подзаголовок "Заполните поля ниже" */}
-            <p style={subheadingStyle}>Заполните поля ниже</p>
+            <p className={styles.subheading}>Заполните поля ниже</p>
 
-            <form onSubmit={handleLogin} style={formStyle}>
+            <form onSubmit={handleLogin} className={styles.form}>
                 <input
                     type="email"
                     name="email"
@@ -163,7 +62,7 @@ function Login({ onLogin }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    style={inputStyle}
+                    className={styles.input}
                 />
                 <input
                     type="password"
@@ -172,7 +71,7 @@ function Login({ onLogin }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    style={inputStyle}
+                    className={styles.input}
                 />
 
                 <GradientButton type="submit" disabled={isLoading}>
@@ -181,17 +80,17 @@ function Login({ onLogin }) {
             </form>
 
             {/* Блок с текстом и ссылкой на регистрацию */}
-            <div style={authPromptStyle}>
-                <span style={authTextStyle}>Еще нет аккаунта?</span>
+            <div className={styles.authPrompt}>
+                <span className={styles.authText}>Еще нет аккаунта?</span>
                 <span 
-                    style={authLinkStyle}
+                    className={styles.authLink}
                     onClick={() => navigate("/register")}
                 >
                     Зарегистрироваться
                 </span>
             </div>
 
-            {error && <p style={errorStyle}>{error}</p>}
+            {error && <p className={styles.error}>{error}</p>}
         </div>
     );
 }

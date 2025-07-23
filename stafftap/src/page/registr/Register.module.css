@@ -1,0 +1,181 @@
+.pageContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* Стили для выбора роли */
+.roleSelectionContainer {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.roleHeading {
+    text-align: center;
+    color: #373737;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    margin-bottom: 2rem;
+}
+
+.roleCards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+.roleCard {
+    background: #f7efed;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+}
+
+.selectedCard {
+    background: linear-gradient(#f7efed, #f7efed) padding-box, 
+                linear-gradient(to right, #2C8161, #56BD66) border-box;
+}
+
+.roleCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.roleImage {
+    width: 100%;
+    max-width: 250px;
+    height: auto;
+    aspect-ratio: 1/1;
+    object-fit: contain;
+}
+
+.roleText {
+    margin-top: 1rem;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    font-weight: 600;
+    text-align: center;
+    color: #373737;
+}
+
+.selectedCard .roleText {
+    color: #2C8161;
+}
+
+.buttonContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: 2.5rem;
+}
+
+/* Стили для формы регистрации */
+.registrationContainer {
+    width: 100%;
+    max-width: 500px;
+    background-color: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin: 0 auto;
+}
+
+.logoContainer {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+}
+
+.logo {
+    height: 60px;
+}
+
+.heading {
+    text-align: left;
+    margin-bottom: 5px;
+    color: #373737;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.subheading {
+    text-align: left;
+    margin-bottom: 30px;
+    color: #ACACAD;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input {
+    max-width: 500px !important;
+    width: 100%;
+    height: 56px;
+    border-radius: 12px;
+    background-color: #F7F7FD;
+    padding: 16px 20px;
+    box-sizing: border-box;
+    font-size: 16px;
+    outline: none;
+    border: 3px solid #A5A29D80;
+    color: #A5A29D80;
+    transition: all 0.3s;
+}
+
+.inputValid {
+    border-color: #2C8161;
+    color: #2C8161;
+}
+
+.input:focus {
+    border-color: #2C8161;
+    color: #2C8161;
+}
+
+.authPrompt {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin-top: 20px;
+}
+
+.authText {
+    color: #373737;
+    font-size: 16px;
+}
+
+.authLink {
+    color: #56BD66;
+    font-weight: 600;
+    cursor: pointer;
+    transition: text-decoration 0.3s;
+}
+
+.authLink:hover {
+    text-decoration: underline;
+}
+
+.error {
+    color: #EF4444;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+}

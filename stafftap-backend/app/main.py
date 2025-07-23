@@ -5,6 +5,7 @@ from app.database import Base, engine
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.tasks import background_check_completed_jobs  
 from datetime import datetime  
+from app.routes import payments
 
 app = FastAPI()
 
@@ -33,6 +34,10 @@ scheduler.start()
 def shutdown_event():
     scheduler.shutdown()
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
 app.include_router(auth.router)
 app.include_router(me.router)
 app.include_router(users.router)
@@ -44,3 +49,4 @@ app.include_router(chats.router)
 app.include_router(notifications.router)
 app.include_router(admin.router)
 app.include_router(reviews.router)
+app.include_router(payments.router) 

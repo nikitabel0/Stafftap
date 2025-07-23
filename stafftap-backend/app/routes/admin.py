@@ -7,13 +7,14 @@ from app.models import WithdrawalRequest
 from app.database import get_db
 from app.models import User, Job, EmployerDocument, Booking, Dispute, FrozenFunds
 from app.schemas.job import JobOut
-from app.schemas.admin import StatisticsResponse, DisputeDetail
+from app.schemas.admin import StatisticsResponse, DisputeDetail, PaymentHistoryItem , FinanceSummaryResponse, PaginatedPaymentHistory
 from app.schemas.user import UserRole
 from app.schemas.Document import DocumentResponse, DocumentStatusUpdate
 from app.dependencies import get_current_user
 from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased
 from app.schemas.user import  WithdrawalRequestOut
+from app.models.payment import Payment
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -602,3 +603,97 @@ def resolve_dispute(
     db.commit()
     
     return {"status": "dispute_resolved"}
+
+
+@router.get("/finance/history", response_model=PaginatedPaymentHistory)
+def get_financial_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    user_id: Optional[int] = Query(None),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    query = db.query(Payment).options(joinedload(Payment.user))
+    
+    if user_id:
+        query = query.filter(Payment.user_id == user_id)
+    if start_date:
+        query = query.filter(Payment.created_at >= start_date)
+    if end_date:
+        query = query.filter(Payment.created_at <= end_date)
+    
+    total = query.count()
+    payments = query.order_by(Payment.created_at.desc()).offset((page-1)*page_size).limit(page_size).all()
+    
+    result = []
+    for payment in payments:
+        result.append(PaymentHistoryItem(
+            id=payment.id,
+            created_at=payment.created_at,
+            user_id=payment.user_id,
+            user_email=payment.user.email,
+            amount=float(payment.amount),
+            commission=float(payment.commission),
+            status=payment.status,
+            payment_id=payment.payment_id,
+            is_processed=payment.is_processed
+        ))
+    
+    return {
+        "history": result,
+        "total": total,
+        "page": page,
+        "page_size": page_size
+    }
+
+@router.get("/finance/summary", response_model=FinanceSummaryResponse)
+def get_financial_summary(
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    # Запрос для расчета статистики
+    query = db.query(
+        func.coalesce(func.sum(Payment.amount), 0).label("total_amount"),
+        func.coalesce(func.sum(Payment.commission), 0).label("total_commission"),
+        func.count(Payment.id).label("total_transactions")
+    ).filter(Payment.status == "succeeded")
+    
+    if start_date:
+        query = query.filter(Payment.created_at >= start_date)
+    if end_date:
+        query = query.filter(Payment.created_at <= end_date)
+    
+    stats = query.first()
+    
+    # Расчет по дням
+    daily_stats = db.query(
+        func.date_trunc('day', Payment.created_at).label("date"),
+        func.coalesce(func.sum(Payment.amount), 0).label("daily_amount"),
+        func.coalesce(func.sum(Payment.commission), 0).label("daily_commission")
+    ).filter(Payment.status == "succeeded")
+    
+    if start_date:
+        daily_stats = daily_stats.filter(Payment.created_at >= start_date)
+    if end_date:
+        daily_stats = daily_stats.filter(Payment.created_at <= end_date)
+    
+    daily_stats = daily_stats.group_by("date").order_by("date").all()
+    
+    daily_data = [{
+        "date": stat.date.strftime("%Y-%m-%d"),
+        "amount": float(stat.daily_amount),
+        "commission": float(stat.daily_commission)
+    } for stat in daily_stats]
+    
+    return FinanceSummaryResponse(
+        total_amount=float(stats.total_amount),
+        total_commission=float(stats.total_commission),
+        total_transactions=stats.total_transactions,
+        daily_stats=daily_data
+    )
+
+

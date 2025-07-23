@@ -21,3 +21,6 @@ class Transaction(Base):
     status = Column(String(20), nullable=False)
     gateway_id = Column(String(100), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+    commission_amount = Column(Numeric(10, 2), default=0.0)  # Сумма комиссии
+    net_amount = Column(Numeric(10, 2), nullable=False)  # Чистая сумма (после комиссии)
+    commission_setting_id = Column(Integer, ForeignKey("commission_settings.id"), nullable=True)
