@@ -7,6 +7,7 @@ until pg_isready -h db -p 5432 -U "$POSTGRES_USER"; do
 done
 
 echo "Apply Alembic migrations…"
+alembic revision --autogenerate -m "initial"
 alembic upgrade head
 
 echo "Starting Uvicorn…"
