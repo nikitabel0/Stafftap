@@ -85,6 +85,7 @@ def get_jobs(
     skill: Optional[str] = Query(None, alias="skill"),
     date_filter: Optional[date] = Query(None, alias="date"),
     min_rate: Optional[float] = Query(None, alias="min_rate"),
+    city: Optional[str] = Query(None, alias="city"), 
     db: Session = Depends(get_db)
 ):
     
@@ -115,6 +116,8 @@ def get_jobs(
     
     if min_rate is not None:
         query = query.filter(Job.rate >= min_rate)
+    if city:
+        query = query.filter(Job.address.ilike(f"%{city}%"))
     
     results = query.all()
     

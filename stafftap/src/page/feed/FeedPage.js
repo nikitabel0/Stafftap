@@ -11,7 +11,7 @@ import {
   FiDollarSign,
   FiStar,
   FiBriefcase,
-  FiFilter
+  FiFilter,
 } from "react-icons/fi";
 import FilterPanel from "../../components/FilterPanel/FilterPanel";
 import VacancyCard from "../../components/VacancyCard/VacancyCard";
@@ -25,6 +25,7 @@ const FeedPage = ({ user }) => {
     profession: "",
     date: "",
     minRate: "",
+    city: "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -38,10 +39,15 @@ const FeedPage = ({ user }) => {
   const [isLoadingEmployerJobs, setIsLoadingEmployerJobs] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const role = user?.role || "worker";
-  
-  const hasActiveFilters = !!filters.profession || !!filters.date || !!filters.minRate;
+
+  const hasActiveFilters = Object.values(filters).some((val) => val !== "");
+
+  const openFilterPanel = () => {
+    setIsFilterPanelOpen(true);
+  };
 
   // Загрузка вакансий для работников
   const fetchVacancies = async (filters = {}, query = "") => {
@@ -51,6 +57,7 @@ const FeedPage = ({ user }) => {
         skill: filters.profession || undefined,
         date: filters.date || undefined,
         min_rate: filters.minRate || undefined,
+        city: filters.city || undefined,
         search: query || undefined,
       };
 
@@ -96,6 +103,7 @@ const FeedPage = ({ user }) => {
         skill: filters.profession || undefined,
         available_date: filters.date || undefined,
         min_rate: filters.minRate || undefined,
+        city: filters.city || undefined,
         search: query || undefined,
       };
 
@@ -120,10 +128,11 @@ const FeedPage = ({ user }) => {
           })) || [],
         isVerified: worker.is_verified,
         rating: worker.rating,
+        city: worker.city || "Город не указан",
       }));
     } catch (error) {
       console.error("Ошибка при загрузке работников:", error);
-      
+
       if (error.response?.status === 403) {
         setError("У вас нет прав для просмотра списка работников");
       } else if (error.response?.status === 401) {
@@ -131,7 +140,7 @@ const FeedPage = ({ user }) => {
       } else {
         setError("Ошибка при загрузке данных работников");
       }
-      
+
       return [];
     }
   };
@@ -139,7 +148,7 @@ const FeedPage = ({ user }) => {
   // Загрузка вакансий работодателя
   const fetchEmployerJobs = async () => {
     if (!user || user.role !== "employer") return;
-    
+
     setIsLoadingEmployerJobs(true);
     try {
       const token = localStorage.getItem("token");
@@ -149,7 +158,7 @@ const FeedPage = ({ user }) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
+
       setEmployerJobs(response.data);
     } catch (error) {
       console.error("Ошибка при загрузке вакансий работодателя:", error);
@@ -298,7 +307,7 @@ const FeedPage = ({ user }) => {
       return "N/A";
     }
   };
-  
+
   // Форматирование опыта работы
   const formatExperience = (months) => {
     if (!months) return "Опыт не указан";
@@ -312,30 +321,33 @@ const FeedPage = ({ user }) => {
 
   // Получение ближайших доступных дат
   const getNearestAvailability = (availability) => {
-    if (!availability || availability.length === 0) return ["Нет доступных дат"];
-    
+    if (!availability || availability.length === 0)
+      return ["Нет доступных дат"];
+
     const validDates = availability
-      .map(av => {
+      .map((av) => {
         const dateStr = av.date || av.available_date;
         if (!dateStr) return null;
-        
+
         const formats = ["YYYY-MM-DD", "DD.MM.YYYY", "MM/DD/YYYY"];
-        
+
         for (const format of formats) {
           const date = moment(dateStr, format, true);
           if (date.isValid()) return date.toDate();
         }
-        
+
         return null;
       })
-      .filter(date => date && !isNaN(date) && date >= new Date())
+      .filter((date) => date && !isNaN(date) && date >= new Date())
       .sort((a, b) => a - b)
       .slice(0, 3)
-      .map(date => date.toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "long"
-      }));
-    
+      .map((date) =>
+        date.toLocaleDateString("ru-RU", {
+          day: "numeric",
+          month: "long",
+        })
+      );
+
     return validDates.length > 0 ? validDates : ["Нет доступных дат"];
   };
 
@@ -354,24 +366,6 @@ const FeedPage = ({ user }) => {
         return "Отменена";
       default:
         return status;
-    }
-  };
-
-  // Получение класса для статуса
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "pending":
-        return "status-pending";
-      case "confirmed":
-        return "status-confirmed";
-      case "rejected":
-        return "status-rejected";
-      case "completed":
-        return "status-completed";
-      case "canceled":
-        return "status-canceled";
-      default:
-        return "";
     }
   };
 
@@ -396,25 +390,24 @@ const FeedPage = ({ user }) => {
   // Подтверждение бронирования работника на вакансию
   const confirmWorkerBooking = async (jobId) => {
     if (!selectedWorkerId) return;
-    
+
     try {
       const token = localStorage.getItem("token");
       await axios.post(
         `${API_BASE_URL}/api/bookings/employer/book-worker/`,
         {
           worker_id: selectedWorkerId,
-          job_id: jobId
+          job_id: jobId,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
+
       setError("Работник успешно забронирован на вакансию!");
-      
+
       const workersData = await fetchWorkers(filters, searchQuery);
       setData(workersData);
-      
     } catch (error) {
       console.error("Ошибка при бронировании работника:", error);
       setError(`Ошибка: ${error.response?.data?.detail || error.message}`);
@@ -445,8 +438,8 @@ const FeedPage = ({ user }) => {
         {error && (
           <div className={styles.errorBanner}>
             <span>{error}</span>
-            <button 
-              className={styles.errorClose} 
+            <button
+              className={styles.errorClose}
               onClick={() => setError(null)}
             >
               <FiX />
@@ -473,28 +466,37 @@ const FeedPage = ({ user }) => {
       {/* Панель управления с кнопками */}
       <div className={styles.actionBar}>
         <div className={styles.filterSection}>
-          <button 
-            className={`${styles.filterButton} ${showFilters ? styles.active : ''} ${hasActiveFilters ? styles.hasFilters : ''}`}
-            onClick={toggleFilters}
+          <button
+            className={`${styles.filterButton} ${
+              isFilterPanelOpen ? styles.active : ""
+            } ${hasActiveFilters ? styles.hasFilters : ""}`}
+            onClick={openFilterPanel}
           >
             <FiFilter className={styles.filterIcon} />
             <span>Фильтры</span>
             {hasActiveFilters && <div className={styles.filterIndicator}></div>}
           </button>
-          
-          {(filters.profession || filters.date || filters.minRate) && (
-            <button 
+
+          {(filters.profession ||
+            filters.date ||
+            filters.minRate ||
+            filters.city) && (
+            <button
               className={styles.clearFilters}
-              onClick={() => setFilters({ profession: "", date: "", minRate: "" })}
+              onClick={() =>
+                setFilters({ profession: "", date: "", minRate: "", city: "" })
+              }
             >
               Сбросить
             </button>
           )}
         </div>
-        
+
         <div className={styles.mainAction}>
-          <button 
-            className={`${styles.actionButton} ${role === "employer" ? styles.employer : ''}`}
+          <button
+            className={`${styles.actionButton} ${
+              role === "employer" ? styles.employer : ""
+            }`}
             onClick={handleActionButtonClick}
           >
             {role === "employer" ? (
@@ -513,18 +515,18 @@ const FeedPage = ({ user }) => {
       </div>
 
       {/* Панель фильтров */}
-      {showFilters && (
-        <FilterPanel
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          role={role}
-          onClose={() => setShowFilters(false)}
-        />
-      )}
-
+      <FilterPanel
+        filters={filters}
+        onFilterChange={setFilters}
+        onClose={() => setIsFilterPanelOpen(false)}
+        isOpen={isFilterPanelOpen}
+      />
       {/* Информация о примененных фильтрах */}
       <div className={styles.filtersInfo}>
-        {(filters.profession || filters.date || filters.minRate) && (
+        {(filters.profession ||
+          filters.date ||
+          filters.minRate ||
+          filters.city) && (
           <div className={styles.activeFilters}>
             <span>Примененные фильтры:</span>
             {filters.profession && (
@@ -535,6 +537,16 @@ const FeedPage = ({ user }) => {
                   onClick={() =>
                     handleFilterChange({ ...filters, profession: "" })
                   }
+                >
+                  &times;
+                </button>
+              </div>
+            )}
+            {filters.city && (
+              <div className={styles.filterTag}>
+                Город: {filters.city}
+                <button
+                  onClick={() => handleFilterChange({ ...filters, city: "" })}
                 >
                   &times;
                 </button>
@@ -586,7 +598,11 @@ const FeedPage = ({ user }) => {
           </p>
         </div>
       ) : (
-        <div className={role === "worker" ? styles.vacanciesList : styles.workersList}>
+        <div
+          className={
+            role === "worker" ? styles.vacanciesList : styles.workersList
+          }
+        >
           {data.length > 0 ? (
             role === "worker" ? (
               // Отображение вакансий для работников
@@ -626,8 +642,11 @@ const FeedPage = ({ user }) => {
                       </h3>
                       <div className={styles.workerMeta}>
                         <span className={styles.workerAge}>
-                          {worker.birthDate ? calculateAge(worker.birthDate) + " лет" : "Возраст не указан"}
+                          {worker.birthDate
+                            ? calculateAge(worker.birthDate) + " лет"
+                            : "Возраст не указан"}
                         </span>
+                        <span className={styles.workerCity}>{worker.city}</span>
                       </div>
                     </div>
 
@@ -682,10 +701,10 @@ const FeedPage = ({ user }) => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Кнопка бронирования для работодателей */}
                   {role === "employer" && (
-                    <button 
+                    <button
                       className={styles.bookWorkerButton}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -708,7 +727,12 @@ const FeedPage = ({ user }) => {
               <button
                 className={styles.resetFiltersButton}
                 onClick={() => {
-                  setFilters({ profession: "", date: "", minRate: "" });
+                  setFilters({
+                    profession: "",
+                    date: "",
+                    minRate: "",
+                    city: "",
+                  });
                   setSearchQuery("");
                 }}
               >
@@ -767,13 +791,13 @@ const FeedPage = ({ user }) => {
                         <h3>{application.job.title}</h3>
                         <div
                           className={`${styles.applicationStatus} ${
-                            application.status === "pending" 
-                              ? styles.statusPending 
+                            application.status === "pending"
+                              ? styles.statusPending
                               : application.status === "confirmed"
-                                ? styles.statusConfirmed
-                                : application.status === "rejected"
-                                  ? styles.statusRejected
-                                  : ""
+                              ? styles.statusConfirmed
+                              : application.status === "rejected"
+                              ? styles.statusRejected
+                              : ""
                           }`}
                         >
                           <span>{getStatusText(application.status)}</span>
@@ -783,7 +807,9 @@ const FeedPage = ({ user }) => {
                       <div className={styles.applicationDetails}>
                         <div className={styles.detailRow}>
                           <div className={styles.detailItem}>
-                            <span className={styles.detailLabel}>Компания:</span>
+                            <span className={styles.detailLabel}>
+                              Компания:
+                            </span>
                             <span>{application.job.company_name}</span>
                           </div>
                           <div className={styles.detailItem}>
@@ -885,12 +911,23 @@ const FeedPage = ({ user }) => {
                         <p className={styles.jobDate}>
                           {formatDate(job.work_date)}
                         </p>
+                        <p className={styles.jobCity}>
+                          {job.address
+                            .split(", ")
+                            .find(
+                              (part) =>
+                                part.includes("город") ||
+                                part.match(/[а-яА-ЯёЁ\s-]+(?:г\.|город)\s?/i)
+                            ) || job.address}
+                        </p>
+                      </div>
+                      <div className={styles.jobMeta}>
                         <p className={styles.jobRate}>
                           {job.rate.toLocaleString("ru-RU")} ₽
                         </p>
-                      </div>
-                      <div className={styles.jobSlots}>
-                        <span>Осталось мест: {job.remaining_slots}</span>
+                        <div className={styles.jobSlots}>
+                          <span>Осталось мест: {job.remaining_slots}</span>
+                        </div>
                       </div>
                     </div>
                   ))}

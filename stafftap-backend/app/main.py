@@ -12,7 +12,6 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Путь к статике теперь будет stafftap-backend/static
 static_path = BASE_DIR / "static"
 
 app = FastAPI()

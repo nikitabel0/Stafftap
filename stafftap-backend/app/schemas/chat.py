@@ -41,3 +41,7 @@ class ChatDetailOut(BaseModel):
     interlocutor_name: str
     avatar: Optional[str] = None
     status: str
+
+
+class UnreadTotalOut(BaseModel):
+    total_unread: int

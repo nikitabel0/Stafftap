@@ -1,168 +1,197 @@
-/* FilterPanel.module.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
 .container {
   position: relative;
-  font-family: 'Inter', sans-serif;
-  z-index: 100;
+  z-index: 10;
 }
 
-.filterHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #2C8161 0%, #3A9D7C 100%);
-  color: white;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 4px 12px rgba(44, 129, 97, 0.25);
-  user-select: none;
-  font-weight: 600;
-  width: fit-content;
-}
-
-.filterHeader:hover {
-  background: linear-gradient(135deg, #1A5D46 0%, #2C8161 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(26, 93, 70, 0.3);
-}
-
-.filterHeader.active {
-  background: linear-gradient(135deg, #1A5D46 0%, #2C8161 100%);
-}
-
-.filterIcon {
-  font-size: 18px;
-}
-
-.activeFiltersCount {
-  background: white;
-  color: #2C8161;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.filterContent {
-  position: absolute;
-  top: calc(100% + 10px);
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
   right: 0;
-  width: 300px;
-  background: white;
-  border-radius: 16px;
-  padding: 25px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-  animation: fadeIn 0.3s ease-out;
-  border: 1px solid #E0E6ED;
-  z-index: 100;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 60px;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.filterContent {
+  background-color: white;
+  border-radius: 20px;
+  padding: 30px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .closeFilters {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 20px;
+  right: 20px;
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   cursor: pointer;
-  color: #7A8B94;
-  transition: all 0.2s ease;
+  color: #666;
+  transition: all 0.3s;
 }
 
 .closeFilters:hover {
-  color: #1A2E35;
+  color: #2C8161;
   transform: rotate(90deg);
 }
 
 .filterGroup {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .filterGroup label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-weight: 600;
-  color: #4A6572;
-  font-size: 0.9rem;
+  color: #333;
+  font-size: 16px;
 }
 
 .select, .input {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid #E0E6ED;
-  background: #F5F7FA;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  outline: none;
-}
-
-.select {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A6572' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
+  padding: 14px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  box-sizing: border-box;
+  font-size: 16px;
+  transition: all 0.3s;
+  background-color: #f9f9f9;
 }
 
 .select:focus, .input:focus {
-  border-color: #3A9D7C;
-  box-shadow: 0 0 0 3px rgba(58, 157, 124, 0.15);
+  border-color: #2C8161;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(44, 129, 97, 0.15);
+  background-color: white;
 }
 
 .filterActions {
   display: flex;
-  gap: 12px;
-  margin-top: 15px;
+  justify-content: space-between;
+  margin-top: 20px;
+  gap: 15px;
 }
 
 .resetBtn, .applyBtn {
   flex: 1;
-  padding: 12px 0;
-  border-radius: 10px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: none;
-  font-size: 1rem;
 }
 
 .resetBtn {
-  background: #F5F7FA;
-  color: #4A6572;
-  border: 1px solid #E0E6ED;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  color: #495057;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .resetBtn:hover {
-  background: #E0E6ED;
+  background: #e9ecef;
   transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
 .applyBtn {
-  background: linear-gradient(135deg, #2C8161 0%, #3A9D7C 100%);
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
   color: white;
-  box-shadow: 0 4px 12px rgba(44, 129, 97, 0.25);
+  border: none;
+  box-shadow: 
+    0 6px 0 #1f5d47,
+    0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
 .applyBtn:hover {
-  background: linear-gradient(135deg, #1A5D46 0%, #2C8161 100%);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 16px rgba(26, 93, 70, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 0 #1f5d47,
+    0 15px 25px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(to right, #256b52, #318a67);
 }
 
+.applyBtn:active {
+  transform: translateY(4px);
+  box-shadow: 
+    0 2px 0 #1f5d47,
+    0 5px 15px rgba(0, 0, 0, 0.15);
+}
 
-.filterContent, .select, .input, .resetBtn, .applyBtn {
-  box-sizing: border-box;
+/* Стили для datalist */
+datalist {
+  display: none;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding-top: 40px;
+  }
+  
+  .filterContent {
+    padding: 25px;
+    width: 95%;
+  }
+  
+  .closeFilters {
+    top: 15px;
+    right: 15px;
+  }
+  
+  .filterGroup {
+    margin-bottom: 20px;
+  }
+  
+  .select, .input {
+    padding: 12px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalOverlay {
+    padding-top: 20px;
+    align-items: flex-start;
+  }
+  
+  .filterContent {
+    padding: 20px 15px;
+    border-radius: 16px;
+  }
+  
+  .filterGroup label {
+    font-size: 15px;
+  }
+  
+  .select, .input {
+    padding: 11px 16px;
+    font-size: 15px;
+  }
+  
+  .resetBtn, .applyBtn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
 }
