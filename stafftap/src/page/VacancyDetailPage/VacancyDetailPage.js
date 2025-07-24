@@ -13,14 +13,16 @@ import {
   FiBriefcase,
   FiArrowLeft,
   FiXCircle,
+  FiImage,
 } from "react-icons/fi";
-import styles from './VacancyDetailPage.module.css';
+import styles from "./VacancyDetailPage.module.css";
 import API_BASE_URL from "../../apiConfig";
 
 const VacancyDetailPage = ({ user }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [vacancy, setVacancy] = useState(null);
+  const [photos, setPhotos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState(null);
@@ -60,8 +62,9 @@ const VacancyDetailPage = ({ user }) => {
           id: data.id,
           title: data.title,
           description: data.description,
-          profession: data.required_skill_name,
+          profession: data.custom_skill || data.required_skill_name,
           date: data.work_date,
+  
           startTime: data.start_time,
           endTime: data.end_time,
           address: data.address,
@@ -74,8 +77,11 @@ const VacancyDetailPage = ({ user }) => {
           completedJobs: data.completed_jobs,
           employerVerified: data.employer_verified,
           isFavorite: data.is_favorite,
+          establishmentName: data.establishment_name,
+          customSkill: data.custom_skill,
         });
 
+        setPhotos(data.photo_urls || []);
         setIsFavorite(data.is_favorite || false);
 
         if (user && user.role === "worker") {
@@ -138,9 +144,7 @@ const VacancyDetailPage = ({ user }) => {
       setApplicationStatus("pending");
     } catch (error) {
       console.error("Ошибка при отправке заявки:", error);
-
       let errorMessage = "Не удалось отправить заявку";
-
       if (error.response) {
         if (error.response.data && error.response.data.detail) {
           if (Array.isArray(error.response.data.detail)) {
@@ -149,11 +153,6 @@ const VacancyDetailPage = ({ user }) => {
               .join(", ");
           } else if (typeof error.response.data.detail === "string") {
             errorMessage = error.response.data.detail;
-          } else if (
-            error.response.data.detail &&
-            error.response.data.detail.msg
-          ) {
-            errorMessage = error.response.data.detail.msg;
           }
         } else if (error.response.data && error.response.data.message) {
           errorMessage = error.response.data.message;
@@ -161,7 +160,6 @@ const VacancyDetailPage = ({ user }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-
       setError(errorMessage);
     } finally {
       setIsApplying(false);
@@ -204,7 +202,9 @@ const VacancyDetailPage = ({ user }) => {
         <h1>{vacancy.title}</h1>
         <div className={styles.headerActions}>
           <button
-            className={`${styles.favoriteButton} ${isFavorite ? styles.active : ""}`}
+            className={`${styles.favoriteButton} ${
+              isFavorite ? styles.active : ""
+            }`}
             onClick={handleToggleFavorite}
             aria-label={
               isFavorite ? "Убрать из избранного" : "Добавить в избранное"
@@ -224,6 +224,8 @@ const VacancyDetailPage = ({ user }) => {
 
       <div className={styles.infoCard}>
         <div className={styles.metaInfo}>
+        
+
           <div className={styles.metaRow}>
             <div className={styles.metaItem}>
               <FiBriefcase className={styles.icon} />
@@ -250,10 +252,10 @@ const VacancyDetailPage = ({ user }) => {
               </span>
             </div>
           </div>
-
+      
           <div className={`${styles.metaItem} ${styles.address}`}>
             <FiMapPin className={styles.icon} />
-            <span>{vacancy.address}</span>
+            <span>{vacancy.establishmentName}  Адресс: {vacancy.address}</span>
           </div>
         </div>
 
@@ -261,6 +263,26 @@ const VacancyDetailPage = ({ user }) => {
           <h3>Описание вакансии</h3>
           <p>{vacancy.description}</p>
         </div>
+
+        {photos.length > 0 && (
+          <div className={styles.photosSection}>
+            <h3>
+              <FiImage className={styles.photoIcon} /> Фотографии
+            </h3>
+            <div className={styles.photosGrid}>
+              {photos.map((photo, index) => (
+                <div key={index} className={styles.photoItem}>
+                  <img
+                    src={photo}
+                    alt={`Фото вакансии ${index + 1}`}
+                    className={styles.photo}
+                    onClick={() => window.open(photo, "_blank")}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.employerCard}>
@@ -295,7 +317,9 @@ const VacancyDetailPage = ({ user }) => {
               </div>
               <div>
                 <div className={styles.statLabel}>Завершено</div>
-                <div className={styles.statValue}>{vacancy.completedJobs} работ</div>
+                <div className={styles.statValue}>
+                  {vacancy.completedJobs} работ
+                </div>
               </div>
             </div>
           </div>

@@ -10,11 +10,9 @@ from app.models.user import User
 router = APIRouter(tags=["me"])
 @router.get("/me", response_model=UserOut)
 def me(db: Session = Depends(get_db), user = Depends(get_current_user)):
-    
     db_user = db.query(User).options(
         joinedload(User.availability),
         joinedload(User.skills)
     ).filter(User.id == user.id).first()
     
-    return db_user  
-        
+    return db_user

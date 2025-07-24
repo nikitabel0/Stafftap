@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import API_BASE_URL from "../../apiConfig";
-import { FiSearch, FiRefreshCw, FiCheck, FiLock, FiUnlock, FiX } from "react-icons/fi";
+import { FiSearch, FiRefreshCw, FiCheck, FiLock, FiUnlock, FiX, FiFilter, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import styles from "./AdminUsersManagement.module.css";
 
 const AdminUsersManagement = () => {
@@ -17,6 +17,7 @@ const AdminUsersManagement = () => {
     status: "all",
     sort: "newest",
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   const pageSize = 10;
   const searchTimeoutRef = useRef(null);
@@ -112,6 +113,7 @@ const AdminUsersManagement = () => {
     });
     setSearchTerm("");
     setCurrentPage(1);
+    setShowFilters(false);
   };
 
   const handleBlockToggle = async (userId, isBlocked) => {
@@ -204,7 +206,7 @@ const AdminUsersManagement = () => {
             filters.verified !== "all" ||
             filters.status !== "all") && (
             <button className={styles.resetFiltersBtn} onClick={resetFilters}>
-              <FiRefreshCw /> Сбросить фильтры
+              <FiRefreshCw /> Сбросить
             </button>
           )}
         </div>
@@ -230,7 +232,14 @@ const AdminUsersManagement = () => {
           )}
         </div>
 
-        <div className={styles.filterControls}>
+        <button 
+          className={styles.mobileFilterToggle}
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <FiFilter /> Фильтры
+        </button>
+
+        <div className={`${styles.filterControls} ${showFilters ? styles.showFilters : ''}`}>
           <div className={styles.filterGroup}>
             <label>Роль:</label>
             <select
@@ -289,116 +298,105 @@ const AdminUsersManagement = () => {
         </div>
       )}
 
-      <div className={styles.usersTableContainer}>
-        <table className={styles.usersTable}>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Пользователь</th>
-              <th>Email</th>
-              <th>Роль</th>
-              <th>Статус</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className={user.is_blocked ? styles.blocked : ""}>
-                <td>{user.id}</td>
-                <td>
-                  <div className={styles.userInfoCell}>
-                    <div className={styles.userAvatar}>
-                      {user.avatar_url ? (
-                        <img src={user.avatar_url} alt="Avatar" />
-                      ) : (
-                        <div className={styles.avatarInitials}>
-                          {user.first_name?.[0]}
-                          {user.last_name?.[0]}
-                        </div>
-                      )}
-                    </div>
-                    <div className={styles.userDetails}>
-                      <div className={styles.userName}>
-                        {user.first_name} {user.last_name}
-                      </div>
-                      <div className={styles.userCompany}>
-                        {user.company_name || "Без компании"}
-                      </div>
-                    </div>
+      <div className={styles.usersList}>
+        {users.map((user) => (
+          <div 
+            key={user.id} 
+            className={`${styles.userCard} ${user.is_blocked ? styles.blocked : ""}`}
+          >
+            <div className={styles.cardHeader}>
+              <div className={styles.userAvatar}>
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="Avatar" />
+                ) : (
+                  <div className={styles.avatarInitials}>
+                    {user.first_name?.[0]}
+                    {user.last_name?.[0]}
                   </div>
-                </td>
-                <td>{user.email}</td>
-                <td>
-                  <select
-                    value={user.role}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    className={`${styles.roleSelect} ${styles[user.role]}`}
-                  >
-                    <option value="worker">Сотрудник</option>
-                    <option value="employer">Работодатель</option>
-                    <option value="admin">Администратор</option>
-                  </select>
-                </td>
-                <td>
-                  <div className={styles.statusIndicators}>
-                    <span
-                      className={`${styles.statusBadge} ${
-                        user.is_verified ? styles.verified : styles.notVerified
-                      }`}
-                    >
-                      {user.is_verified ? (
-                        <>
-                          <FiCheck className={styles.verifiedIcon} /> Подтвержден
-                        </>
-                      ) : (
-                        "Неподтвержден"
-                      )}
-                    </span>
-                    <span
-                      className={`${styles.statusBadge} ${
-                        user.is_blocked ? styles.blocked : styles.active
-                      }`}
-                    >
-                      {user.is_blocked ? (
-                        <>
-                          <FiLock className={styles.blockedIcon} /> Заблокирован
-                        </>
-                      ) : (
-                        <>
-                          <FiUnlock className={styles.activeIcon} /> Активен
-                        </>
-                      )}
-                    </span>
+                )}
+              </div>
+              <div className={styles.userInfo}>
+                <div className={styles.userName}>
+                  {user.first_name} {user.last_name}
+                </div>
+                <div className={styles.userDetails}>
+                  <div className={styles.userEmail}>{user.email}</div>
+                  <div className={styles.userCompany}>
+                    {user.company_name || "Без компании"}
                   </div>
-                </td>
-                <td className={styles.actions}>
-                  <button
-                    className={`${styles.actionBtn} ${
-                      user.is_verified ? styles.unverify : styles.verify
-                    }`}
-                    onClick={() =>
-                      handleVerifyToggle(user.id, user.is_verified)
-                    }
-                  >
-                    {user.is_verified ? <FiX /> : <FiCheck />}
-                    {user.is_verified
-                      ? " Снять верификацию"
-                      : " Верифицировать"}
-                  </button>
-                  <button
-                    className={`${styles.actionBtn} ${
-                      user.is_blocked ? styles.unblock : styles.block
-                    }`}
-                    onClick={() => handleBlockToggle(user.id, user.is_blocked)}
-                  >
-                    {user.is_blocked ? <FiUnlock /> : <FiLock />}
-                    {user.is_blocked ? " Разблокировать" : " Заблокировать"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+              <div className={styles.userId}>ID: {user.id}</div>
+            </div>
+
+            <div className={styles.cardBody}>
+              <div className={styles.userRole}>
+                <label>Роль:</label>
+                <select
+                  value={user.role}
+                  onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                  className={`${styles.roleSelect} ${styles[user.role]}`}
+                >
+                  <option value="worker">Сотрудник</option>
+                  <option value="employer">Работодатель</option>
+                  <option value="admin">Администратор</option>
+                </select>
+              </div>
+
+              <div className={styles.statusIndicators}>
+                <span
+                  className={`${styles.statusBadge} ${
+                    user.is_verified ? styles.verified : styles.notVerified
+                  }`}
+                >
+                  {user.is_verified ? (
+                    <>
+                      <FiCheck className={styles.verifiedIcon} /> Подтвержден
+                    </>
+                  ) : (
+                    "Неподтвержден"
+                  )}
+                </span>
+                <span
+                  className={`${styles.statusBadge} ${
+                    user.is_blocked ? styles.blocked : styles.active
+                  }`}
+                >
+                  {user.is_blocked ? (
+                    <>
+                      <FiLock className={styles.blockedIcon} /> Заблокирован
+                    </>
+                  ) : (
+                    <>
+                      <FiUnlock className={styles.activeIcon} /> Активен
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.cardActions}>
+              <button
+                className={`${styles.actionBtn} ${
+                  user.is_verified ? styles.unverify : styles.verify
+                }`}
+                onClick={() => handleVerifyToggle(user.id, user.is_verified)}
+              >
+                {user.is_verified ? <FiX /> : <FiCheck />}
+                {user.is_verified ? " Снять верификацию" : " Верифицировать"}
+              </button>
+              <button
+                className={`${styles.actionBtn} ${
+                  user.is_blocked ? styles.unblock : styles.block
+                }`}
+                onClick={() => handleBlockToggle(user.id, user.is_blocked)}
+              >
+                {user.is_blocked ? <FiUnlock /> : <FiLock />}
+                {user.is_blocked ? " Разблокировать" : " Заблокировать"}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {users.length === 0 && !loading && (
@@ -418,50 +416,12 @@ const AdminUsersManagement = () => {
             onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
           >
-            Назад
+            <FiChevronLeft />
           </button>
 
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let page;
-            if (totalPages <= 5) {
-              page = i + 1;
-            } else if (currentPage <= 3) {
-              page = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              page = totalPages - 4 + i;
-            } else {
-              page = currentPage - 2 + i;
-            }
-
-            return (
-              <button
-                key={page}
-                className={`${styles.pageBtn} ${
-                  currentPage === page ? styles.active : ""
-                }`}
-                onClick={() => handlePageChange(page)}
-                disabled={currentPage === page}
-              >
-                {page}
-              </button>
-            );
-          })}
-
-          {totalPages > 5 && currentPage < totalPages - 2 && (
-            <span className={styles.pageDots}>...</span>
-          )}
-
-          {totalPages > 5 && currentPage < totalPages - 1 && (
-            <button
-              className={`${styles.pageBtn} ${
-                currentPage === totalPages ? styles.active : ""
-              }`}
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-            >
-              {totalPages}
-            </button>
-          )}
+          <div className={styles.pageInfo}>
+            Страница {currentPage} из {totalPages}
+          </div>
 
           <button
             className={`${styles.pageBtn} ${styles.prevNext}`}
@@ -470,7 +430,7 @@ const AdminUsersManagement = () => {
             }
             disabled={currentPage === totalPages}
           >
-            Вперед
+            <FiChevronRight />
           </button>
         </div>
       )}

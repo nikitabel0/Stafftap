@@ -1,0 +1,178 @@
+.documentsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.documentItem {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px;
+  border-radius: 12px;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  transition: all 0.3s;
+}
+
+.documentItem:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.documentIcon {
+  margin-right: 15px;
+  padding: 12px;
+  background: #e8f5e9;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fileIcon {
+  font-size: 24px;
+  color: #2C8161;
+}
+
+.documentInfo {
+  flex: 1;
+}
+
+.documentType {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.documentStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.statusIconApproved {
+  color: #27ae60;
+}
+
+.statusIconRejected {
+  color: #e74c3c;
+}
+
+.documentComment {
+  background: #fff8f8;
+  border-left: 3px solid #e74c3c;
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.9rem;
+  color: #555;
+  margin: 10px 0;
+}
+
+.documentDate {
+  font-size: 0.85rem;
+  color: #777;
+}
+
+.documentActions {
+  display: flex;
+  gap: 10px;
+  margin-left: 10px;
+}
+
+.downloadBtn, .removeBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 18px;
+}
+
+.downloadBtn {
+  color: #2C8161;
+}
+
+.downloadBtn:hover {
+  background: #e8f5e9;
+  transform: translateY(-2px);
+}
+
+.removeBtn {
+  color: #e74c3c;
+}
+
+.removeBtn:hover {
+  background: #fff0f0;
+  transform: translateY(-2px);
+}
+
+.statusApproved {
+  border-left: 4px solid #27ae60;
+}
+
+.statusRejected {
+  border-left: 4px solid #e74c3c;
+}
+
+.statusPending {
+  border-left: 4px solid #f39c12;
+}
+
+.noDocuments {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+  background: #f9f9f9;
+  border-radius: 12px;
+  border: 2px dashed #e0e0e0;
+}
+
+.noDocumentsIcon {
+  font-size: 48px;
+  color: #ccc;
+  margin-bottom: 15px;
+}
+
+.noDocuments p {
+  color: #777;
+  margin: 0;
+}
+
+.addDocumentBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 20px;
+  background: #2C8161;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 15px;
+  font-size: 1rem;
+}
+
+.addDocumentBtn:hover {
+  background: #256a4e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 129, 97, 0.25);
+}
+
+.plusIcon {
+  font-size: 1.3rem;
+  font-weight: bold;
+}

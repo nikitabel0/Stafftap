@@ -569,3 +569,111 @@
     margin-bottom: 50px;
   }
 }
+/* Добавляем в конец файла VacancyDetailPage.module.css */
+
+.photosSection {
+  padding: 0 30px 30px;
+}
+
+.photosSection h3 {
+  font-size: 24px;
+  color: #1a3c2d;
+  margin-top: 0;
+  margin-bottom: 20px;
+  position: relative;
+  padding-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.photosSection h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #2C8161, #56BD66);
+  border-radius: 4px;
+}
+
+.photoIcon {
+  font-size: 26px;
+  color: #2C8161;
+}
+
+.photosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.photoItem {
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  height: 200px;
+  cursor: pointer;
+}
+
+.photoItem:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.photoItem:hover .photo {
+  transform: scale(1.05);
+}
+
+.messageIcon {
+  font-size: 20px;
+}
+
+/* Дополнительные адаптивные стили */
+@media (max-width: 768px) {
+  .photosGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .photosSection {
+    padding: 0 25px 25px;
+  }
+}
+
+@media (max-width: 480px) {
+  .photosGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .photoItem {
+    height: 180px;
+  }
+  
+  .photosSection h3 {
+    font-size: 20px;
+  }
+  
+  .photoIcon {
+    font-size: 22px;
+  }
+}
+
+.establishmentName {
+  font-weight: 600;
+  font-size: 18px;
+  color: #1a3c2d;
+  margin-bottom: 15px;
+  display: block;
+  width: 100%;
+}
+

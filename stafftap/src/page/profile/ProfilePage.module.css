@@ -1,0 +1,783 @@
+/* Общие переменные */
+:root {
+  --primary: #2C8161;
+  --primary-light: #3A9D7C;
+  --primary-dark: #1A5D46;
+  --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  --secondary: #F5F7FA;
+  --accent: #FFA07A;
+  --text-dark: #1A2E35;
+  --text-medium: #4A6572;
+  --text-light: #7A8B94;
+  --border: #E0E6ED;
+  --success: #2C8161;
+  --warning: #FFA07A;
+  --error: #FF6B6B;
+  --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Общие стили */
+.profilePage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  color: var(--text-dark);
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.section {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: var(--transition);
+  border: 1px solid var(--border);
+}
+
+.section:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+
+.section[title]::before {
+  content: attr(title);
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--primary-dark);
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--primary-light);
+}
+
+/* Состояние загрузки */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading p {
+  font-size: 16px;
+  color: #555;
+  margin: 0;
+}
+
+/* Баннер профиля */
+.profileBanner {
+  display: flex;
+  align-items: center;
+  padding: 30px;
+  background: var(--primary-gradient);
+  border-radius: 16px;
+  color: white;
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 70px;
+  margin-bottom: 80px;
+}
+
+.profileBanner::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+  transform: rotate(30deg);
+}
+
+.profileAvatar {
+  position: relative;
+  z-index: 2;
+  margin-right: 30px;
+  flex-shrink: 0;
+}
+
+.avatarPlaceholder {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 48px;
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.avatarPlaceholder.editable {
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.avatarPlaceholder.editable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatarInitials {
+  font-size: 48px;
+  font-weight: 700;
+  color: white;
+}
+
+.avatarOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: var(--transition);
+  border-radius: 50%;
+}
+
+.avatarPlaceholder:hover .avatarOverlay {
+  opacity: 1;
+}
+
+.avatarOverlay .cameraIcon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.avatarOverlay span {
+  font-size: 14px;
+  text-align: center;
+  padding: 0 10px;
+}
+
+.profileInfo {
+  flex: 1;
+  z-index: 2;
+}
+
+.profileInfo h1 {
+  font-size: 2.2rem;
+  margin: 0 0 10px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.profileMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.roleBadge, .verifiedBadge, .memberSince {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.roleBadge {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.roleBadge.worker {
+  background: rgba(86, 189, 102, 0.25);
+}
+
+.roleBadge.employer {
+  background: rgba(52, 152, 219, 0.25);
+}
+
+.roleBadge.admin {
+  background: rgba(155, 89, 182, 0.25);
+}
+
+.verifiedBadge {
+  background: rgba(44, 129, 97, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.memberSince {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.balanceInfo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 10px 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: fit-content;
+}
+
+.withdrawBtn {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.depositBtn {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.withdrawBtn:hover, .depositBtn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.profileActions {
+  z-index: 2;
+  display: flex;
+  gap: 15px;
+}
+
+.editBtn, .logoutBtn, .saveBtn, .cancelBtn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  border: 2px solid transparent;
+}
+
+.editBtn, .saveBtn {
+  background: white;
+  color: var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.editBtn:hover, .saveBtn:hover {
+  background: #f0f7ff;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-light);
+}
+
+.logoutBtn {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-3px);
+}
+
+.cancelBtn {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-3px);
+}
+
+/* Табы */
+.profileTabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+  border-bottom: 2px solid var(--border);
+}
+
+.tabBtn {
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  background: #f5f7fa;
+  color: var(--text-medium);
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.tabBtn:hover {
+  background: #e0e6ed;
+  color: var(--primary-dark);
+}
+
+.tabBtn.active {
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: 0 4px 12px rgba(44, 129, 97, 0.25);
+}
+
+/* Содержимое профиля */
+.profileContent {
+  margin-bottom: 70px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+.infoItem {
+  margin-bottom: 20px;
+}
+
+.infoItem label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-medium);
+}
+
+.infoItem p {
+  margin: 0;
+  padding: 12px 15px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+}
+
+.infoItem input, .infoItem select, .infoItem textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 1rem;
+  transition: var(--transition);
+  max-width: 250px;
+}
+
+.infoItem input:focus, .infoItem select:focus, .infoItem textarea:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.15);
+}
+
+.errorInput {
+  border-color: var(--error) !important;
+}
+
+.errorMessage {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+/* Таблица запросов на вывод */
+.withdrawalRequests {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.withdrawalRequests table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.withdrawalRequests th,
+.withdrawalRequests td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.withdrawalRequests th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.withdrawalRequests td {
+  color: #555;
+}
+
+.withdrawalRequests tr:hover {
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+/* Стили статусов */
+.statusPending {
+  color: #f39c12;
+  font-weight: 500;
+}
+
+.statusPaid {
+  color: #27ae60;
+  font-weight: 500;
+}
+
+.statusRejected {
+  color: #c0392b;
+  font-weight: 500;
+}
+
+/* Состояние "Нет выводов" */
+.noWithdrawals {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.noWithdrawals .icon {
+  font-size: 48px;
+  color: #3498db;
+  margin-bottom: 15px;
+}
+
+.noWithdrawals p {
+  font-size: 16px;
+  color: #555;
+  margin: 0 0 20px 0;
+}
+
+.createWithdrawalBtn {
+  background: #3498db;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.createWithdrawalBtn:hover {
+  background: #2980b9;
+  transform: translateY(-2px);
+}
+
+.createWithdrawalBtn:active {
+  background: #1f618d;
+  transform: translateY(0);
+}
+
+/* Вакансии */
+.vacanciesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.vacancyContainer {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.vacancyContainer:hover {
+  transform: translateY(-5px);
+}
+
+.noVacancies {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+}
+
+.createVacancyBtn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 20px 25px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 15px;
+}
+
+.createVacancyBtn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-3px);
+}
+
+/* Отзывы */
+.reviewsSummary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ratingValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stars {
+  font-size: 1.8rem;
+  color: #FFC107;
+  letter-spacing: 2px;
+}
+
+.reviewsCount {
+  font-size: 1rem;
+  color: var(--text-medium);
+  font-weight: 600;
+}
+
+.reviewsList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.reviewCard {
+  padding: 20px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.reviewCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.reviewAuthor {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.reviewRating {
+  color: #FFC107;
+  font-size: 1.2rem;
+}
+
+.reviewDate {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.reviewComment {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-medium);
+}
+
+.noReviews {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-light);
+}
+
+.noReviewsIcon {
+  font-size: 48px;
+  color: #e0e6ed;
+  margin-bottom: 15px;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.profileLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+}
+
+.loadingVacancies, .loadingReviews {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* Адаптивность */
+@media (max-width: 992px) {
+  .profileBanner {
+    flex-direction: column;
+    text-align: center;
+    padding: 30px 20px;
+  }
+  
+  .profileAvatar {
+    margin-right: 0;
+    margin-bottom: 20px;
+  }
+  
+  .profileActions {
+    width: 100%;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  .balanceInfo {
+    margin: 0 auto 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .profilePage {
+    padding: 15px;
+  }
+  
+  .profileTabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+  
+  .tabBtn {
+    padding: 10px 18px;
+    font-size: 0.9rem;
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .section {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 576px) {
+  .profileBanner h1 {
+    font-size: 1.8rem;
+  }
+  
+  .profileMeta {
+    justify-content: center;
+  }
+  
+  .profileActions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .editBtn, .logoutBtn, .saveBtn, .cancelBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .balanceInfo {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 100%;
+    padding: 15px;
+  }
+  
+  .balanceInfo span {
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  
+  .depositBtn, .withdrawBtn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+}

@@ -3,12 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   FiPlus,
   FiStar,
-  FiFile,
   FiBriefcase,
   FiShield,
   FiUsers,
-  FiDownload,
-  FiTrash2,
   FiCamera,
   FiCheckCircle,
   FiXCircle,
@@ -20,9 +17,7 @@ import {
   FiFileText,
   FiCheck,
   FiX,
-  FiSearch,
-  FiUpload,
-  FiType,
+  FiFile,
   FiDollarSign,
 } from "react-icons/fi";
 import {
@@ -38,7 +33,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import "./ProfilePage.css";
+import styles from "./ProfilePage.module.css";
 import SkillsList from "../../components/SkillsList/SkillsList";
 import AvailabilityCalendar from "../../components/AvailabilityCalendar/AvailabilityCalendar";
 import VacancyCards from "../../components/VacancyCards/VacancyCards";
@@ -54,179 +49,14 @@ import PlatformStatistics from "../../components/PlatformStatistics/PlatformStat
 import AdminJobsModeration from "../../components/AdminJobsModeration/AdminJobsModeration";
 import AdminUsersManagement from "../../components/AdminUsersManagement/AdminUsersManagement";
 import AdminDocumentsModeration from "../../components/AdminDocumentsModeration/AdminDocumentsModeration";
-import styles from './BalanceDepositModal.module.css';
+import DocumentsList from "../../components/DocumentsSection/DocumentsList";
+import DocumentUploadModal from "../../components/DocumentsSection/DocumentUploadModal";
 
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
   return isNaN(num)
     ? defaultValue.toLocaleString("ru-RU")
     : num.toLocaleString("ru-RU");
-};
-
-const DocumentUploadModal = ({ isOpen, onClose, onUpload }) => {
-  const [documentType, setDocumentType] = useState("ИНН");
-  const [file, setFile] = useState(null);
-  const [fileName, setFileName] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setFileName(selectedFile.name);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!file) {
-      toast.error("Пожалуйста, выберите файл");
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      await onUpload(documentType, file);
-      onClose();
-      toast.success("Документ успешно загружен!");
-    } catch (error) {
-      console.error("Ошибка загрузки документа:", error);
-      toast.error("Не удалось загрузить документ");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content document-upload-modal">
-        <h2>Загрузить документ</h2>
-
-        <div className="form-group">
-          <label>
-            <FiType /> Тип документа
-          </label>
-          <select
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-          >
-            <option value="ИНН">ИНН</option>
-            <option value="ОГРН">ОГРН</option>
-            <option value="Выписка из ЕГРЮЛ">Выписка из ЕГРЮЛ</option>
-            <option value="Паспорт">Паспорт</option>
-            <option value="Доверенность">Доверенность</option>
-            <option value="Другое">Другое</option>
-          </select>
-        </div>
-
-        <div className="form-group file-upload-group">
-          <label className="file-upload-label">
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
-            <div className="file-upload-box">
-              {fileName ? (
-                <div className="file-info">
-                  <FiFile className="file-icon" />
-                  <span className="file-name">{fileName}</span>
-                </div>
-              ) : (
-                <>
-                  <FiUpload className="upload-icon" />
-                  <span>Выберите файл</span>
-                  <span className="file-types">PDF, JPG, PNG, DOC</span>
-                </>
-              )}
-            </div>
-          </label>
-          <button className="browse-btn">Обзор</button>
-        </div>
-
-        <div className="modal-actions">
-          <button
-            className="cancel-btn"
-            onClick={onClose}
-            disabled={isUploading}
-          >
-            Отмена
-          </button>
-          <button
-            className="upload-btn"
-            onClick={handleSubmit}
-            disabled={isUploading}
-          >
-            {isUploading ? "Загрузка..." : "Загрузить"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DocumentsList = ({
-  documents,
-  isEditing,
-  onDocumentsChange,
-  onAddDocument,
-}) => {
-  const safeDocuments = documents || [];
-
-  const handleRemoveDocument = (id) => {
-    onDocumentsChange(safeDocuments.filter((doc) => doc.id !== id));
-  };
-
-  return (
-    <div className="documents-container">
-      {safeDocuments.map((doc) => (
-        <div key={doc.id} className="document-item">
-          <FiFile className="document-icon" />
-          <div className="document-info">
-            <div className="document-type">{doc.document_type}</div>
-            <div className={`document-status ${doc.status}`}>
-              {doc.status === "approved"
-                ? "Подтвержден"
-                : doc.status === "rejected"
-                ? "Отклонен"
-                : "На проверке"}
-            </div>
-            {doc.admin_comment && doc.status === "rejected" && (
-              <div className="document-comment">
-                <strong>Комментарий администратора:</strong> {doc.admin_comment}
-              </div>
-            )}
-          </div>
-          <div className="document-actions">
-            <a
-              href={doc.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="download-btn"
-            >
-              <FiDownload />
-            </a>
-            {isEditing && (
-              <button
-                className="remove-btn"
-                onClick={() => handleRemoveDocument(doc.id)}
-              >
-                <FiTrash2 />
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
-
-      {isEditing && (
-        <button className="add-document-btn" onClick={onAddDocument}>
-          <FiPlus /> Добавить документ
-        </button>
-      )}
-    </div>
-  );
 };
 
 const transformUser = (userData) => {
@@ -268,10 +98,16 @@ const transformUser = (userData) => {
     company_name: userData.company_name || "",
     rate_per_shift: userData.rate_per_shift || 0,
     experience_months: userData.experience_months || 0,
+    
   };
 };
 
-const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) => {
+const BalanceDepositModal = ({
+  user,
+  updateUser,
+  onClose,
+  onDepositSuccess,
+}) => {
   const [amount, setAmount] = useState(100);
   const [commission, setCommission] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -297,15 +133,15 @@ const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) =>
           `${API_BASE_URL}/api/payments/calculate-commission?amount=${amount}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
-        
+
         // Защита от отсутствующих значений в ответе
         const safeCommission = response.data.commission || 0;
         const safeTotal = response.data.total || amount;
-        
+
         setCommission(safeCommission);
         setTotalAmount(safeTotal);
       } catch (err) {
@@ -335,16 +171,18 @@ const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) =>
     setError("");
     setSuccessMessage("");
     setTestCardInfo(false);
-
+    const getAuthToken = () => {
+      return localStorage.getItem("token");
+    };
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const response = await axios.post(
         `${API_BASE_URL}/api/payments/deposit`,
         { amount },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -370,31 +208,38 @@ const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) =>
             `${API_BASE_URL}/api/payments/${response.data.payment_id}`,
             {
               headers: {
-                Authorization: `Bearer ${token}`
-              }
+                Authorization: `Bearer ${token}`,
+              },
             }
           );
 
           const paymentData = statusResponse.data;
-          
+
           if (paymentData.status === "succeeded") {
             clearInterval(checkInterval);
             paymentWindow.close();
-            
+
             // Безопасное форматирование значений
             const safeAmount = paymentData.amount || 0;
             const safeCommission = paymentData.commission || 0;
-            
+
             setSuccessMessage(
-              `Платеж на сумму ${safeAmount.toFixed(2)} руб. (комиссия: ${safeCommission.toFixed(2)} руб.) успешно завершен!`
+              `Платеж на сумму ${safeAmount.toFixed(
+                2
+              )} руб. (комиссия: ${safeCommission.toFixed(
+                2
+              )} руб.) успешно завершен!`
             );
-            
+
             // Обновление данных пользователя
-            const userResponse = await axios.get(`${API_BASE_URL}/api/users/me`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
+            const userResponse = await axios.get(
+              `${API_BASE_URL}/api/users/me`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
             updateUser(userResponse.data);
-            
+
             if (onDepositSuccess) {
               onDepositSuccess();
             }
@@ -419,12 +264,12 @@ const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) =>
             <FiX />
           </button>
         </div>
-        
+
         <div className={styles.balanceInfo}>
           <FiDollarSign className={styles.icon} />
           <span>Доступный баланс: {safeToFixed(user.balance)} ₽</span>
         </div>
-        
+
         <div className={styles.depositForm}>
           <div className={styles.formGroup}>
             <label>Сумма пополнения (₽)</label>
@@ -440,7 +285,7 @@ const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) =>
               className={styles.amountInput}
             />
           </div>
-          
+
           <div className={styles.commissionDetails}>
             <div className={styles.detailRow}>
               <span>Сумма пополнения:</span>
@@ -465,7 +310,6 @@ const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) =>
           </button>
 
           {error && <p className={styles.errorMessage}>{error}</p>}
-
         </div>
       </div>
     </div>
@@ -498,6 +342,10 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false);
 
+  const getAuthToken = () => {
+    return localStorage.getItem("token");
+  };
+
   const loadUserReviews = async (userId) => {
     setIsLoadingReviews(true);
     try {
@@ -527,10 +375,6 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         [dateStr]: !prev.availability[dateStr],
       },
     }));
-  };
-
-  const getAuthToken = () => {
-    return localStorage.getItem("token");
   };
 
   useEffect(() => {
@@ -744,24 +588,27 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     }
   };
 
-  const handleAvatarChange = (e) => {
+const handleAvatarChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (!file.type.match("image.*")) {
-        alert("Пожалуйста, выберите файл изображения");
-        return;
-      }
+    if (!file) return;
 
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Файл слишком большой. Максимальный размер 5MB");
+    // Проверка типа файла
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+        toast.error('Недопустимый формат файла. Разрешены: JPG, PNG, WEBP');
         return;
-      }
-
-      setAvatarFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarPreview(previewUrl);
     }
-  };
+
+    // Проверка размера файла (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        toast.error('Файл слишком большой. Максимальный размер 5MB');
+        return;
+    }
+
+    setAvatarFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+};
 
   const handleSaveClick = async () => {
     if (!onSave || !editingProfile) {
@@ -817,7 +664,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
       if (avatarFile) {
         const avatarFormData = new FormData();
-        avatarFormData.append("avatar", avatarFile);
+        avatarFormData.append("file", avatarFile);
 
         await axios.post(
           `${API_BASE_URL}/api/users/${editingProfile.id}/avatar`,
@@ -960,8 +807,8 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
   if (!user || !editingProfile) {
     return (
-      <div className="profile-loading">
-        <div className="loader"></div>
+      <div className={styles.profileLoading}>
+        <div className={styles.loader}></div>
         <p>Загрузка профиля...</p>
       </div>
     );
@@ -981,30 +828,34 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   };
 
   return (
-    <div className="profile-page">
-      <div className="profile-banner">
-        <div className="profile-avatar">
+    <div className={styles.profilePage}>
+      <div className={styles.profileBanner}>
+        <div className={styles.profileAvatar}>
           <div
-            className={`avatar-placeholder ${
-              isEditing && !isAdmin ? "editable" : ""
+            className={`${styles.avatarPlaceholder} ${
+              isEditing && !isAdmin ? styles.editable : ""
             }`}
             onClick={isEditing && !isAdmin ? handleAvatarClick : undefined}
           >
             {avatarPreview ? (
-              <img src={avatarPreview} alt="Preview" className="avatar-image" />
+              <img
+                src={avatarPreview}
+                alt="Preview"
+                className={styles.avatarImage}
+              />
             ) : currentProfile.avatar_url ? (
               <img
-                src={currentProfile.avatar_url}
+                src={`${currentProfile.avatar_url}?t=${Date.now()}`}
                 alt="Profile"
-                className="avatar-image"
+                className={styles.avatarImage}
               />
             ) : (
-              <div className="avatar-initials">{getInitials()}</div>
+              <div className={styles.avatarInitials}>{getInitials()}</div>
             )}
 
             {isEditing && !isAdmin && (
-              <div className="avatar-overlay">
-                <FiCamera className="camera-icon" />
+              <div className={styles.avatarOverlay}>
+                <FiCamera className={styles.cameraIcon} />
                 <span>Изменить фото</span>
               </div>
             )}
@@ -1021,12 +872,14 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           )}
         </div>
 
-        <div className="profile-info">
+        <div className={styles.profileInfo}>
           <h1>
             {currentProfile.first_name || ""} {currentProfile.last_name || ""}
           </h1>
-          <div className="profile-meta">
-            <span className={`role-badge ${currentProfile.role}`}>
+          <div className={styles.profileMeta}>
+            <span
+              className={`${styles.roleBadge} ${styles[currentProfile.role]}`}
+            >
               {isAdmin
                 ? "Администратор"
                 : currentProfile.role === "worker"
@@ -1034,29 +887,31 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 : "Работодатель"}
             </span>
             {currentProfile.is_verified && (
-              <span className="verified-badge">Подтвержден</span>
+              <span className={styles.verifiedBadge}>Подтвержден</span>
             )}
-            <span className="member-since">
+            <span className={styles.memberSince}>
               {currentProfile.created_at
-                ? `С ${new Date(currentProfile.created_at).toLocaleDateString(
-                    "ru-RU",
-                    { month: "long", year: "numeric" }
-                  )}`
+                ? `Дата регистрации: с ${new Date(
+                    currentProfile.created_at
+                  ).toLocaleDateString("ru-RU", {
+                    month: "long",
+                    year: "numeric",
+                  })}`
                 : "Дата регистрации неизвестна"}
             </span>
           </div>
 
           {!isAdmin && (
-            <div className="balance-info">
+            <div className={styles.balanceInfo}>
               <span>Баланс: {formatBalance(currentProfile.balance)} ₽</span>
               <button
-                className="deposit-btn"
+                className={styles.depositBtn}
                 onClick={() => setIsDepositModalOpen(true)}
               >
                 Пополнить
               </button>
               <button
-                className="withdraw-btn"
+                className={styles.withdrawBtn}
                 onClick={() => setIsWithdrawModalOpen(true)}
               >
                 Вывести средства
@@ -1065,18 +920,18 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           )}
         </div>
 
-        <div className="profile-actions">
+        <div className={styles.profileActions}>
           {isEditing ? (
             <>
               <button
-                className="cancel-btn"
+                className={styles.cancelBtn}
                 onClick={handleCancelEdit}
                 disabled={isSaving}
               >
                 Отмена
               </button>
               <button
-                className="save-btn"
+                className={styles.saveBtn}
                 onClick={handleSaveClick}
                 disabled={isSaving}
               >
@@ -1085,12 +940,14 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             </>
           ) : (
             <>
-              {!isAdmin && (
-                <button className="edit-btn" onClick={() => setIsEditing(true)}>
-                  Редактировать
-                </button>
-              )}
-              <button className="logout-btn" onClick={onLogout}>
+              <button
+                className={styles.editBtn}
+                onClick={() => setIsEditing(true)}
+              >
+                Редактировать
+              </button>
+
+              <button className={styles.logoutBtn} onClick={onLogout}>
                 Выйти
               </button>
             </>
@@ -1098,9 +955,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         </div>
       </div>
 
-      <div className="profile-tabs">
+      <div className={styles.profileTabs}>
         <button
-          className={`tab-btn ${activeTab === "info" ? "active" : ""}`}
+          className={`${styles.tabBtn} ${
+            activeTab === "info" ? styles.active : ""
+          }`}
           onClick={() => setActiveTab("info")}
         >
           Информация
@@ -1109,48 +968,48 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         {isAdmin ? (
           <>
             <button
-              className={`tab-btn ${
-                activeTab === "admin-stats" ? "active" : ""
+              className={`${styles.tabBtn} ${
+                activeTab === "admin-stats" ? styles.active : ""
               }`}
               onClick={() => setActiveTab("admin-stats")}
             >
               <FiBarChart2 /> Статистика
             </button>
             <button
-              className={`tab-btn ${
-                activeTab === "admin-jobs" ? "active" : ""
+              className={`${styles.tabBtn} ${
+                activeTab === "admin-jobs" ? styles.active : ""
               }`}
               onClick={() => setActiveTab("admin-jobs")}
             >
               <FiFileText /> Вакансии
             </button>
             <button
-              className={`tab-btn ${
-                activeTab === "admin-users" ? "active" : ""
+              className={`${styles.tabBtn} ${
+                activeTab === "admin-users" ? styles.active : ""
               }`}
               onClick={() => setActiveTab("admin-users")}
             >
               <FiUser /> Пользователи
             </button>
             <button
-              className={`tab-btn ${
-                activeTab === "admin-disputes" ? "active" : ""
+              className={`${styles.tabBtn} ${
+                activeTab === "admin-disputes" ? styles.active : ""
               }`}
               onClick={() => setActiveTab("admin-disputes")}
             >
               <FiShield /> Диспуты
             </button>
             <button
-              className={`tab-btn ${
-                activeTab === "admin-docs" ? "active" : ""
+              className={`${styles.tabBtn} ${
+                activeTab === "admin-docs" ? styles.active : ""
               }`}
               onClick={() => setActiveTab("admin-docs")}
             >
               <FiFile /> Документы
             </button>
             <button
-              className={`tab-btn ${
-                activeTab === "admin-withdrawals" ? "active" : ""
+              className={`${styles.tabBtn} ${
+                activeTab === "admin-withdrawals" ? styles.active : ""
               }`}
               onClick={() => setActiveTab("admin-withdrawals")}
             >
@@ -1161,8 +1020,8 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           <>
             {currentProfile.role === "worker" && (
               <button
-                className={`tab-btn ${
-                  activeTab === "availability" ? "active" : ""
+                className={`${styles.tabBtn} ${
+                  activeTab === "availability" ? styles.active : ""
                 }`}
                 onClick={() => setActiveTab("availability")}
               >
@@ -1171,8 +1030,8 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             )}
             {currentProfile.role === "employer" && (
               <button
-                className={`tab-btn ${
-                  activeTab === "vacancies" ? "active" : ""
+                className={`${styles.tabBtn} ${
+                  activeTab === "vacancies" ? styles.active : ""
                 }`}
                 onClick={() => setActiveTab("vacancies")}
               >
@@ -1182,10 +1041,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
           </>
         )}
 
-        {/* Вкладка "Мои выводы" только для обычных пользователей */}
         {!isAdmin && (
           <button
-            className={`tab-btn ${activeTab === "withdrawals" ? "active" : ""}`}
+            className={`${styles.tabBtn} ${
+              activeTab === "withdrawals" ? styles.active : ""
+            }`}
             onClick={() => setActiveTab("withdrawals")}
           >
             <FiDollarSign /> Мои выводы
@@ -1193,41 +1053,29 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         )}
 
         <button
-          className={`tab-btn ${activeTab === "reviews" ? "active" : ""}`}
+          className={`${styles.tabBtn} ${
+            activeTab === "reviews" ? styles.active : ""
+          }`}
           onClick={() => setActiveTab("reviews")}
         >
           <FiStar /> Отзывы
         </button>
       </div>
 
-      <div className="profile-content">
-        {/* Управление заявками для администратора */}
+      <div className={styles.profileContent}>
         {isAdmin && activeTab === "admin-withdrawals" && (
           <AdminWithdrawalsManagement />
         )}
-        {isAdmin && (
-          <>
-            <button
-              className={`tab-btn ${
-                activeTab === "admin-finance" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("admin-finance")}
-            >
-              <FiDollarSign /> Финансы
-            </button>
-          </>
-        )}
 
-        {/* Просмотр заявок пользователя */}
         {!isAdmin && activeTab === "withdrawals" && (
-          <div className="section" title="Мои заявки на вывод">
+          <div className={styles.section} title="Мои заявки на вывод">
             {isLoadingWithdrawals ? (
-              <div className="loading">
-                <div className="loader"></div>
+              <div className={styles.loading}>
+                <div className={styles.loader}></div>
                 <p>Загрузка истории выводов...</p>
               </div>
             ) : withdrawalRequests.length > 0 ? (
-              <div className="withdrawal-requests">
+              <div className={styles.withdrawalRequests}>
                 <table>
                   <thead>
                     <tr>
@@ -1252,7 +1100,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                           {request.payment_method === "crypto" &&
                             "Криптовалюта"}
                         </td>
-                        <td className={`status-${request.status}`}>
+                        <td
+                          className={`${styles.status} ${
+                            styles[`status-${request.status}`]
+                          }`}
+                        >
                           {request.status === "pending" && "⏳ На рассмотрении"}
                           {request.status === "paid" && "✅ Оплачено"}
                           {request.status === "rejected" && "❌ Отклонено"}
@@ -1264,11 +1116,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 </table>
               </div>
             ) : (
-              <div className="no-withdrawals">
-                <FiDollarSign className="icon" />
+              <div className={styles.noWithdrawals}>
+                <FiDollarSign className={styles.icon} />
                 <p>У вас пока нет заявок на вывод средств</p>
                 <button
-                  className="create-withdrawal-btn"
+                  className={styles.createWithdrawalBtn}
                   onClick={() => setIsWithdrawModalOpen(true)}
                 >
                   Создать заявку на вывод
@@ -1280,9 +1132,9 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
         {activeTab === "info" && (
           <>
-            <div className="section" title="Основная информация">
-              <div className="info-grid">
-                <div className="info-item">
+            <div className={styles.section} title="Основная информация">
+              <div className={styles.infoGrid}>
+                <div className={styles.infoItem}>
                   <label>Имя</label>
                   {isEditing && !isAdmin ? (
                     <div>
@@ -1295,10 +1147,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                             first_name: e.target.value,
                           })
                         }
-                        className={errors.first_name ? "error-input" : ""}
+                        className={errors.first_name ? styles.errorInput : ""}
                       />
                       {errors.first_name && (
-                        <div className="error-message">{errors.first_name}</div>
+                        <div className={styles.errorMessage}>
+                          {errors.first_name}
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -1306,7 +1160,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                   )}
                 </div>
 
-                <div className="info-item">
+                <div className={styles.infoItem}>
                   <label>Фамилия</label>
                   {isEditing && !isAdmin ? (
                     <div>
@@ -1319,10 +1173,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                             last_name: e.target.value,
                           })
                         }
-                        className={errors.last_name ? "error-input" : ""}
+                        className={errors.last_name ? styles.errorInput : ""}
                       />
                       {errors.last_name && (
-                        <div className="error-message">{errors.last_name}</div>
+                        <div className={styles.errorMessage}>
+                          {errors.last_name}
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -1330,12 +1186,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                   )}
                 </div>
 
-                <div className="info-item">
+                <div className={styles.infoItem}>
                   <label>Телефон</label>
                   <p>{currentProfile.phone || "Не указан"}</p>
                 </div>
 
-                <div className="info-item">
+                <div className={styles.infoItem}>
                   <label>Email</label>
                   {isEditing && !isAdmin ? (
                     <div>
@@ -1348,10 +1204,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                             email: e.target.value,
                           })
                         }
-                        className={errors.email ? "error-input" : ""}
+                        className={errors.email ? styles.errorInput : ""}
                       />
                       {errors.email && (
-                        <div className="error-message">{errors.email}</div>
+                        <div className={styles.errorMessage}>
+                          {errors.email}
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -1359,7 +1217,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                   )}
                 </div>
 
-                <div className="info-item">
+                <div className={styles.infoItem}>
                   <label>Дата рождения</label>
                   {isEditing && !isAdmin ? (
                     <div>
@@ -1373,10 +1231,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                           })
                         }
                         max={new Date().toISOString().split("T")[0]}
-                        className={errors.birth_date ? "error-input" : ""}
+                        className={errors.birth_date ? styles.errorInput : ""}
                       />
                       {errors.birth_date && (
-                        <div className="error-message">{errors.birth_date}</div>
+                        <div className={styles.errorMessage}>
+                          {errors.birth_date}
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -1392,7 +1252,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
                 {!isAdmin && currentProfile.role === "worker" && (
                   <>
-                    <div className="info-item">
+                    <div className={styles.infoItem}>
                       <label>Ставка за смену</label>
                       {isEditing ? (
                         <div>
@@ -1406,11 +1266,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                               )
                             }
                             className={
-                              errors.rate_per_shift ? "error-input" : ""
+                              errors.rate_per_shift ? styles.errorInput : ""
                             }
                           />
                           {errors.rate_per_shift && (
-                            <div className="error-message">
+                            <div className={styles.errorMessage}>
                               {errors.rate_per_shift}
                             </div>
                           )}
@@ -1422,7 +1282,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                       )}
                     </div>
 
-                    <div className="info-item">
+                    <div className={styles.infoItem}>
                       <label>Опыт работы (месяцев)</label>
                       {isEditing ? (
                         <div>
@@ -1436,11 +1296,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                               )
                             }
                             className={
-                              errors.experience_months ? "error-input" : ""
+                              errors.experience_months ? styles.errorInput : ""
                             }
                           />
                           {errors.experience_months && (
-                            <div className="error-message">
+                            <div className={styles.errorMessage}>
                               {errors.experience_months}
                             </div>
                           )}
@@ -1461,7 +1321,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 )}
 
                 {!isAdmin && currentProfile.role === "employer" && (
-                  <div className="info-item full-width">
+                  <div className={`${styles.infoItem} ${styles.fullWidth}`}>
                     <label>Название компании</label>
                     {isEditing ? (
                       <div>
@@ -1474,10 +1334,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                               company_name: e.target.value,
                             })
                           }
-                          className={errors.company_name ? "error-input" : ""}
+                          className={
+                            errors.company_name ? styles.errorInput : ""
+                          }
                         />
                         {errors.company_name && (
-                          <div className="error-message">
+                          <div className={styles.errorMessage}>
                             {errors.company_name}
                           </div>
                         )}
@@ -1493,7 +1355,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             {!isAdmin && (
               <>
                 <div
-                  className="section"
+                  className={styles.section}
                   title={
                     currentProfile.role === "worker" ? "Навыки" : "Документы"
                   }
@@ -1530,6 +1392,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                         })
                       }
                       onAddDocument={() => setIsDocumentModalOpen(true)}
+                      onDeleteDocument={handleDeleteDocument}
                     />
                   )}
                 </div>
@@ -1541,7 +1404,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         {activeTab === "availability" &&
           currentProfile.role === "worker" &&
           !isAdmin && (
-            <div className="section" title="Мой график доступности">
+            <div className={styles.section} title="Мой график доступности">
               <AvailabilityCalendar
                 availability={editingProfile?.availability || {}}
                 onDayClick={handleAvailabilityToggle}
@@ -1553,7 +1416,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
 
         {activeTab === "vacancies" && !isAdmin && (
           <div
-            className="section"
+            className={styles.section}
             title={
               currentProfile.role === "worker"
                 ? "Активные вакансии"
@@ -1561,16 +1424,16 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
             }
           >
             {isLoading ? (
-              <div className="loading-vacancies">
+              <div className={styles.loadingVacancies}>
                 <p>Загрузка данных...</p>
               </div>
             ) : currentProfile.role === "employer" ? (
               employerJobs.length > 0 ? (
-                <div className="vacancies-list">
+                <div className={styles.vacanciesList}>
                   {employerJobs.map((job) => (
                     <div
                       key={job.id}
-                      className="vacancy-container"
+                      className={styles.vacancyContainer}
                       onClick={() => handleVacancyClick(job.id)}
                     >
                       <VacancyCards
@@ -1588,10 +1451,10 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                   ))}
                 </div>
               ) : (
-                <div className="no-vacancies">
+                <div className={styles.noVacancies}>
                   <p>Вы еще не создали ни одной вакансии</p>
                   <button
-                    className="create-vacancy-btn"
+                    className={styles.createVacancyBtn}
                     onClick={() => navigate("/create-vacancy")}
                   >
                     Создать вакансию
@@ -1599,11 +1462,11 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 </div>
               )
             ) : workerBookings.length > 0 ? (
-              <div className="vacancies-list">
+              <div className={styles.vacanciesList}>
                 {workerBookings.map((booking) => (
                   <div
                     key={booking.job.id}
-                    className="vacancy-container"
+                    className={styles.vacancyContainer}
                     onClick={() => handleVacancyClick(booking.job.id)}
                   >
                     <VacancyCards
@@ -1621,10 +1484,10 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
                 ))}
               </div>
             ) : (
-              <div className="no-vacancies">
+              <div className={styles.noVacancies}>
                 <p>У вас пока нет активных вакансий</p>
                 <button
-                  className="create-vacancy-btn"
+                  className={styles.createVacancyBtn}
                   onClick={() => navigate("/feed")}
                 >
                   Найти вакансии
@@ -1635,48 +1498,52 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         )}
 
         {activeTab === "reviews" && (
-          <div className="section" title="Отзывы">
-            <div className="reviews-summary">
-              <div className="rating-value">{reviews.rating.toFixed(1)}</div>
-              <div className="stars">
+          <div className={styles.section} title="Отзывы">
+            <div className={styles.reviewsSummary}>
+              <div className={styles.ratingValue}>
+                {reviews.rating.toFixed(1)}
+              </div>
+              <div className={styles.stars}>
                 {"★".repeat(Math.floor(reviews.rating))}
                 {"☆".repeat(5 - Math.floor(reviews.rating))}
               </div>
-              <div className="reviews-count">
+              <div className={styles.reviewsCount}>
                 {reviews.reviews_count} отзывов
               </div>
             </div>
 
             {isLoadingReviews ? (
-              <div className="loading-reviews">
-                <div className="loader"></div>
+              <div className={styles.loadingReviews}>
+                <div className={styles.loader}></div>
                 <p>Загрузка отзывов...</p>
               </div>
             ) : reviews.reviews.length > 0 ? (
-              <div className="reviews-list">
+              <div className={styles.reviewsList}>
                 {reviews.reviews.map((review) => (
-                  <div key={review.id} className="review-card">
-                    <div className="review-header">
-                      <div className="review-author">{review.author}</div>
-                      <div className="review-rating">
+                  <div key={review.id} className={styles.reviewCard}>
+                    <div className={styles.reviewHeader}>
+                      <div className={styles.reviewAuthor}>{review.author}</div>
+                      <div className={styles.reviewRating}>
                         {"★".repeat(review.rating)}
                         {"☆".repeat(5 - review.rating)}
                       </div>
-                      <div className="review-date">
+                      <div className={styles.reviewDate}>
                         {new Date(review.created_at).toLocaleDateString(
                           "ru-RU"
                         )}
                       </div>
                     </div>
                     {review.comment && (
-                      <div className="review-comment">{review.comment}</div>
+                      <div className={styles.reviewComment}>
+                        {review.comment}
+                      </div>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="no-reviews">
-                <FiStar className="no-reviews-icon" />
+              <div className={styles.noReviews}>
+                <FiStar className={styles.noReviewsIcon} />
                 <p>Пока нет отзывов</p>
               </div>
             )}
@@ -1684,16 +1551,12 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
         )}
 
         {isAdmin && activeTab === "admin-stats" && <PlatformStatistics />}
-
         {isAdmin && activeTab === "admin-jobs" && <AdminJobsModeration />}
-
         {isAdmin && activeTab === "admin-disputes" && (
           <AdminDisputesManagement />
         )}
         {isAdmin && activeTab === "admin-finance" && <FinanceHistory />}
-
         {isAdmin && activeTab === "admin-users" && <AdminUsersManagement />}
-
         {isAdmin && activeTab === "admin-docs" && <AdminDocumentsModeration />}
       </div>
 

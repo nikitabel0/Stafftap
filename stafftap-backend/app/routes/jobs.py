@@ -2,6 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import date, datetime
+import os
+from pathlib import Path
+from fastapi import UploadFile, File
+from datetime import datetime
+import uuid
 from app.database import get_db
 from app.schemas.review import ReviewCreate 
 from app.models import Job, Skill, Booking, User, Review, FrozenFunds, Notification, FavoriteJob,Chat
@@ -20,6 +25,9 @@ from sqlalchemy import func, or_
 import logging
 from datetime import date, datetime, time
 from sqlalchemy import and_, or_
+
+
+BASEBACK = os.getenv("BASEBACKEND_URL")
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
@@ -139,7 +147,9 @@ def get_jobs(
         company_name = employer.company_name if employer else "Компания не указана"
         
         remaining = job.workers_needed - occupied_count
-        skill_name = job.required_skill.name if job.required_skill else "Не указано"
+        skill_name = (job.required_skill.name if job.required_skill 
+              else job.custom_skill if job.custom_skill 
+              else 'не указано')
         
         result.append(JobOut(
             id=job.id,
@@ -159,6 +169,8 @@ def get_jobs(
             created_at=job.created_at,
             employer_rating=rating_map.get(job.employer_id, 0.0),
             employer_verified=employer.is_verified if employer else False,
+            custom_skill=job.custom_skill,
+            establishment_name=job.establishment_name,
             completed_jobs=completed_map.get(job.employer_id, 0)
         ))
     
@@ -182,6 +194,13 @@ def create_job(
             detail="Только верифицированные работодатели могут создавать вакансии"
         )
     
+    # Проверяем, что указан либо ID навыка, либо кастомный навык, но не оба сразу
+    if job_data.required_skill_id and job_data.custom_skill:
+        raise HTTPException(
+            status_code=400,
+            detail="Укажите либо навык из списка, либо свой собственный, но не оба сразу"
+        )
+    
     if job_data.required_skill_id:
         skill = db.query(Skill).get(job_data.required_skill_id)
         if not skill:
@@ -195,12 +214,15 @@ def create_job(
         title=job_data.title,
         description=job_data.description,
         required_skill_id=job_data.required_skill_id,
+        custom_skill=job_data.custom_skill,  
         work_date=job_data.work_date,
         start_time=job_data.start_time,
         end_time=job_data.end_time,
         address=job_data.address,
         rate=job_data.rate,
         workers_needed=job_data.workers_needed,
+        photo_urls=job_data.photo_urls,
+        establishment_name=job_data.establishment_name,
         status="moderation"
     )
     
@@ -212,6 +234,35 @@ def create_job(
     
 
 
+@router.post("/upload")
+async def upload_photo(
+    photo: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    
+    upload_dir = Path("static/uploads")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    
+    file_ext = photo.filename.split(".")[-1].lower()
+    if file_ext not in ["jpg", "jpeg", "png", "webp"]:
+        raise HTTPException(400, detail="Недопустимый формат файла")
+    
+    file_name = f"{uuid.uuid4()}.{file_ext}"
+    file_path = upload_dir / file_name
+    
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            content = await photo.read()
+            
+            if len(content) > 5 * 1024 * 1024:
+                raise HTTPException(400, detail="Файл слишком большой (макс. 5MB)")
+            buffer.write(content)
+    except Exception as e:
+        raise HTTPException(500, detail=f"Ошибка сохранения файла: {str(e)}")
+    
+    return {"url": f"{BASEBACK}/static/uploads/{file_name}"}
 @router.get("/{job_id}", response_model=JobDetail)
 def get_job_details(
     job_id: int,
@@ -313,6 +364,8 @@ def get_job_details(
         rate=float(job.rate),
         address=job.address,
         status=job.status, 
+        photo_urls=job.photo_urls,
+        establishment_name=job.establishment_name,
         workers_needed=job.workers_needed,
         remaining_slots=remaining_slots,
         company_name=employer.company_name,
@@ -323,6 +376,7 @@ def get_job_details(
         completed_jobs=completed_jobs,
         employer_verified=employer.is_verified,
         is_favorite=is_favorite,
+        custom_skill=job.custom_skill, 
         confirmed_workers=workers_list
     )
 
@@ -438,6 +492,8 @@ def get_favorite_jobs(
             company_name=company_name,
             employer_id=job.employer_id,
             created_at=job.created_at,
+             custom_skill=job.custom_skill,
+               establishment_name=job.establishment_name,
             employer_rating=rating_map.get(job.employer_id, 0.0),
             employer_verified=employer.is_verified if employer else False,
             completed_jobs=completed_map.get(job.employer_id, 0)
@@ -591,7 +647,9 @@ def get_jobs_by_employer(
             created_at=job.created_at,
             employer_rating=rating_map.get(job.employer_id, 0.0),
             employer_verified=employer.is_verified if employer else False,
-            completed_jobs=completed_map.get(job.employer_id, 0)
+            completed_jobs=completed_map.get(job.employer_id, 0),
+            custom_skill=job.custom_skill,
+            establishment_name=job.establishment_name
         ))
     
     return result

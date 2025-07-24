@@ -1,0 +1,210 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalContent {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modalHeader {
+  padding: 20px;
+  background: linear-gradient(135deg, #2C8161, #3A9D7C);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.closeButton {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 20px;
+  transition: all 0.3s;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.formGroup {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.formGroup:last-child {
+  border-bottom: none;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.labelIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selectInput {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 1rem;
+  background: #f9f9f9;
+  transition: all 0.3s;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: #2C8161;
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.15);
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileUploadLabel {
+  display: block;
+  cursor: pointer;
+}
+
+.fileUploadBox {
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  padding: 30px 20px;
+  text-align: center;
+  transition: all 0.3s;
+  background: #fafafa;
+}
+
+.fileUploadBox:hover {
+  border-color: #2C8161;
+  background: #f5fbf9;
+}
+
+.uploadIcon {
+  font-size: 40px;
+  color: #2C8161;
+  margin-bottom: 15px;
+}
+
+.fileTypes {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.fileIcon {
+  font-size: 24px;
+  color: #2C8161;
+}
+
+.fileName {
+  font-weight: 500;
+  color: #333;
+  word-break: break-all;
+  max-width: 300px;
+}
+
+.modalActions {
+  display: flex;
+  padding: 20px;
+  gap: 15px;
+  justify-content: flex-end;
+  background: #f9f9f9;
+}
+
+.cancelBtn, .uploadBtn {
+  padding: 12px 25px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1rem;
+  border: 2px solid transparent;
+}
+
+.cancelBtn {
+  background: #f5f5f5;
+  color: #555;
+}
+
+.cancelBtn:hover {
+  background: #eee;
+  border-color: #ddd;
+}
+
+.uploadBtn {
+  background: linear-gradient(135deg, #2C8161, #3A9D7C);
+  color: white;
+}
+
+.uploadBtn:hover {
+  background: linear-gradient(135deg, #256a4e, #2e8367);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 129, 97, 0.25);
+}
+
+.uploadBtn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

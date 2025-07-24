@@ -8,7 +8,7 @@ import {
   FiDollarSign,
   FiArrowLeft,
   FiPhone,
-  FiUser,
+  FiHome,
   FiWifiOff,
   FiRefreshCw,
   FiTrash2,
@@ -527,6 +527,12 @@ const JobDetailPage = () => {
         <div className={styles.jobHeader}>
           <h1>{job.title}</h1>
           <div className={styles.jobCompany}>{job.company_name}</div>
+               {job.establishment_name && (
+            <div className={styles.jobEstablishment}>
+              <FiHome className={styles.establishmentIcon} />
+              <span>{job.establishment_name}</span>
+            </div>
+          )}
           <div className={styles.jobStatus}>
             Статус: <span className={`${styles.status} ${styles['status-' + job.status]}`}>
               {job.status === 'active' && 'Активна'}
@@ -542,6 +548,23 @@ const JobDetailPage = () => {
             <h3>Описание</h3>
             <p>{job.description}</p>
           </div>
+
+               {job.photo_urls && job.photo_urls.length > 0 && (
+            <div className={styles.jobPhotos}>
+              <h3>Фотографии заведения</h3>
+              <div className={styles.photoGrid}>
+                {job.photo_urls.map((url, index) => (
+                  <img 
+                    key={index} 
+                    src={url} 
+                    alt={`Фото заведения ${index + 1}`} 
+                    className={styles.photo}
+                    onError={(e) => { e.target.style.display = 'none'; }} // Скрыть битые изображения
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className={styles.jobMeta}>
             <div className={styles.metaItem}>

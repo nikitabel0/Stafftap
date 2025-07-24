@@ -27,8 +27,18 @@ class JobBase(BaseModel):
     start_time: str  # Изменено на str
     end_time: str    # Изменено на str
     rate: float
+    custom_skill: Optional[str] = None 
     address: str
     workers_needed: int
+    photo_urls: Optional[List[str]] = Field(
+        None, 
+        description="Список URL фотографий заведения"
+    )
+    establishment_name: Optional[str] = Field(
+        None, 
+        max_length=100, 
+        description="Название заведения"
+    )
 
 
     @field_validator('start_time', 'end_time', mode='before')
@@ -47,9 +57,19 @@ class JobOut(JobBase):
     company_name: str
     employer_id: int
     created_at: datetime
+    custom_skill: Optional[str] = None
     employer_rating: float = Field(..., description="Рейтинг работодателя")
     employer_verified: bool = Field(..., description="Верифицирован ли работодатель")
     completed_jobs: int = Field(..., description="Количество завершенных работ")
+    photo_urls: Optional[List[str]] = Field(
+        None, 
+        description="Список URL фотографий заведения"
+    )
+    establishment_name: Optional[str] = Field(
+        None, 
+        max_length=100, 
+        description="Название заведения"
+    )
 
     class Config:
         orm_mode = True

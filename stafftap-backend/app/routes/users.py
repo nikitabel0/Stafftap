@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File,Query
 from sqlalchemy.orm import Session
 from typing import Optional
+from fastapi import HTTPException, status
 from sqlalchemy import or_
 from datetime import date
 from app.database import get_db
@@ -30,6 +31,7 @@ from app.schemas.user import (
     AvailabilityInput, DocumentOut, VacancyOut,UserOut, UserUpdate, WithdrawalRequestCreate, WithdrawalRequestOut
 )
 from app.dependencies import get_current_user
+BASEBACK = os.getenv("BASEBACKEND_URL")
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -473,32 +475,79 @@ def delete_document(
 
 
 @router.post("/{id}/avatar")
-def upload_avatar(
+async def upload_avatar(
     id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Проверка прав доступа
     if current_user.id != id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden"
+        )
 
     user = db.query(User).filter(User.id == id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
-    AVATAR_UPLOAD_DIR = "static/avatars"
-    os.makedirs(AVATAR_UPLOAD_DIR, exist_ok=True)
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4()}{ext}"
-    path = os.path.join(AVATAR_UPLOAD_DIR, filename)
+    # Проверка типа файла
+    allowed_extensions = {".jpg", ".jpeg", ".png", ".webp"}
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Allowed types: JPG, JPEG, PNG, WEBP"
+        )
 
-    with open(path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Проверка размера файла (максимум 5MB)
+    max_size = 5 * 1024 * 1024  # 5MB
+    file.file.seek(0, 2)  # Перемещаемся в конец файла
+    file_size = file.file.tell()
+    file.file.seek(0)  # Возвращаемся в начало
+    
+    if file_size > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Max size is {max_size//1024//1024}MB"
+        )
 
-    user.avatar_url = f"/static/avatars/{filename}"
-    db.commit()
+    try:
+        # Создаем директорию если ее нет
+        AVATAR_UPLOAD_DIR = "static/avatars"
+        os.makedirs(AVATAR_UPLOAD_DIR, exist_ok=True)
+        
+        # Генерируем уникальное имя файла
+        ext = file_extension
+        filename = f"{uuid.uuid4()}{ext}"
+        path = os.path.join(AVATAR_UPLOAD_DIR, filename)
 
-    return {"avatar_url": user.avatar_url}
+        # Сохраняем файл асинхронно
+        with open(path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # Обновляем ссылку в базе данных
+        user.avatar_url = f"{BASEBACK}/static/avatars/{filename}"
+        db.commit()
+
+        return {"avatar_url": user.avatar_url}
+    
+    except OSError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create directory: {str(e)}"
+        )
+    except Exception as e:
+        # Откатываем транзакцию в случае ошибки
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error uploading avatar: {str(e)}"
+        )
 
 
 @router.get("/{id}", response_model=UserProfileResponse)

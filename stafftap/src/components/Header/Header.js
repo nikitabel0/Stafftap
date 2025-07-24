@@ -1,19 +1,17 @@
-// Header.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { 
   FiHome, FiHeart, FiMessageSquare, FiUser, 
-  FiBell, FiSearch, FiX, FiSettings, FiLogOut 
+  FiBell, FiX, FiLogOut, FiDollarSign 
 } from "react-icons/fi";
 import styles from './Header.module.css';
 import API_BASE_URL from '../../apiConfig';
 
-const Header = () => {
+const Header = ({ user,onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Переносим все хуки в начало
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeTab, setActiveTab] = useState("feed");
@@ -24,8 +22,7 @@ const Header = () => {
   const wsRef = useRef(null);
   const isMountedRef = useRef(true);
   
-  // Проверка пути для скрытия хедера
-const shouldHideHeader = 
+  const shouldHideHeader = 
     location.pathname.startsWith('/chats/') || 
     location.pathname === '/login' || 
     location.pathname === '/register';
@@ -56,7 +53,7 @@ const shouldHideHeader =
     else if (path.includes("/chats")) setActiveTab("chats");
     else if (path.includes("/profile")) setActiveTab("profile");
     else if (path.includes("/notifications")) setActiveTab("notifications");
-    else if (path.includes("/settings")) setActiveTab("settings");
+    else if (path.includes("/balance")) setActiveTab("finance");
   }, [location]);
 
   const getCurrentUserId = useCallback(() => {
@@ -138,7 +135,6 @@ const shouldHideHeader =
   useEffect(() => {
     isMountedRef.current = true;
     
-    // Не выполняем запросы, если хедер скрыт
     if (shouldHideHeader) return;
     
     fetchCounts();
@@ -177,7 +173,6 @@ const shouldHideHeader =
     setIsMenuOpen(false);
   }, []);
 
-  // Возвращаем null после всех хуков
   if (shouldHideHeader) {
     return null;
   }
@@ -234,6 +229,19 @@ const shouldHideHeader =
             <span className={styles.navLabel}>Профиль</span>
           </div>
           
+          {/* Финансы - только для админов */}
+          {user?.role === 'admin' && (
+            <div 
+              className={`${styles.navItem} ${activeTab === "finance" ? styles.active : ''}`} 
+              onClick={() => navigateTo("/balance")}
+            >
+              <div className={styles.navIcon}>
+                <FiDollarSign />
+              </div>
+              <span className={styles.navLabel}>Финансы</span>
+            </div>
+          )}
+          
           <div 
             className={`${styles.notificationIcon} ${activeTab === "notifications" ? styles.active : ''}`}
             onClick={() => navigateTo("/notifications")}
@@ -256,13 +264,7 @@ const shouldHideHeader =
           </button>
         ) : (
           <div className={styles.userActions}>
-            <button 
-              className={`${styles.settingsBtn} ${activeTab === "settings" ? styles.active : ''}`} 
-              onClick={() => navigateTo("/settings")}
-            >
-              <FiSettings />
-            </button>
-            <button className={styles.logoutBtn} onClick={handleLogout}>
+            <button className={styles.logoutBtn} onClick={onLogout}>
               <FiLogOut />
             </button>
           </div>
@@ -315,6 +317,19 @@ const shouldHideHeader =
             </div>
             <span className={styles.navLabel}>Профиль</span>
           </div>
+          
+          {/* Финансы в мобильном меню - только для админов */}
+          {user?.role === 'admin' && (
+            <div 
+              className={`${styles.navItem} ${activeTab === "finance" ? styles.active : ''}`} 
+              onClick={() => navigateTo("/balance")}
+            >
+              <div className={styles.navIcon}>
+                <FiDollarSign />
+              </div>
+              <span className={styles.navLabel}>Финансы</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -360,15 +375,18 @@ const shouldHideHeader =
               )}
             </div>
             
-            <div 
-              className={`${styles.menuItem} ${activeTab === "settings" ? styles.active : ''}`}
-              onClick={() => navigateTo("/settings")}
-            >
-              <div className={styles.menuIcon}>
-                <FiSettings />
+            {/* Финансы в бургер-меню - только для админов */}
+            {user?.role === 'admin' && (
+              <div 
+                className={`${styles.menuItem} ${activeTab === "finance" ? styles.active : ''}`}
+                onClick={() => navigateTo("/balance")}
+              >
+                <div className={styles.menuIcon}>
+                  <FiDollarSign />
+                </div>
+                <span className={styles.menuLabel}>Финансы</span>
               </div>
-              <span className={styles.menuLabel}>Настройки</span>
-            </div>
+            )}
             
             <div 
               className={styles.menuItem}

@@ -11,10 +11,11 @@ import {
   FiDollarSign,
   FiStar,
   FiBriefcase,
+  FiFilter
 } from "react-icons/fi";
 import FilterPanel from "../../components/FilterPanel/FilterPanel";
 import VacancyCard from "../../components/VacancyCard/VacancyCard";
-import "./FeedPage.css";
+import styles from "./FeedPage.module.css";
 import API_BASE_URL from "../../apiConfig";
 import moment from "moment";
 
@@ -39,6 +40,8 @@ const FeedPage = ({ user }) => {
   const navigate = useNavigate();
 
   const role = user?.role || "worker";
+  
+  const hasActiveFilters = !!filters.profession || !!filters.date || !!filters.minRate;
 
   // Загрузка вакансий для работников
   const fetchVacancies = async (filters = {}, query = "") => {
@@ -61,8 +64,9 @@ const FeedPage = ({ user }) => {
         title: job.title,
         company: job.company_name,
         description: job.description,
-        profession: job.required_skill_name,
+        profession: job.required_skill_name || job.custom_skill,
         date: job.work_date,
+        establishment_name: job.establishment_name,
         startTime: job.start_time,
         endTime: job.end_time,
         address: job.address,
@@ -228,8 +232,8 @@ const FeedPage = ({ user }) => {
     }
   };
 
-  // Обработка клика по плавающей кнопке
-  const handleFloatingButtonClick = () => {
+  // Обработка клика по кнопке действия
+  const handleActionButtonClick = () => {
     if (role === "employer") {
       navigate("/create-vacancy");
     } else {
@@ -421,15 +425,15 @@ const FeedPage = ({ user }) => {
   };
 
   return (
-    <div className="feed-page">
+    <div className={styles.feedPage}>
       {/* Шапка страницы */}
-      <div className="feed-header">
-        <div className="header-top">
+      <div className={styles.feedHeader}>
+        <div className={styles.headerTop}>
           <h1>
             {role === "worker" ? "Доступные вакансии" : "Доступные работники"}
           </h1>
           {user && (
-            <div className="balance-info">
+            <div className={styles.balanceInfo}>
               <span>
                 Баланс: {user.balance?.toLocaleString("ru-RU") || 0} ₽
               </span>
@@ -439,17 +443,20 @@ const FeedPage = ({ user }) => {
 
         {/* Баннер ошибок */}
         {error && (
-          <div className="error-banner">
+          <div className={styles.errorBanner}>
             <span>{error}</span>
-            <button className="error-close" onClick={() => setError(null)}>
+            <button 
+              className={styles.errorClose} 
+              onClick={() => setError(null)}
+            >
               <FiX />
             </button>
           </div>
         )}
 
-        <div className="search-container">
-          <div className="search-bar">
-            <FiSearch className="search-icon" />
+        <div className={styles.searchContainer}>
+          <div className={styles.searchBar}>
+            <FiSearch className={styles.searchIcon} />
             <input
               type="text"
               placeholder={
@@ -457,12 +464,51 @@ const FeedPage = ({ user }) => {
               }
               value={searchQuery}
               onChange={handleSearch}
-              className="search-input"
+              className={styles.searchInput}
             />
-            <button className="filter-toggle" onClick={toggleFilters}>
-              Фильтры
-            </button>
           </div>
+        </div>
+      </div>
+
+      {/* Панель управления с кнопками */}
+      <div className={styles.actionBar}>
+        <div className={styles.filterSection}>
+          <button 
+            className={`${styles.filterButton} ${showFilters ? styles.active : ''} ${hasActiveFilters ? styles.hasFilters : ''}`}
+            onClick={toggleFilters}
+          >
+            <FiFilter className={styles.filterIcon} />
+            <span>Фильтры</span>
+            {hasActiveFilters && <div className={styles.filterIndicator}></div>}
+          </button>
+          
+          {(filters.profession || filters.date || filters.minRate) && (
+            <button 
+              className={styles.clearFilters}
+              onClick={() => setFilters({ profession: "", date: "", minRate: "" })}
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
+        
+        <div className={styles.mainAction}>
+          <button 
+            className={`${styles.actionButton} ${role === "employer" ? styles.employer : ''}`}
+            onClick={handleActionButtonClick}
+          >
+            {role === "employer" ? (
+              <>
+                <FiPlus className={styles.buttonIcon} />
+                <span>Создать вакансию</span>
+              </>
+            ) : (
+              <>
+                <FiList className={styles.buttonIcon} />
+                <span>Мои заявки</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -477,12 +523,12 @@ const FeedPage = ({ user }) => {
       )}
 
       {/* Информация о примененных фильтрах */}
-      <div className="filters-info">
+      <div className={styles.filtersInfo}>
         {(filters.profession || filters.date || filters.minRate) && (
-          <div className="active-filters">
+          <div className={styles.activeFilters}>
             <span>Примененные фильтры:</span>
             {filters.profession && (
-              <div className="filter-tag">
+              <div className={styles.filterTag}>
                 {role === "worker" ? "Профессия: " : "Навык: "}
                 {filters.profession}
                 <button
@@ -495,7 +541,7 @@ const FeedPage = ({ user }) => {
               </div>
             )}
             {filters.date && (
-              <div className="filter-tag">
+              <div className={styles.filterTag}>
                 {role === "worker" ? "Дата: " : "Доступность: "}
                 {formatDate(filters.date)}
                 <button
@@ -506,7 +552,7 @@ const FeedPage = ({ user }) => {
               </div>
             )}
             {filters.minRate && (
-              <div className="filter-tag">
+              <div className={styles.filterTag}>
                 {role === "worker" ? "Мин. оплата: " : "Мин. ставка: "}
                 {filters.minRate} ₽
                 <button
@@ -522,7 +568,7 @@ const FeedPage = ({ user }) => {
         )}
 
         {!isLoading && data.length > 0 && (
-          <div className="vacancies-count">
+          <div className={styles.vacanciesCount}>
             {role === "worker"
               ? `Найдено вакансий: ${data.length}`
               : `Найдено работников: ${data.length}`}
@@ -531,8 +577,8 @@ const FeedPage = ({ user }) => {
       </div>
 
       {isLoading ? (
-        <div className="loading-container">
-          <div className="loader"></div>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loader}></div>
           <p>
             {role === "worker"
               ? "Загрузка вакансий..."
@@ -540,7 +586,7 @@ const FeedPage = ({ user }) => {
           </p>
         </div>
       ) : (
-        <div className={role === "worker" ? "vacancies-list" : "workers-list"}>
+        <div className={role === "worker" ? styles.vacanciesList : styles.workersList}>
           {data.length > 0 ? (
             role === "worker" ? (
               // Отображение вакансий для работников
@@ -558,48 +604,48 @@ const FeedPage = ({ user }) => {
               data.map((worker) => (
                 <div
                   key={worker.id}
-                  className="worker-card"
+                  className={styles.workerCard}
                   onClick={() => handleWorkerClick(worker.id)}
                 >
-                  <div className="worker-header">
+                  <div className={styles.workerHeader}>
                     {worker.avatarUrl ? (
                       <img
                         src={worker.avatarUrl}
                         alt={`${worker.firstName} ${worker.lastName}`}
-                        className="worker-avatar"
+                        className={styles.workerAvatar}
                       />
                     ) : (
-                      <div className="avatar-placeholder">
+                      <div className={styles.avatarPlaceholder}>
                         <FiUser size={24} />
                       </div>
                     )}
 
-                    <div className="worker-info">
+                    <div className={styles.workerInfo}>
                       <h3>
                         {worker.firstName} {worker.lastName}
                       </h3>
-                      <div className="worker-meta">
-                        <span className="worker-age">
+                      <div className={styles.workerMeta}>
+                        <span className={styles.workerAge}>
                           {worker.birthDate ? calculateAge(worker.birthDate) + " лет" : "Возраст не указан"}
                         </span>
                       </div>
                     </div>
 
                     {worker.rating > 0 ? (
-                      <div className="worker-rating">
+                      <div className={styles.workerRating}>
                         <FiStar size={18} fill="#FFD700" />
                         <span>{worker.rating.toFixed(1)}</span>
                       </div>
                     ) : (
-                      <div className="worker-rating">
+                      <div className={styles.workerRating}>
                         <span>Нет оценок</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="worker-details">
-                    <div className="detail-row">
-                      <div className="detail-item">
+                  <div className={styles.workerDetails}>
+                    <div className={styles.detailRow}>
+                      <div className={styles.detailItem}>
                         <FiDollarSign />
                         <span>
                           {worker.ratePerShift
@@ -609,13 +655,13 @@ const FeedPage = ({ user }) => {
                             : "Ставка не указана"}
                         </span>
                       </div>
-                      <div className="detail-item">
+                      <div className={styles.detailItem}>
                         <span>Опыт: {formatExperience(worker.experience)}</span>
                       </div>
                     </div>
 
                     {worker.availability && worker.availability.length > 0 && (
-                      <div className="detail-row">
+                      <div className={styles.detailRow}>
                         <FiCalendar />
                         <span>
                           Ближайшие даты:{" "}
@@ -627,9 +673,9 @@ const FeedPage = ({ user }) => {
                     )}
 
                     {worker.skills && worker.skills.length > 0 && (
-                      <div className="worker-skills">
+                      <div className={styles.workerSkills}>
                         {worker.skills.map((skill) => (
-                          <span key={skill.id} className="skill-tag">
+                          <span key={skill.id} className={styles.skillTag}>
                             {skill.name}
                           </span>
                         ))}
@@ -640,7 +686,7 @@ const FeedPage = ({ user }) => {
                   {/* Кнопка бронирования для работодателей */}
                   {role === "employer" && (
                     <button 
-                      className="book-worker-button"
+                      className={styles.bookWorkerButton}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleBookWorker(worker.id);
@@ -653,14 +699,14 @@ const FeedPage = ({ user }) => {
               ))
             )
           ) : (
-            <div className="no-results">
-              <div className="no-results-icon">
+            <div className={styles.noResults}>
+              <div className={styles.noResultsIcon}>
                 <FiSearch size={48} />
               </div>
               <h3>Ничего не найдено</h3>
               <p>Попробуйте изменить параметры поиска или фильтры</p>
               <button
-                className="reset-filters"
+                className={styles.resetFiltersButton}
                 onClick={() => {
                   setFilters({ profession: "", date: "", minRate: "" });
                   setSearchQuery("");
@@ -673,96 +719,84 @@ const FeedPage = ({ user }) => {
         </div>
       )}
 
-      {/* Плавающая кнопка действий */}
-      <div
-        className={`floating-button ${role}`}
-        onClick={handleFloatingButtonClick}
-      >
-        {role === "employer" ? (
-          <>
-            <FiPlus className="button-icon" />
-            <span className="button-text">Создать</span>
-          </>
-        ) : (
-          <>
-            <FiList className="button-icon" />
-            <span className="button-text">Заявки</span>
-          </>
-        )}
-      </div>
-
       {/* Модальное окно заявок (только для работников) */}
       {showApplicationsModal && role === "worker" && (
-        <div className="applications-modal">
+        <div className={styles.applicationsModal}>
           <div
-            className="modal-overlay"
+            className={styles.modalOverlay}
             onClick={() => setShowApplicationsModal(false)}
           ></div>
 
-          <div className="modal-content">
-            <div className="modal-header">
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
               <h2>Мои заявки</h2>
               <button
-                className="close-button"
+                className={styles.closeButton}
                 onClick={() => setShowApplicationsModal(false)}
               >
                 <FiX size={24} />
               </button>
             </div>
 
-            <div className="modal-body">
+            <div className={styles.modalBody}>
               {isLoadingApplications ? (
-                <div className="loading-applications">
-                  <div className="loader"></div>
+                <div className={styles.loadingApplications}>
+                  <div className={styles.loader}></div>
                   <p>Загрузка ваших заявок...</p>
                 </div>
               ) : applications.length === 0 ? (
-                <div className="no-applications">
-                  <div className="empty-icon">
+                <div className={styles.noApplications}>
+                  <div className={styles.emptyIcon}>
                     <FiList size={48} />
                   </div>
                   <h3>У вас пока нет заявок</h3>
                   <p>Найдите подходящую вакансию и отправьте заявку</p>
                 </div>
               ) : (
-                <div className="applications-list">
+                <div className={styles.applicationsList}>
                   {applications.map((application) => (
                     <div
                       key={application.id}
-                      className="application-card"
+                      className={styles.applicationCard}
                       onClick={() => {
                         setShowApplicationsModal(false);
                         navigate(`/vacancy/${application.job.id}`);
                       }}
                     >
-                      <div className="application-header">
+                      <div className={styles.applicationHeader}>
                         <h3>{application.job.title}</h3>
                         <div
-                          className={`application-status ${getStatusClass(
-                            application.status
-                          )}`}
+                          className={`${styles.applicationStatus} ${
+                            application.status === "pending" 
+                              ? styles.statusPending 
+                              : application.status === "confirmed"
+                                ? styles.statusConfirmed
+                                : application.status === "rejected"
+                                  ? styles.statusRejected
+                                  : ""
+                          }`}
                         >
                           <span>{getStatusText(application.status)}</span>
                         </div>
                       </div>
 
-                      <div className="application-details">
-                        <div className="detail-row">
-                          <div className="detail-item">
-                            <span className="detail-label">Компания:</span>
+                      <div className={styles.applicationDetails}>
+                        <div className={styles.detailRow}>
+                          <div className={styles.detailItem}>
+                            <span className={styles.detailLabel}>Компания:</span>
                             <span>{application.job.company_name}</span>
                           </div>
-                          <div className="detail-item">
-                            <span className="detail-label">Оплата:</span>
+                          <div className={styles.detailItem}>
+                            <span className={styles.detailLabel}>Оплата:</span>
                             <span>
                               {application.job.rate.toLocaleString("ru-RU")} ₽
                             </span>
                           </div>
                         </div>
 
-                        <div className="detail-row">
-                          <div className="detail-item">
-                            <span className="detail-label">Дата:</span>
+                        <div className={styles.detailRow}>
+                          <div className={styles.detailItem}>
+                            <span className={styles.detailLabel}>Дата:</span>
                             <span>
                               {formatDate(application.job.work_date)},{" "}
                               {application.job.start_time} -{" "}
@@ -771,16 +805,16 @@ const FeedPage = ({ user }) => {
                           </div>
                         </div>
 
-                        <div className="detail-row">
-                          <div className="detail-item">
-                            <span className="detail-label">Адрес:</span>
+                        <div className={styles.detailRow}>
+                          <div className={styles.detailItem}>
+                            <span className={styles.detailLabel}>Адрес:</span>
                             <span>{application.job.address}</span>
                           </div>
                         </div>
 
-                        <div className="detail-row">
-                          <div className="detail-item">
-                            <span className="detail-label">Подана:</span>
+                        <div className={styles.detailRow}>
+                          <div className={styles.detailItem}>
+                            <span className={styles.detailLabel}>Подана:</span>
                             <span>
                               {formatDateTime(application.created_at)}
                             </span>
@@ -798,38 +832,38 @@ const FeedPage = ({ user }) => {
 
       {/* Модальное окно выбора вакансии для бронирования */}
       {showJobSelectionModal && role === "employer" && (
-        <div className="job-selection-modal">
+        <div className={styles.jobSelectionModal}>
           <div
-            className="modal-overlay"
+            className={styles.modalOverlay}
             onClick={() => setShowJobSelectionModal(false)}
           ></div>
 
-          <div className="modal-content">
-            <div className="modal-header">
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
               <h2>Выберите вакансию для бронирования</h2>
               <button
-                className="close-button"
+                className={styles.closeButton}
                 onClick={() => setShowJobSelectionModal(false)}
               >
                 <FiX size={24} />
               </button>
             </div>
 
-            <div className="modal-body">
+            <div className={styles.modalBody}>
               {isLoadingEmployerJobs ? (
-                <div className="loading-container">
-                  <div className="loader"></div>
+                <div className={styles.loadingContainer}>
+                  <div className={styles.loader}></div>
                   <p>Загрузка ваших вакансий...</p>
                 </div>
               ) : employerJobs.length === 0 ? (
-                <div className="no-jobs">
-                  <div className="empty-icon">
+                <div className={styles.noJobs}>
+                  <div className={styles.emptyIcon}>
                     <FiBriefcase size={48} />
                   </div>
                   <h3>У вас нет активных вакансий</h3>
                   <p>Создайте вакансию, чтобы забронировать работника</p>
                   <button
-                    className="create-vacancy-button"
+                    className={styles.createVacancyButton}
                     onClick={() => {
                       setShowJobSelectionModal(false);
                       navigate("/create-vacancy");
@@ -839,23 +873,23 @@ const FeedPage = ({ user }) => {
                   </button>
                 </div>
               ) : (
-                <div className="jobs-list">
+                <div className={styles.jobsList}>
                   {employerJobs.map((job) => (
                     <div
                       key={job.id}
-                      className="job-item"
+                      className={styles.jobItem}
                       onClick={() => confirmWorkerBooking(job.id)}
                     >
-                      <div className="job-info">
+                      <div className={styles.jobInfo}>
                         <h3>{job.title}</h3>
-                        <p className="job-date">
+                        <p className={styles.jobDate}>
                           {formatDate(job.work_date)}
                         </p>
-                        <p className="job-rate">
+                        <p className={styles.jobRate}>
                           {job.rate.toLocaleString("ru-RU")} ₽
                         </p>
                       </div>
-                      <div className="job-slots">
+                      <div className={styles.jobSlots}>
                         <span>Осталось мест: {job.remaining_slots}</span>
                       </div>
                     </div>

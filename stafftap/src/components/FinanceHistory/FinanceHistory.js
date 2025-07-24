@@ -218,8 +218,7 @@ const FinanceHistory = () => {
             </div>
           </div>
         </div>
-        
-        <div className={styles.mainContent}>
+      <div className={styles.mainContent}>
           <div className={styles.card}>
             <div className={`${styles.cardHeader} ${styles.historyHeader}`}>
               <div>
@@ -228,6 +227,7 @@ const FinanceHistory = () => {
               </div>
             </div>
             <div className={styles.cardBody}>
+              {/* Десктопная версия: таблица */}
               <div className={styles.tableContainer}>
                 <table className={styles.table}>
                   <thead>
@@ -268,17 +268,105 @@ const FinanceHistory = () => {
                 </table>
               </div>
               
-              <div className={styles.pagination}>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                  <button
-                    key={num}
-                    className={`${styles.pageButton} ${page === num ? styles.active : ''}`}
-                    onClick={() => setPage(num)}
-                  >
-                    {num}
-                  </button>
-                ))}
+              {/* Мобильная версия: карточки */}
+              <div className={styles.mobileList}>
+                {history.length === 0 ? (
+                  <div className={styles.noData}>Нет данных</div>
+                ) : (
+                  history.map((item) => {
+                    const taxAmount = (item.commission * (settings.tax_percent || 0)) / 100;
+                    const income = item.commission - taxAmount;
+                    
+                    return (
+                      <div key={item.id} className={styles.mobileCard}>
+                        <div className={styles.mobileCardRow}>
+                          <span className={styles.mobileCardLabel}>Дата:</span>
+                          <span className={styles.mobileCardValue}>
+                            {format(new Date(item.created_at), 'dd.MM.yyyy HH:mm')}
+                          </span>
+                        </div>
+                        <div className={styles.mobileCardRow}>
+                          <span className={styles.mobileCardLabel}>Пользователь:</span>
+                          <span className={`${styles.mobileCardValue} ${styles.userEmail}`}>
+                            {item.user_email}
+                          </span>
+                        </div>
+                        <div className={styles.mobileCardRow}>
+                          <span className={styles.mobileCardLabel}>Сумма:</span>
+                          <span className={styles.mobileCardValue}>
+                            {item.amount.toFixed(2)} руб.
+                          </span>
+                        </div>
+                        <div className={styles.mobileCardRow}>
+                          <span className={styles.mobileCardLabel}>Комиссия:</span>
+                          <span className={styles.mobileCardValue}>
+                            {item.commission.toFixed(2)} руб.
+                          </span>
+                        </div>
+                        <div className={styles.mobileCardRow}>
+                          <span className={styles.mobileCardLabel}>Доход:</span>
+                          <span className={`${styles.mobileCardValue} ${styles.incomeCell}`}>
+                            {income.toFixed(2)} руб.
+                          </span>
+                        </div>
+                        <div className={styles.mobileCardRow}>
+                          <span className={styles.mobileCardLabel}>Статус:</span>
+                          <span className={styles.mobileCardValue}>
+                            <span className={`${styles.statusBadge} ${
+                              item.status === 'succeeded' ? styles.statusSuccess : styles.statusPending
+                            }`}>
+                              {item.status === 'succeeded' ? 'Успешно' : 'В обработке'}
+                            </span>
+                          </span>
+                        </div>
+                        <div className={styles.mobileCardRow}>
+                          <span className={styles.mobileCardLabel}>ID платежа:</span>
+                          <span className={styles.mobileCardValue}>{item.payment_id}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
+              
+              {/* Пагинация */}
+              {totalPages > 0 && (
+                <>
+                  {/* Десктоп-пагинация */}
+                  <div className={styles.desktopPagination}>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                      <button
+                        key={num}
+                        className={`${styles.pageButton} ${page === num ? styles.active : ''}`}
+                        onClick={() => setPage(num)}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Мобильная пагинация */}
+                  <div className={styles.mobilePagination}>
+                    <button
+                      className={styles.pageButton}
+                      onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                      disabled={page === 1}
+                    >
+                      &lt;
+                    </button>
+                    <div className={styles.pageInfo}>
+                      Страница {page} из {totalPages}
+                    </div>
+                    <button
+                      className={styles.pageButton}
+                      onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={page === totalPages}
+                    >
+                      &gt;
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

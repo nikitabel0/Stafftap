@@ -45,7 +45,7 @@ class UserOut(BaseModel):
     experience_months: Optional[int]
     rate_per_shift: Optional[float]
     availability: List[AvailabilityOut]
-
+    avatar_url: Optional[str] 
     is_verified: bool
     is_blocked: bool
     created_at: datetime

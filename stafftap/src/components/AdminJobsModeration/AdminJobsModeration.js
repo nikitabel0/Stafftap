@@ -72,9 +72,23 @@ const AdminJobsModeration = () => {
         <div className={styles.jobsList}>
           {jobs.map((job) => (
             <div key={job.id} className={styles.moderationJobCard}>
+              {/* Добавляем блок с фотографиями */}
+              {job.photo_urls && job.photo_urls.length > 0 && (
+                <div className={styles.jobPhotos}>
+                  {job.photo_urls.map((photoUrl, index) => (
+                    <img
+                      key={index}
+                      src={photoUrl}
+                      alt={`Фото заведения ${index + 1}`}
+                      className={styles.jobPhoto}
+                    />
+                  ))}
+                </div>
+              )}
+
               <div className={styles.jobHeader}>
                 <h3>{job.title}</h3>
-                <span className={styles.company}>{job.company_name}</span>
+                <div className={styles.jobMeta}></div>
               </div>
 
               <div className={styles.jobDetails}>
@@ -107,7 +121,11 @@ const AdminJobsModeration = () => {
 
                   <div className={styles.detail}>
                     <strong>Требуемый навык:</strong>
-                    <span>{job.required_skill_name}</span>
+                    <span>
+                      {job.required_skill_name ||
+                        job.custom_skill ||
+                        "Не указано"}
+                    </span>
                   </div>
                 </div>
 

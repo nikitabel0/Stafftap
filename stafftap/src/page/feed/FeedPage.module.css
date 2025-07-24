@@ -1,0 +1,864 @@
+/* Общие стили */
+.feedPage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 90px 20px 100px;
+  min-height: 100vh;
+  background-color: transparent;
+}
+
+/* Шапка */
+.feedHeader {
+  margin-bottom: 25px;
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
+  border-radius: 16px;
+  padding: 20px;
+  color: white;
+  box-shadow: 0 8px 20px rgba(44, 129, 97, 0.2);
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.feedHeader h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.balanceInfo {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 16px;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.searchContainer {
+  margin-bottom: 5px;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 30px;
+  padding: 5px 15px;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    inset 2px 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.searchIcon {
+  color: #2C8161;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-size: 16px;
+  padding: 12px 0;
+  min-width: 50px;
+}
+
+/* Новая панель действий */
+.actionBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 0 10px;
+  gap: 20px;
+}
+
+.filterSection {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.filterButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  color: #2C8161;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 
+    0 4px 0 #1f5d47,
+    0 6px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.filterButton:hover {
+  transform: translateY(2px);
+  box-shadow: 
+    0 2px 0 #1f5d47,
+    0 4px 6px rgba(0, 0, 0, 0.1);
+  background: #f5f5f5;
+}
+
+.filterButton:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1f5d47;
+}
+
+.active {
+  background: #2C8161;
+  color: white;
+}
+
+.hasFilters {
+  background: #1a5276;
+  color: white;
+}
+
+.filterIcon {
+  font-size: 18px;
+}
+
+.filterIndicator {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  background: #ff4757;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.clearFilters {
+  background: transparent;
+  color: #2C8161;
+  border: 1px solid #2C8161;
+  padding: 10px 15px;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clearFilters:hover {
+  background: rgba(44, 129, 97, 0.1);
+}
+
+.mainAction {
+  flex: 1;
+  max-width: 300px;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 30px;
+  border: none;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 
+    0 6px 0 #1f5d47,
+    0 10px 20px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #2C8161 0%, #56BD66 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.actionButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 0 #1f5d47,
+    0 15px 25px rgba(0, 0, 0, 0.25);
+}
+
+.actionButton:active {
+  transform: translateY(4px);
+  box-shadow: 
+    0 2px 0 #1f5d47,
+    0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.actionButton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.actionButton:hover::after {
+  transform: translateX(100%);
+}
+
+.employer {
+  background: linear-gradient(135deg, #1a5276 0%, #3498db 100%);
+  box-shadow: 
+    0 6px 0 #0d3a5c,
+    0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.buttonIcon {
+  font-size: 20px;
+  transition: transform 0.3s;
+}
+
+.actionButton:hover .buttonIcon {
+  transform: rotate(90deg);
+}
+
+/* Стили для фильтров */
+.filtersInfo {
+  margin-bottom: 20px;
+}
+
+.activeFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+.activeFilters span {
+  font-weight: 500;
+  color: #555;
+}
+
+.filterTag {
+  background: #e3f2fd;
+  color: #1a5276;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filterTag button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #1a5276;
+  padding: 0;
+  line-height: 1;
+}
+
+.vacanciesCount {
+  font-size: 16px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* Карточки вакансий и работников */
+.vacanciesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 25px;
+}
+
+.workersList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 25px;
+  align-items: stretch;
+}
+
+.workerCard {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+}
+
+.workerCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.workerCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
+}
+
+.workerHeader {
+  display: flex;
+  padding: 20px;
+  position: relative;
+}
+
+.workerAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-right: 20px;
+}
+
+.avatarPlaceholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-right: 20px;
+  color: #999;
+}
+
+.workerInfo {
+  flex: 1;
+}
+
+.workerInfo h3 {
+  margin: 5px 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.workerMeta {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.workerAge {
+  background: #e8f5e9;
+  color: #2C8161;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.workerRating {
+  display: flex;
+  align-items: center;
+  background: #fff8e1;
+  color: #e6b400;
+  padding: 3px 10px 3px 6px;
+  border-radius: 12px;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.workerDetails {
+  padding: 0 20px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.detailRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: #555;
+  flex: 1;
+  min-width: 200px;
+}
+
+.workerSkills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skillTag {
+  background: linear-gradient(to right, #1a5276, #3498db);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bookWorkerButton {
+  margin-top: 15px;
+  padding: 14px 0;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-size: 16px;
+  box-shadow: 0 6px 15px rgba(26, 82, 118, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  background: linear-gradient(to right, #1a5276, #3498db);
+  color: white;
+  border: none;
+}
+
+.bookWorkerButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(26, 82, 118, 0.35);
+}
+
+.bookWorkerButton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.bookWorkerButton:hover::after {
+  transform: translateX(100%);
+}
+
+/* Загрузка */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 40px;
+}
+
+.loader {
+  width: 60px;
+  height: 60px;
+  position: relative;
+}
+
+.loader::before,
+.loader::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 5px solid transparent;
+  border-top-color: #2C8161;
+  animation: spin 1s linear infinite;
+}
+
+.loader::after {
+  border-top-color: #56BD66;
+  animation-delay: 0.2s;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Результаты поиска */
+.noResults {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f9f9f9;
+  border-radius: 16px;
+  margin-top: 20px;
+  grid-column: 1 / -1;
+}
+
+.noResultsIcon {
+  margin-bottom: 20px;
+  color: #aaa;
+}
+
+.noResults h3 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+.noResults p {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.resetFiltersButton {
+  background: #2C8161;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.resetFiltersButton:hover {
+  background: #1f5d47;
+  transform: translateY(-2px);
+}
+
+/* Модальные окна */
+.applicationsModal, .jobSelectionModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  position: relative;
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+  z-index: 1001;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: modalAppear 0.4s ease;
+}
+
+@keyframes modalAppear {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modalHeader {
+  padding: 20px;
+  background: linear-gradient(135deg, #2C8161 0%, #56BD66 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.closeButton {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 20px;
+}
+
+.modalBody {
+  padding: 20px;
+  max-height: calc(90vh - 80px);
+  overflow-y: auto;
+}
+
+.applicationCard {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #2C8161;
+  transition: all 0.3s;
+}
+
+.applicationCard:hover {
+  transform: translateX(5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.applicationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.applicationHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.applicationStatus {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.statusPending {
+  background: linear-gradient(to right, #ffd166, #ffb347);
+  color: #7d5a00;
+}
+
+.statusConfirmed {
+  background: linear-gradient(to right, #06d6a0, #1b9aaa);
+  color: white;
+}
+
+.statusRejected {
+  background: linear-gradient(to right, #ef476f, #ff5666);
+  color: white;
+}
+
+.applicationDetails {
+  display: grid;
+  gap: 10px;
+}
+
+.detailLabel {
+  font-weight: 500;
+  color: #666;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .feedPage {
+    padding: 70px 15px 120px;
+  }
+  
+  .feedHeader {
+    padding: 15px;
+    border-radius: 12px;
+  }
+  
+  .feedHeader h1 {
+    font-size: 22px;
+  }
+  
+  .actionBar {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .filterSection {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .mainAction {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .filterButton {
+    padding: 12px 15px;
+    font-size: 15px;
+  }
+  
+  .actionButton {
+    padding: 13px 18px;
+  }
+  
+  .vacanciesList, .workersList {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .feedHeader h1 {
+    font-size: 20px;
+  }
+  
+  .filterButton span {
+    font-size: 14px;
+  }
+  
+  .actionButton span {
+    font-size: 15px;
+  }
+  
+  .filterButton {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  
+  .clearFilters {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .buttonIcon {
+    font-size: 18px;
+  }
+  
+  .vacanciesList, .workersList {
+    grid-template-columns: 1fr;
+  }
+  
+  .workerHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .workerAvatar, .avatarPlaceholder {
+    margin: 0 auto 15px;
+  }
+}
+
+/* Дополнительные классы */
+.errorBanner {
+  background: #ff6b6b;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.errorClose {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.loadingApplications {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.noApplications {
+  text-align: center;
+  padding: 30px;
+}
+
+.emptyIcon {
+  margin-bottom: 20px;
+  color: #ccc;
+}
+
+.jobItem {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.jobItem:hover {
+  background-color: #f9f9f9;
+}
+
+.jobInfo h3 {
+  margin: 0 0 5px;
+}
+
+.jobDate {
+  color: #666;
+  font-size: 14px;
+}
+
+.jobRate {
+  color: #2C8161;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.jobSlots {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.createVacancyButton {
+  background: #2C8161;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 15px;
+}
+
+.createVacancyButton:hover {
+  background: #1f5d47;
+  transform: translateY(-2px);
+}

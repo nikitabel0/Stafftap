@@ -41,6 +41,7 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
     startTime,
     endTime,
     address,
+    establishment_name,
     salary,
     experience,
     requirements = [],
@@ -165,6 +166,7 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
             {company?.charAt(0) || 'C'}
           </div>
           <div className={styles.headerContent}>
+            
             <h3>{title}</h3>
             <div className={styles.companyName}>{company}</div>
           </div>
@@ -188,7 +190,7 @@ const VacancyCard = ({ vacancy, onToggleFavorite, role, user }) => {
           <div className={styles.detailItem}>
             <FiMapPin className={styles.icon} />
             <span>
-              {address} {distance && `(${distance} км)`}
+               {address} {distance && `(${distance} км)`}
             </span>
           </div>
 

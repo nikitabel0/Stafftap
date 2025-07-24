@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Date, Time, Float, Foreign
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
+from sqlalchemy import JSON 
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -16,12 +17,14 @@ class Job(Base):
     end_time = Column(Time, nullable=False)
     address = Column(String(200), nullable=False)
     rate = Column(Float, nullable=False)
+    photo_urls = Column(JSON, nullable=True)  
+    establishment_name = Column(String(100), nullable=True)  
     workers_needed = Column(Integer, nullable=False)
     status = Column(String(20), default="moderation")
     created_at = Column(DateTime, server_default=func.now())
     feedback_status = Column(String(20))  
     feedback_submitted_at = Column(DateTime)
-    # Relationships
+    custom_skill = Column(String(100), nullable=True)
     employer = relationship("User")
     required_skill = relationship("Skill")
     bookings = relationship("Booking", back_populates="job", cascade="all, delete-orphan")

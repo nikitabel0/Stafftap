@@ -1,8 +1,36 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import styles from "./CreateVacancyPage.module.css";
 import API_BASE_URL from "../../apiConfig";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Фикс для иконок маркера
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// Компонент для изменения центра карты
+const ChangeMapView = ({ center }) => {
+  const map = useMap();
+  map.setView(center);
+  return null;
+};
+
+// Компонент для обработки кликов на карте
+const MapClickHandler = ({ onClick }) => {
+  useMapEvents({
+    click: (e) => {
+      onClick(e.latlng);
+    }
+  });
+  return null;
+};
 
 const CreateVacancyPage = () => {
   const navigate = useNavigate();
@@ -12,6 +40,7 @@ const CreateVacancyPage = () => {
     title: "",
     description: "",
     required_skill_id: "",
+    custom_skill: "",
     work_date: "",
     start_time: "09:00",
     end_time: "18:00",
@@ -20,22 +49,84 @@ const CreateVacancyPage = () => {
     workers_needed: 1,
     latitude: null,
     longitude: null,
+    establishment_name: "",
+    photo_urls: [],
   });
+
+  const MAX_PHOTOS = 5;
+
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    if (formData.photo_urls.length + files.length > MAX_PHOTOS) {
+      alert(`Максимальное количество фотографий: ${MAX_PHOTOS}`);
+      return;
+    }
+
+    const uploadedUrls = [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        alert(`Файл ${file.name} не является изображением`);
+        continue;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`Файл ${file.name} слишком большой (макс. 5MB)`);
+        continue;
+      }
+
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      try {
+        const response = await axios.post(
+          `${API_BASE_URL}/api/jobs/upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        uploadedUrls.push(response.data.url);
+      } catch (error) {
+        console.error("Ошибка загрузки фото:", error);
+        alert(`Не удалось загрузить фото: ${file.name}`);
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      photo_urls: [...prev.photo_urls, ...uploadedUrls],
+    }));
+  };
+
+  const handleRemovePhoto = (index) => {
+    setFormData((prev) => {
+      const newPhotos = [...prev.photo_urls];
+      newPhotos.splice(index, 1);
+      return {
+        ...prev,
+        photo_urls: newPhotos,
+      };
+    });
+  };
+
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [verificationError, setVerificationError] = useState("");
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapLoading, setMapLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const placemarkRef = useRef(null);
   const suggestTimerRef = useRef(null);
+  const [mapCenter, setMapCenter] = useState([55.751244, 37.618423]); // Центр Москвы по умолчанию
 
+  // Fetch user and skills
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -82,132 +173,57 @@ const CreateVacancyPage = () => {
     fetchSkills();
   }, []);
 
-  // Загрузка API Яндекс.Карт
-  useEffect(() => {
-    if (window.ymaps) {
-      setMapLoaded(true);
-      return;
-    }
-
-    if (!document.querySelector('script[src*="api-maps.yandex.ru"]')) {
-      setMapLoading(true);
-      const script = document.createElement("script");
-      script.src = `https://api-maps.yandex.ru/2.1/?apikey=c28906d1-bfbf-46d0-8cce-6b8c72076f62&lang=ru_RU`;
-      script.async = true;
+  // Reverse geocoding using OpenStreetMap Nominatim
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+      );
       
-      script.onload = () => {
-        setMapLoaded(true);
-        setMapLoading(false);
-      };
-      
-      script.onerror = () => {
-        console.error("Failed to load Yandex Maps API");
-        setMapLoaded(false);
-        setMapLoading(false);
-      };
-
-      document.head.appendChild(script);
-    }
-
-    return () => {
-      // Очистка карты при размонтировании
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.destroy();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
-
-  // Инициализация карты
-  useEffect(() => {
-    if (mapLoaded && mapRef.current) {
-      initMap();
-    }
-  }, [mapLoaded]);
-
-  const initMap = () => {
-    window.ymaps.ready(() => {
-      try {
-        const map = new window.ymaps.Map(mapRef.current, {
-          center: [55.751574, 37.573856],
-          zoom: 9,
-          controls: ["zoomControl", "typeSelector", "fullscreenControl"],
-        });
-        
-        mapInstanceRef.current = map;
-
-        // Добавляем геолокацию
-        const geolocationControl = new window.ymaps.control.GeolocationControl({
-          options: {
-            float: "left",
-            position: {
-              top: "10px",
-              left: "10px",
-            },
-          },
-        });
-        map.controls.add(geolocationControl);
-
-        // Обработчик клика по карте
-        map.events.add("click", (e) => {
-          const coords = e.get("coords");
-          setPlacemark(coords, map);
-          geocode(coords);
-        });
-
-      } catch (error) {
-        console.error("Map initialization error:", error);
-      }
-    });
-  };
-
-  const setPlacemark = (coords, map) => {
-    // Удаляем предыдущую метку
-    if (placemarkRef.current) {
-      map.geoObjects.remove(placemarkRef.current);
-    }
-
-    // Создаем новую метку
-    placemarkRef.current = new window.ymaps.Placemark(
-      coords,
-      {
-        hintContent: "Выбранное местоположение",
-      },
-      {
-        preset: "islands#blueDotIcon",
-      }
-    );
-
-    map.geoObjects.add(placemarkRef.current);
-
-    // Центрируем карту
-    map.panTo(coords, {
-      flying: true,
-      duration: 1000,
-    });
-
-    // Обновляем координаты
-    setFormData((prev) => ({
-      ...prev,
-      latitude: coords[0],
-      longitude: coords[1],
-    }));
-  };
-
-  const geocode = (coords) => {
-    window.ymaps.geocode(coords).then((res) => {
-      const firstGeoObject = res.geoObjects.get(0);
-      if (firstGeoObject) {
-        const address = firstGeoObject.getAddressLine();
-        setFormData((prev) => ({
+      if (response.data && response.data.display_name) {
+        setFormData(prev => ({
           ...prev,
-          address: address,
+          address: response.data.display_name
         }));
       }
-    });
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+    }
+  }, []);
+
+  // Forward geocoding for address search
+  const forwardGeocode = async (address) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
+      );
+      
+      if (response.data && response.data.length > 0) {
+        const { lat, lon } = response.data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+        
+        // Update form data
+        setFormData(prev => ({
+          ...prev,
+          latitude,
+          longitude,
+          address: response.data[0].display_name
+        }));
+        
+        // Center the map on new location
+        setMapCenter([latitude, longitude]);
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      return false;
+    }
   };
 
-  // Получение подсказок для адреса
+  // Fetch address suggestions
   const fetchSuggestions = async (query) => {
     if (!query) {
       setSuggestions([]);
@@ -216,12 +232,12 @@ const CreateVacancyPage = () => {
 
     try {
       const response = await axios.get(
-        `https://suggest-maps.yandex.ru/suggest-geo?apikey=c28906d1-bfbf-46d0-8cce-6b8c72076f62&v=5&lang=ru_RU&text=${query}`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
       );
-      
-      if (response.data && response.data.results) {
+
+      if (response.data) {
         setSuggestions(
-          response.data.results.map(item => item.title.displayName)
+          response.data.map(item => item.display_name)
         );
       }
     } catch (error) {
@@ -229,8 +245,7 @@ const CreateVacancyPage = () => {
     }
   };
 
-  // Обработчик ручного поиска адреса
-  const handleAddressSearch = () => {
+  const handleAddressSearch = async () => {
     if (!formData.address.trim()) {
       setErrors((prev) => ({
         ...prev,
@@ -239,56 +254,49 @@ const CreateVacancyPage = () => {
       return;
     }
 
-    if (!window.ymaps || !mapInstanceRef.current) {
+    const found = await forwardGeocode(formData.address);
+    if (!found) {
       setErrors((prev) => ({
         ...prev,
-        address: "Карта не готова. Попробуйте позже",
+        address: "Адрес не найден",
       }));
-      return;
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        address: null,
+      }));
     }
-
-    window.ymaps.geocode(formData.address).then((res) => {
-      const firstGeoObject = res.geoObjects.get(0);
-
-      if (firstGeoObject) {
-        const coords = firstGeoObject.geometry.getCoordinates();
-        setPlacemark(coords, mapInstanceRef.current);
-        
-        setErrors((prev) => ({
-          ...prev,
-          address: null,
-        }));
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          address: "Адрес не найден",
-        }));
-      }
-    }).catch(error => {
-      console.error("Geocoding error:", error);
-      setErrors((prev) => ({
-        ...prev,
-        address: "Ошибка поиска адреса",
-      }));
-    });
   };
+
+  const handleMapClick = useCallback((latlng) => {
+    const { lat, lng } = latlng;
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng
+    }));
+    reverseGeocode(lat, lng);
+  }, [reverseGeocode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    
+    if (name === "address") {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        latitude: null,
+        longitude: null
+      }));
+    } else {
+      setFormData(prev => ({...prev, [name]: value}));
+    }
 
     if (name === "address") {
-      // Сбрасываем подсказки при изменении адреса
       setShowSuggestions(true);
-      
-      // Задержка для уменьшения количества запросов
       if (suggestTimerRef.current) {
         clearTimeout(suggestTimerRef.current);
       }
-      
       suggestTimerRef.current = setTimeout(() => {
         fetchSuggestions(value);
       }, 300);
@@ -303,12 +311,16 @@ const CreateVacancyPage = () => {
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      address: suggestion
+      address: suggestion,
+      latitude: null,
+      longitude: null
     }));
     setShowSuggestions(false);
-    handleAddressSearch();
+    
+    // Automatically search when suggestion is selected
+    setTimeout(() => handleAddressSearch(), 10);
   };
 
   const validate = () => {
@@ -319,6 +331,10 @@ const CreateVacancyPage = () => {
       newErrors.description = "Введите описание";
     if (!formData.work_date) newErrors.work_date = "Укажите дату";
     if (!formData.address.trim()) newErrors.address = "Укажите адрес";
+    
+    if (formData.latitude === null || formData.longitude === null) {
+      newErrors.address = "Адрес должен быть реальным. Выберите из подсказок или укажите на карте.";
+    }
 
     const rateValue = parseFloat(formData.rate);
     if (isNaN(rateValue)) {
@@ -347,11 +363,32 @@ const CreateVacancyPage = () => {
       return;
     }
 
+    if (formData.latitude === null || formData.longitude === null) {
+      setErrors(prev => ({
+        ...prev,
+        address: "Необходимо подтвердить реальный адрес на карте"
+      }));
+      return;
+    }
+
     if (!validate()) return;
+
+    if (formData.photo_urls.length > MAX_PHOTOS) {
+      alert(`Максимальное количество фотографий: ${MAX_PHOTOS}`);
+      return;
+    }
+
+    if (formData.required_skill_id && formData.custom_skill) {
+      alert(
+        "Укажите либо навык из списка, либо свой собственный, но не оба сразу"
+      );
+      return;
+    }
 
     const payload = {
       ...formData,
       required_skill_id: formData.required_skill_id || null,
+      custom_skill: formData.custom_skill || null,
       rate: parseFloat(formData.rate),
       workers_needed: parseInt(formData.workers_needed),
     };
@@ -366,7 +403,6 @@ const CreateVacancyPage = () => {
       navigate("/employer-feed");
     } catch (error) {
       console.error("Ошибка создания вакансии:", error);
-
       let errorMessage = "Ошибка при создании вакансии";
       if (error.response) {
         if (error.response.data && error.response.data.detail) {
@@ -380,12 +416,12 @@ const CreateVacancyPage = () => {
           errorMessage = "Некорректные данные вакансии";
         }
       }
-
       alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   if (isLoadingUser) {
     return (
@@ -493,6 +529,50 @@ const CreateVacancyPage = () => {
             <span className={styles.errorMessage}>{errors.title}</span>
           )}
         </div>
+        <div className={styles.formGroup}>
+          <label>Название заведения</label>
+          <input
+            type="text"
+            name="establishment_name"
+            value={formData.establishment_name}
+            onChange={handleChange}
+            className={styles.formInput}
+            placeholder="Введите название заведения"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <div className={styles.fileInputWrapper}>
+            <button type="button" className={styles.fileInputButton}>
+              Выбрать фотографии
+            </button>
+            <input
+              type="file"
+              className={styles.fileInput}
+              onChange={handlePhotoUpload}
+              accept="image/*"
+              multiple
+            />
+          </div>
+          <p className={styles.photoHint}>
+            Максимум {MAX_PHOTOS} фото. Разрешены JPG, PNG. Макс. размер 5MB.
+          </p>
+          <div className={styles.photosPreview}>
+            {formData.photo_urls.map((url, index) => (
+              <div key={index} className={styles.photoItem}>
+                <img src={url} alt={`Preview ${index}`} />
+                <button
+                  type="button"
+                  className={styles.removePhotoButton}
+                  onClick={() => handleRemovePhoto(index)}
+                  aria-label="Удалить фото"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div className={styles.formGroup}>
           <label>
@@ -521,20 +601,38 @@ const CreateVacancyPage = () => {
               <span>Загрузка навыков...</span>
             </div>
           ) : (
-            <div className={styles.selectContainer}>
-              <select
-                name="required_skill_id"
-                value={formData.required_skill_id}
-                onChange={handleChange}
-                className={styles.formSelect}
-              >
-                <option value="">Выберите навык (необязательно)</option>
-                {skills.map((skill) => (
-                  <option key={skill.id} value={skill.id}>
-                    {skill.name}
-                  </option>
-                ))}
-              </select>
+            <div className={styles.skillSelection}>
+              <div className={styles.selectContainer}>
+                <select
+                  name="required_skill_id"
+                  value={formData.required_skill_id}
+                  onChange={(e) => {
+                    handleChange(e);
+                    setFormData((prev) => ({ ...prev, custom_skill: "" }));
+                  }}
+                  className={styles.formSelect}
+                >
+                  <option value="">Выберите навык (необязательно)</option>
+                  {skills.map((skill) => (
+                    <option key={skill.id} value={skill.id}>
+                      {skill.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.skillDivider}>или</div>
+              <input
+                type="text"
+                name="custom_skill"
+                value={formData.custom_skill}
+                onChange={(e) => {
+                  handleChange(e);
+                  setFormData((prev) => ({ ...prev, required_skill_id: "" }));
+                }}
+                className={styles.formInput}
+                placeholder="Введите свой вариант навыка"
+                maxLength={100}
+              />
             </div>
           )}
         </div>
@@ -594,9 +692,7 @@ const CreateVacancyPage = () => {
         </div>
 
         <div className={styles.formGroup}>
-          <label>
-            Адрес <span>*</span>
-          </label>
+          <label>Адрес <span>*</span></label>
           <div className={styles.addressSearchContainer}>
             <div className={styles.inputWithIcon}>
               <input
@@ -614,19 +710,22 @@ const CreateVacancyPage = () => {
                     handleAddressSearch();
                   }
                 }}
+                onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
               <span className={styles.inputIcon}>📍</span>
-              
-              {/* Подсказки адреса */}
+
               {showSuggestions && suggestions.length > 0 && (
                 <div className={styles.suggestionsContainer}>
                   <ul className={styles.suggestionsList}>
                     {suggestions.map((suggestion, index) => (
-                      <li 
+                      <li
                         key={index}
                         className={styles.suggestionItem}
-                        onMouseDown={() => handleSuggestionClick(suggestion)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSuggestionClick(suggestion);
+                        }}
                       >
                         {suggestion}
                       </li>
@@ -648,18 +747,31 @@ const CreateVacancyPage = () => {
           )}
         </div>
 
-        {/* Контейнер для карты */}
         <div className={styles.mapContainer}>
-          <div ref={mapRef} className={styles.map}></div>
+          <MapContainer 
+            center={mapCenter} 
+            zoom={13} 
+            className={styles.map}
+            whenCreated={mapInstance => mapRef.current = mapInstance}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {formData.latitude && formData.longitude && (
+              <Marker position={[formData.latitude, formData.longitude]} />
+            )}
+            <ChangeMapView center={mapCenter} />
+            <MapClickHandler onClick={handleMapClick} />
+          </MapContainer>
+          
           <div className={styles.mapHint}>
-            <p>
-              Нажмите на карту, чтобы выбрать адрес или воспользуйтесь поиском
-            </p>
-            {mapLoading && (
-              <div className={styles.mapLoader}>
-                <div className={styles.smallLoader}></div>
-                <span>Загрузка карты...</span>
-              </div>
+            {formData.latitude ? (
+              <p className={styles.mapSuccess}>
+                ✓ Адрес подтвержден: {formData.address}
+              </p>
+            ) : (
+              <p>Нажмите на карту, чтобы выбрать адрес или воспользуйтесь поиском</p>
             )}
           </div>
         </div>

@@ -21,6 +21,7 @@ import NotificationsPage from "./page/NotificationsPage/NotificationsPage";
 import API_BASE_URL from "./apiConfig";
 import JobDetailPage from "./page/JobDetailPage/JobDetailPage";
 import BalancePage from "./BalancePage";
+import FinanceHistory from "./components/FinanceHistory/FinanceHistory";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -155,7 +156,7 @@ function App() {
             path="/balance" 
             element={
               user ? (
-                <BalancePage user={user} />
+                <FinanceHistory user={user} />
               ) : (
                 <Navigate to="/login" />
               )

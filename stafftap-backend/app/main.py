@@ -6,6 +6,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.tasks import background_check_completed_jobs  
 from datetime import datetime  
 from app.routes import payments
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Путь к статике теперь будет stafftap-backend/static
+static_path = BASE_DIR / "static"
 
 app = FastAPI()
 
@@ -16,6 +24,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+print(f"Static files served from: {static_path}")
+
+
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 Base.metadata.create_all(bind=engine)
 

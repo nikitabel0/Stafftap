@@ -357,3 +357,125 @@
     padding: 10px 15px;
   }
 }
+
+
+/* FinanceHistory.module.css */
+/* Остальные стили остаются без изменений */
+
+/* Добавляем новые стили для мобильной версии */
+.mobileList {
+  display: none;
+}
+
+.mobileCard {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.mobileCardRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.mobileCardRow:last-child {
+  margin-bottom: 0;
+}
+
+.mobileCardLabel {
+  font-weight: 600;
+  color: var(--text-medium);
+  min-width: 120px;
+}
+
+.mobileCardValue {
+  text-align: right;
+  flex: 1;
+}
+
+.noData {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-light);
+}
+
+.desktopPagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 25px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mobilePagination {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+  .tableContainer {
+    display: none;
+  }
+  
+  .mobileList {
+    display: block;
+  }
+  
+  .desktopPagination {
+    display: none;
+  }
+  
+  .mobilePagination {
+    display: flex;
+  }
+  
+  /* Оптимизация для маленьких экранов */
+  .mobileCardRow {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .mobileCardLabel,
+  .mobileCardValue {
+    width: 100%;
+    text-align: left;
+  }
+  
+  .statusBadge {
+    display: inline-block;
+    margin-top: 5px;
+  }
+}
+
+/* Улучшения для очень маленьких экранов */
+@media (max-width: 480px) {
+  .layout {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    min-width: 100%;
+    max-width: 100%;
+  }
+  
+  .mobileCard {
+    padding: 12px;
+  }
+  
+  .mobilePagination {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .pageInfo {
+    order: -1;
+  }
+}

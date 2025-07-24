@@ -283,7 +283,10 @@ def get_jobs_for_moderation(
             created_at=job.created_at,
             employer_rating=0.0,  
             employer_verified=employer.is_verified if employer else False,
-            completed_jobs=0  
+            completed_jobs=0,  
+             photo_urls=job.photo_urls,
+            establishment_name=job.establishment_name,
+            custom_skill=job.custom_skill
         ))
     
     return result

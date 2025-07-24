@@ -172,3 +172,144 @@
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(255, 107, 107, 0.25);
 }
+
+/* Стили для фотографий вакансий */
+.jobPhotos {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-light) #f1f1f1;
+}
+
+.jobPhotos::-webkit-scrollbar {
+  height: 6px;
+}
+
+.jobPhotos::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.jobPhotos::-webkit-scrollbar-thumb {
+  background: var(--primary-light);
+  border-radius: 3px;
+}
+
+.jobPhoto {
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.jobPhoto:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для мета-информации (название компании и заведения) */
+.jobMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.company {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.company::before {
+  content: "🏢";
+  font-size: 1rem;
+}
+
+.establishment {
+  font-size: 0.9rem;
+  color: var(--text-medium);
+  background: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+
+.establishment::before {
+  content: "📍";
+  font-size: 0.9rem;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+  .moderationJobCard {
+    padding: 18px;
+  }
+  
+  .jobPhoto {
+    width: 140px;
+    height: 100px;
+  }
+  
+  .detailRow {
+    grid-template-columns: 1fr;
+  }
+  
+  .jobActions {
+    flex-direction: column;
+  }
+  
+  .approveBtn, .rejectBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .jobHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .jobPhoto {
+    width: 120px;
+    height: 90px;
+  }
+  
+  .adminJobsModeration {
+    padding: 15px;
+  }
+}

@@ -51,7 +51,7 @@ const PlatformStatistics = () => {
       <div className={styles.platformStatistics}>
         <h2>Статистика платформы</h2>
         <div className={styles.statsLoading}>
-          <div className="loader-spinner"></div>
+          <div className={styles.loaderSpinner}></div>
           <p>Загрузка статистики...</p>
         </div>
       </div>
@@ -94,11 +94,11 @@ const PlatformStatistics = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="custom-tooltip">
-          <p className="tooltip-label">{label}</p>
-          <p className="tooltip-value">
+        <div className={styles.customTooltip}>
+          <p className={styles.tooltipLabel}>{label}</p>
+          <p className={styles.tooltipValue}>
             <span
-              className="color-indicator"
+              className={styles.colorIndicator}
               style={{ backgroundColor: payload[0].color }}
             ></span>
             {payload[0].name}: <strong>{payload[0].value}</strong>
@@ -179,7 +179,7 @@ const PlatformStatistics = () => {
         <div className={styles.chartContainer}>
           <h3>Регистрации пользователей (последние 7 дней)</h3>
           <div className={styles.chartWrapper}>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={registrationData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 15 }}
@@ -223,18 +223,18 @@ const PlatformStatistics = () => {
           </div>
         </div>
 
-        <div className={styles.chartContainer}>
+        <div className={`${styles.chartContainer} ${styles.pieChart}`}>
           <h3>Распределение пользователей по ролям</h3>
           <div className={styles.chartWrapper}>
             <div className={styles.roleDistribution}>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={roleData}
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
-                    innerRadius={60}
+                    outerRadius={80}
+                    innerRadius={40}
                     fill="#8884d8"
                     dataKey="value"
                     label={renderCustomizedLabel}
@@ -266,7 +266,7 @@ const PlatformStatistics = () => {
                       fontSize: "14px",
                     }}
                     formatter={(value, entry, index) => (
-                      <span className="legend-item">
+                      <span className={styles.legendItem}>
                         {roleData[index].icon}
                         {value}: {roleData[index].value}
                       </span>

@@ -843,3 +843,278 @@
     font-size: 20px;
   }
 }
+
+
+/* Добавленные стили для заведения и фотографий */
+
+.jobEstablishment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  color: #3a7c65;
+  margin: 10px 0 20px;
+  padding: 10px 15px;
+  background: rgba(44, 129, 97, 0.05);
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.establishmentIcon {
+  color: #2C8161;
+  font-size: 20px;
+}
+
+.jobPhotos {
+  margin: 30px 0;
+}
+
+.jobPhotos h3 {
+  font-size: 22px;
+  color: #1a3c2d;
+  margin-bottom: 15px;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.jobPhotos h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, #2C8161, #56BD66);
+  border-radius: 3px;
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.photo {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.photo:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Адаптивность для фотографий */
+@media (max-width: 768px) {
+  .photoGrid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  .photo {
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .photoGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .photo {
+    height: 130px;
+  }
+}
+
+
+/* Стили для блока с навыками */
+.skillsContainer {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0 20px;
+  flex-wrap: wrap;
+}
+
+.skillTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(44, 129, 97, 0.1);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #2C8161;
+  font-weight: 500;
+}
+
+.customSkillTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(108, 117, 125, 0.1);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.noSkill {
+  background: rgba(220, 53, 69, 0.1);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.skillIcon {
+  font-size: 16px;
+}
+
+/* Дополнительные стили для модального окна отзыва */
+.ratingSection p {
+  margin: 0 0 10px 0;
+  font-weight: 500;
+  color: #1a3c2d;
+}
+
+.commentSection textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e6ed;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.3s;
+}
+
+.commentSection textarea:focus {
+  outline: none;
+  border-color: #2C8161;
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.1);
+}
+
+/* Стили для кнопок в модальном окне */
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modalFooter button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modalFooter .cancelButton {
+  background: #f8f9fa;
+  border: 1px solid #e0e3e6;
+  color: #5a7c6f;
+}
+
+.modalFooter .confirmButton {
+  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+}
+
+.modalFooter button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Анимация для модального окна */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalOverlay {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+/* Дополнительные стили для кнопок действий */
+.workerActions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.workerActions button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Стили для загрузки чата */
+.chatButton.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.chatButton.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+  .skillsContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .modal {
+    width: 95%;
+    max-width: none;
+  }
+  
+  .workerActions {
+    flex-direction: column;
+  }
+  
+  .workerActions button {
+    width: 100%;
+  }
+}
+
+/* Стили для состояния загрузки в кнопках */
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
