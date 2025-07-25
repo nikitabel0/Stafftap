@@ -31,7 +31,8 @@ const Header = ({ user, onLogout }) => {
   const shouldHideHeader =
     location.pathname.startsWith("/chats/") ||
     location.pathname === "/login" ||
-    location.pathname === "/register";
+    location.pathname === "/register" ||
+    location.pathname === "/complete-registration";;
 
   const isHomePage = location.pathname === "/";
 

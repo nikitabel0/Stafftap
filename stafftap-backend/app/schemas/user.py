@@ -36,20 +36,21 @@ class UserOut(BaseModel):
     first_name: str
     skills: List[SkillOut]
     last_name: str
-    phone: str
-    birth_date: date
-    email: EmailStr
-    role: UserRole
+    phone: Optional[str] = None 
+    birth_date: Optional[date] = None 
+    email: Optional[str] = None
+    role: Optional[str] = None 
     balance: float
     company_name: Optional[str]
     experience_months: Optional[int]
     rate_per_shift: Optional[float]
     availability: List[AvailabilityOut]
-    avatar_url: Optional[str] 
+    avatar_url: Optional[str] = None
     is_verified: bool
     is_blocked: bool
     created_at: datetime
     updated_at: datetime
+    is_registration_complete: bool = False
 
     class Config:
         orm_mode = True
@@ -60,7 +61,15 @@ class SkillOut(BaseModel):
     name: str
 
 
+class UserCompleteRegistration(BaseModel):
+    role: str  # "worker" или "employer"
+    birth_date: date
+    company_name: str = None  # Только для работодателя
 
+class TelegramUserComplete(BaseModel):
+    role: UserRole
+    birth_date: date
+    company_name: Optional[str] = None
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = Field(None, min_length=1)

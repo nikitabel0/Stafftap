@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate
 } from "react-router-dom";
 
 import Login from "./page/login/Login";
@@ -20,11 +21,47 @@ import FavoritesPage from "./page/FavoritesPage/FavoritesPage";
 import NotificationsPage from "./page/NotificationsPage/NotificationsPage";
 import API_BASE_URL from "./apiConfig";
 import JobDetailPage from "./page/JobDetailPage/JobDetailPage";
-import BalancePage from "./BalancePage";
 import FinanceHistory from "./components/FinanceHistory/FinanceHistory";
+import CompleteRegistration from "./page/CompleteRegistration/CompleteRegistration";
+
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isTelegramApp, setIsTelegramApp] = useState(false);
+  const [tg, setTg] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      const tgApp = window.Telegram.WebApp;
+      setTg(tgApp);
+      setIsTelegramApp(true);
+      tgApp.ready();
+      tgApp.expand();
+      
+      authenticateWithTelegram(tgApp.initData); 
+    } else {
+      fetchProfile();
+    }
+  }, []);
+
+  const authenticateWithTelegram = async (initData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/telegram`, { initData });
+      const token = response.data.access_token;
+      localStorage.setItem("token", token);
+      await fetchProfile();
+    } catch (error) {
+      console.error("Telegram auth error:", error);
+      
+      
+      if (error.response?.status === 404) {
+        setUser({ requiresRegistration: true });
+      }
+      setLoading(false);
+    }
+  };
 
   const fetchProfile = async () => {
     const token = localStorage.getItem("token");
@@ -39,7 +76,13 @@ function App() {
           Authorization: `Bearer ${token}`,
         },
       });
-      setUser(res.data);
+      
+      
+      if (res.data.telegram_id && !res.data.is_registration_complete) {
+        setUser({...res.data, requiresRegistration: true});
+      } else {
+        setUser(res.data);
+      }
     } catch (err) {
       console.error("Ошибка загрузки профиля:", err);
       localStorage.removeItem("token");
@@ -49,15 +92,16 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
+    
+    
+    if (isTelegramApp && tg) {
+      tg.close();
+    }
   };
-
+  
   const handleSaveProfile = async (updatedData) => {
     try {
       const token = localStorage.getItem("token");
@@ -65,7 +109,6 @@ function App() {
         throw new Error("Токен отсутствует или пользователь не определен");
       }
 
-      
       const dataToSend = {
         first_name: updatedData.first_name,
         last_name: updatedData.last_name,
@@ -77,8 +120,7 @@ function App() {
         rate_per_shift: updatedData.rate_per_shift,
       };
 
-      
-      const response = await axios.put(
+      await axios.put(
         `${API_BASE_URL}/api/users/${user.id}`,
         dataToSend,
         {
@@ -89,7 +131,6 @@ function App() {
         }
       );
 
-      
       await fetchProfile();
       return true;
     } catch (error) {
@@ -97,109 +138,147 @@ function App() {
       throw error;
     }
   };
+  
 
   const appStyle = {
     minHeight: "100vh",
     background: '#f7efed url("/back.svg") no-repeat right bottom fixed',
     backgroundSize: "400px",
   };
+  const handleRegistrationComplete = () => {
+    
+    setUser(prev => ({
+      ...prev, 
+      requiresRegistration: false,
+      is_registration_complete: true
+    }));
+  };
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          background: "#f7efed",
-        }}
-      >
+      <div className="loader-container">
         <div className="loader"></div>
       </div>
     );
   }
 
   return (
-    <div style={appStyle}>
-      <Router>
-        <Header user={user} onLogout={handleLogout} />
-        <Routes>
-          <Route path="/chats" element={<ChatsPage user={user} />} />
-          <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
-          <Route path="/job/:jobId" element={<JobDetailPage user={user} />} />
-          <Route
-            path="/chats/by-booking/:bookingId"
-            element={<ChatPage user={user} />}
-          />
-          {/* <Route path="/bookings" element={<BookingsPage user={user} />} /> */}
-          <Route
-            path="/vacancy/:id"
-            element={<VacancyDetailPage user={user} />}
-          />
-          <Route
-            path="/login"
-            element={
-              user ? (
-                <Navigate to="/profile" />
-              ) : (
-                <Login onLogin={fetchProfile} />
-              )
-            }
-          />
-          <Route
-            path="/notifications"
-            element={<NotificationsPage user={user} />}
-          />
 
-          <Route 
-            path="/balance" 
-            element={
-              user ? (
-                <FinanceHistory user={user} />
-              ) : (
-                <Navigate to="/login" />
-              )
-            } 
-          />
+  
+    <div style={appStyle} className={isTelegramApp ? "telegram-app" : "web-app"}>
+      {!isTelegramApp && <Header user={user} onLogout={handleLogout} />}
+      
+      <Routes>
+        {/* Редирект для незавершенной регистрации */}
+        {user?.requiresRegistration && (
+          <Route path="*" element={
+            <CompleteRegistration 
+              user={user} 
+              onComplete={handleRegistrationComplete} 
+            />
+          } />
+        )}
+
           <Route
-            path="/register"
-            element={
-              user ? (
-                <Navigate to="/profile" />
-              ) : (
-                <Register onRegister={fetchProfile} />
-              )
-            }
-          />
-          <Route
-            path="/profile/:id?"
-            element={
-              user ? (
-                <Profile
-                  user={user}
-                  onLogout={handleLogout}
-                  onSave={handleSaveProfile}
-                />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-          <Route path="/create-vacancy" element={<CreateVacancyPage />} />
-          <Route path="/favorites" element={<FavoritesPage user={user} />} />
-          <Route
-            path="/feed"
-            element={user ? <FeedPage user={user} /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="*"
-            element={<Navigate to={user ? "/profile" : "/login"} />}
-          />
-        </Routes>
-      </Router>
+    path="/complete-registration"
+    element={<CompleteRegistration/>}
+  />
+     
+        <Route path="/chats" element={<ChatsPage user={user} />} />
+        <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
+        <Route path="/job/:jobId" element={<JobDetailPage user={user} />} />
+        <Route
+          path="/chats/by-booking/:bookingId"
+          element={<ChatPage user={user} />}
+        />
+        <Route
+          path="/vacancy/:id"
+          element={<VacancyDetailPage user={user} />}
+        />
+        <Route
+          path="/login"
+          element={
+            user ? (
+              <Navigate to="/profile" />
+            ) : (
+              <Login onLogin={fetchProfile} />
+            )
+          }
+        />
+        <Route
+          path="/notifications"
+          element={<NotificationsPage user={user} />}
+        />
+        <Route 
+          path="/balance" 
+          element={
+            user ? (
+              <FinanceHistory user={user} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          } 
+        />
+        <Route
+          path="/register"
+          element={
+            user ? (
+              <Navigate to="/profile" />
+            ) : (
+              <Register onRegister={fetchProfile} />
+            )
+          }
+        />
+        <Route
+          path="/profile/:id?"
+          element={
+            user ? (
+              <Profile
+                user={user}
+                onLogout={handleLogout}
+                onSave={handleSaveProfile}
+              />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route path="/create-vacancy" element={<CreateVacancyPage />} />
+        <Route path="/favorites" element={<FavoritesPage user={user} />} />
+        <Route
+          path="/feed"
+          element={user ? <FeedPage user={user} /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/complete-registration"
+          element={
+            <CompleteRegistration 
+              user={user} 
+              onComplete={handleRegistrationComplete} 
+            />
+          }
+        />
+        <Route
+          path="*"
+          element={<Navigate to={user ? "/profile" : "/login"} />}
+        />
+      </Routes>
+    
     </div>
+ 
   );
 }
 
-export default App;
+
+function AppWrapper() {
+  return (
+
+    <Router>
+      <Header></Header>
+      <App />
+    </Router>
+  
+  );
+}
+
+export default AppWrapper;

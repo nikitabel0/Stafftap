@@ -1,0 +1,187 @@
+/* Полностью идентичные стили для шага выбора роли */
+.pageContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    z-index: 10000;
+    position: relative;
+    font-family: 'Roboto', sans-serif;
+    background-color: #f7efed;
+}
+
+.roleSelectionContainer {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.roleHeading {
+    text-align: center;
+    color: #373737;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    margin-bottom: 2rem;
+}
+
+.roleCards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+.roleCard {
+    background: #f7efed;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+}
+
+.selectedCard {
+    background: linear-gradient(#f7efed, #f7efed) padding-box, 
+                linear-gradient(to right, #2C8161, #56BD66) border-box;
+}
+
+.roleCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.roleImage {
+    width: 100%;
+    max-width: 250px;
+    height: auto;
+    aspect-ratio: 1/1;
+    object-fit: contain;
+}
+
+.roleText {
+    margin-top: 1rem;
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    font-weight: 600;
+    text-align: center;
+    color: #373737;
+}
+
+.selectedCard .roleText {
+    color: #2C8161;
+}
+
+.buttonContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: 2.5rem;
+}
+
+/* Стили для формы (остаются как были) */
+.registrationContainer {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 580px;
+    margin: 30px auto 0;
+    background-color: transparent;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.formGroup {
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 500;
+    color: #4B5563;
+    font-size: 16px;
+    transition: color 0.3s ease;
+}
+
+.input {
+    width: 100%;
+    height: 58px;
+    border-radius: 14px;
+    background-color: #F7F7FD;
+    padding: 16px 22px;
+    box-sizing: border-box;
+    font-size: 16px;
+    outline: none;
+    border: 3px solid #D1D5DB;
+    color: #4B5563;
+    transition: all 0.3s ease;
+}
+
+.input:focus {
+    border-color: #2C8161;
+    box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.15);
+    color: #2C8161;
+}
+
+.error {
+    color: #EF4444;
+    text-align: center;
+    margin-top: 25px;
+    font-size: 15px;
+    padding: 12px 20px;
+    background-color: #FEF2F2;
+    border-radius: 10px;
+    border: 1px solid #FECACA;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .roleCard {
+        min-height: 240px;
+    }
+    
+    .roleImage {
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 576px) {
+    .roleCards {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .roleCard {
+        min-height: 250px;
+        padding: 20px 15px;
+    }
+}
+
+@media (max-width: 400px) {
+    .roleCard {
+        min-height: 220px;
+    }
+    
+    .roleImage {
+        max-width: 180px;
+    }
+}

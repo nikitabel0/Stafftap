@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
+import hmac
+import json
+from urllib.parse import parse_qs
+import hashlib
 from app.database import get_db
 from app.schemas.user import UserCreate, UserOut
-from app.crud.user import get_user_by_email, create_user, verify_password
+from app.crud.user import get_user_by_email, create_user, verify_password, get_user_by_telegram_id,create_user_via_telegram
 from app.auth.jwt import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -28,3 +31,60 @@ def login(data: dict, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": str(found_user.id)})
     return {"access_token": token, "token_type": "bearer"}
+
+
+
+
+
+
+
+
+
+
+
+@router.post("/telegram")
+async def telegram_auth(
+    data: dict,  # { "initData": "строка_данных" }
+    db: Session = Depends(get_db)
+):
+    init_data_str = data.get("initData")
+    if not init_data_str:
+        raise HTTPException(status_code=400, detail="initData required")
+    
+    # Парсим строку данных
+    parsed_data = parse_qs(init_data_str)
+    telegram_data = {k: v[0] for k, v in parsed_data.items()}
+    
+    # Проверяем подпись
+    bot_token = "8480935613:AAGcb3jUKYI4qmFbFHvduHQrs-1xfD4ioRI"
+    data_check_string = "\n".join(
+        f"{k}={telegram_data[k]}" 
+        for k in sorted(telegram_data.keys()) 
+        if k != "hash"
+    )
+    
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    computed_hash = hmac.new(
+        secret_key, 
+        data_check_string.encode(), 
+        hashlib.sha256
+    ).hexdigest()
+    
+    if computed_hash != telegram_data.get("hash"):
+        raise HTTPException(status_code=401, detail="Invalid Telegram signature")
+    
+    # Извлекаем данные пользователя
+    user_data = json.loads(telegram_data.get("user"))
+    telegram_id = user_data.get("id")
+    
+    if not telegram_id:
+        raise HTTPException(status_code=400, detail="Telegram ID not provided")
+    
+    # Поиск или создание пользователя
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        user = create_user_via_telegram(db, telegram_id, user_data)
+    
+    # Генерация JWT токена
+    access_token = create_access_token({"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}

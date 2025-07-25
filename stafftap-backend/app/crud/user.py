@@ -28,11 +28,11 @@ def create_user(db: Session, user: UserCreate) -> User | None:
         role=user.role,
         telegram_id=None,
 
-        # Работник
+        
         experience_months=user.experience_months,
         rate_per_shift=user.rate_per_shift,
 
-        # Работодатель
+        
         company_name=user.company_name,
     )
 
@@ -49,3 +49,32 @@ def create_user(db: Session, user: UserCreate) -> User | None:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.verify(plain_password, hashed_password)
+
+
+def get_user_by_telegram_id(db: Session, telegram_id: int):
+    return db.query(User).filter(User.telegram_id == telegram_id).first()
+
+def create_user_via_telegram(db: Session, telegram_id: int, user_data: dict):
+    user = User(
+        telegram_id=telegram_id,
+        first_name=user_data.get('first_name', ''),
+        last_name=user_data.get('last_name', ''),
+        phone="",  
+        birth_date=None,
+        email=None,
+        password_hash="",  
+        role=None,
+        avatar_url=user_data.get('photo_url', ''),
+        is_verified=False,
+        balance=0.00,
+        is_blocked=False,
+        frozen_balance=0.0,
+        company_name=None,
+        experience_months=None,
+        rate_per_shift=None,
+        is_registration_complete=False  
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
