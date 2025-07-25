@@ -55,6 +55,17 @@ services:
       - frontend
       - backend
 
+  bot:
+    build:
+      context: ./stafftap-bot
+      dockerfile: Dockerfile
+    container_name: stafftap-bot
+    env_file:
+      - ./stafftap-bot/.env
+    depends_on:
+      - backend
+      - db
+    restart: unless-stopped
 
 volumes:
   stafftap-docker_certbot-etc:
