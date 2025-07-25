@@ -55,11 +55,16 @@ def get_user_by_telegram_id(db: Session, telegram_id: int):
     return db.query(User).filter(User.telegram_id == telegram_id).first()
 
 def create_user_via_telegram(db: Session, telegram_id: int, user_data: dict):
+    
+    phone = user_data.get('phone', '')
+    if phone == '':
+        phone = None  
+
     user = User(
         telegram_id=telegram_id,
         first_name=user_data.get('first_name', ''),
         last_name=user_data.get('last_name', ''),
-        phone="",  
+        phone=phone,  
         birth_date=None,
         email=None,
         password_hash="",  

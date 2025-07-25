@@ -65,6 +65,7 @@ class UserCompleteRegistration(BaseModel):
     role: str  # "worker" или "employer"
     birth_date: date
     company_name: str = None  # Только для работодателя
+    email:str
 
 class TelegramUserComplete(BaseModel):
     role: UserRole
