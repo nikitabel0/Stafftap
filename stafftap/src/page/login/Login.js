@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import GradientButton from "../../components/GradientButton/GradientButton";
 import API_BASE_URL from "../../apiConfig";
 import styles from "./Login.module.css";
@@ -12,10 +12,10 @@ function Login({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const isTelegramApp = window.Telegram?.WebApp;
-    const [telegramAuthCompleted, setTelegramAuthCompleted] = useState(false);
+  const [telegramAuthCompleted, setTelegramAuthCompleted] = useState(false);
+  
   useEffect(() => {
     if (isTelegramApp && !telegramAuthCompleted) {
-      // Показываем статус авторизации в Telegram
       const timer = setTimeout(() => {
         setTelegramAuthCompleted(true);
         setError("Не удалось автоматически авторизоваться");
@@ -61,8 +61,14 @@ function Login({ onLogin }) {
 
   return (
     <div className={styles.pageContainer}>
-      <div className={styles.logoContainer}>
-        <img src="/smallLogo.svg" alt="Логотип" className={styles.logo} />
+      <div className={styles.brandContainer}>
+        <img 
+          src="/smallLogo.svg" 
+          alt="Логотип StaffTap" 
+          className={styles.brandLogo} 
+        />
+        <h1 className={styles.brandName}>STAFFTAP</h1>
+        <p className={styles.subheading2}>Приложение для честной работы "в один тап"!</p>
       </div>
 
       <h1 className={styles.heading}>Давайте войдём в систему!</h1>

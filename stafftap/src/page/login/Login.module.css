@@ -6,106 +6,124 @@
     min-height: 100vh;
     padding: 20px;
     font-family: 'Roboto', sans-serif;
+    margin-bottom: 0px;
 }
 
-.logoContainer {
-    display: flex;
-    justify-content: flex-start;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: 500px;
+.brandContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom:0px;
+  width: 100%;
 }
 
-.logo {
-    height: 60px;
+.brandLogo {
+  width: 350px;
+  height: auto;
+}
+
+.brandName {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 800;
+  font-size: 60px;
+  color: #2C8161;
+  margin-top: 0px;
+  letter-spacing: 0.5px;
+  margin-bottom: 0px;
 }
 
 .heading {
-    text-align: left;
-    margin-bottom: 5px;
-    color: #373737;
-    font-size: 24px;
-    font-weight: 700;
-    width: 100%;
-    max-width: 500px;
+  text-align: left;
+  margin-bottom: 5px;
+  color: #373737;
+  font-size: 24px;
+  font-weight: 700;
+  width: 100%;
+  max-width: 500px;
+
 }
 
 .subheading {
-    text-align: left;
-    margin-bottom: 30px;
-    color: #ACACAD;
-    font-size: 16px;
-    font-weight: 400;
-    width: 100%;
-    max-width: 500px;
+  text-align: left;
+  margin-bottom: 30px;
+  color: #ACACAD;
+  font-size: 16px;
+  font-weight: 400;
+  width: 100%;
+  max-width: 500px;
+}
+.subheading2 {
+  text-align: center;
+  margin-bottom: 0px;
+  margin-top: 0px;
+  color: #2C8161;
+  font-size: 16px;
+  font-weight: 400;
+  width: 100%;
+  max-width: 500px;
 }
 
 .form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 100%;
-    max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  max-width: 500px;
 }
 
 .input {
-    width: 100%;
-    max-width: 500px !important;
-    height: 56px;
-    border-radius: 12px;
-    background-color: #F7F7FD;
-    padding: 16px 20px;
-    box-sizing: border-box;
-    font-size: 16px;
-    outline: none;
-    border: 3px solid #A5A29D80;
-    color: #A5A29D80;
-    transition: all 0.3s;
+  width: 100%;
+  max-width: 500px !important;
+  height: 56px;
+  border-radius: 12px;
+  background-color: #F7F7FD;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  font-size: 16px;
+  outline: none;
+  border: 3px solid #A5A29D80;
+  color: #A5A29D80;
+  transition: all 0.3s;
 }
 
 .input:focus {
-    border-color: #2C8161;
-    color: #2C8161;
+  border-color: #2C8161;
+  color: #2C8161;
 }
 
 .authPrompt {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-    margin-top: 20px;
-    width: 100%;
-    max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 500px;
 }
 
 .authText {
-    color: #373737;
-    font-size: 16px;
+  color: #373737;
+  font-size: 16px;
 }
 
 .authLink {
-    color: #56BD66;
-    font-weight: 600;
-    cursor: pointer;
-    transition: text-decoration 0.3s;
+  color: #56BD66;
+  font-weight: 600;
+  cursor: pointer;
+  transition: text-decoration 0.3s;
 }
 
 .authLink:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .error {
-    color: #EF4444;
-    text-align: center;
-    margin-top: 10px;
-    font-size: 14px;
+  color: #EF4444;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
 }
-
-
-
-
-/* Добавьте в конец файла Login.module.css */
 
 .telegramMessage {
   display: flex;
@@ -119,8 +137,8 @@
 .loader {
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(86, 189, 102, 0.2); /* Зеленый с прозрачностью */
-  border-top: 5px solid #56BD66; /* Ярко-зеленый */
+  border: 5px solid rgba(86, 189, 102, 0.2);
+  border-top: 5px solid #56BD66;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-top: 20px;

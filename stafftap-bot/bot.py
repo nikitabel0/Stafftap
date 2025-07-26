@@ -82,7 +82,7 @@ def initialize_settings():
         welcome = db.query(BotSetting).filter(BotSetting.key == "welcome_message").first()
         if not welcome:
             default_welcome = (
-                "Добро пожаловать! Выберите действие:"
+                "StaffTap — твой быстрый способ найти проверенных сотрудников или работу на день!"
             )
             db.add(BotSetting(key="welcome_message", value=default_welcome))
             db.commit()
