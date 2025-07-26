@@ -26,6 +26,8 @@ class User(Base):
     email = Column(String, nullable=True, unique=True)
     password_hash = Column(String, nullable=True)
     role = Column(Enum(UserRole), nullable=True)
+    blocked_until = Column(DateTime, nullable=True)
+    block_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     company_name = Column(String, nullable=True)

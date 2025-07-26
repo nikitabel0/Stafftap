@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from database import engine, SessionLocal, init_db
 from models import User, BotSetting, UserRole, Payment, CommissionSetting
 from decimal import Decimal, ROUND_HALF_UP
-
+from datetime import datetime, timedelta
+from datetime import datetime, timezone
+from apscheduler.schedulers.background import BackgroundScheduler
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 WEB_APP_URL = os.getenv("WEB_APP_URL")
@@ -13,7 +15,6 @@ YOOKASSA_TOKEN = os.getenv("YOOKASSA_SECRET_KEY")
 
 bot = telebot.TeleBot(TOKEN)
 init_db()
-
 
 admin_states = {}
 payment_states = {}
@@ -48,8 +49,37 @@ def get_user_by_email(db: Session, email: str) -> User:
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> User:
     return db.query(User).filter(User.telegram_id == telegram_id).first()
 
-def calculate_payment_amount(amount: float) -> tuple[Decimal, Decimal]:
+def is_user_blocked(db: Session, telegram_id: int) -> bool:
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        return False
+        
     
+    if user.blocked_until and user.blocked_until > datetime.utcnow():
+        return True
+    return False
+
+def check_and_unblock_users():
+    with SessionLocal() as db:
+        now = datetime.now(timezone.utc)
+        users_to_unblock = db.query(User).filter(
+            User.is_blocked == True,
+            User.blocked_until <= now
+        ).all()
+        
+        for user in users_to_unblock:
+            user.is_blocked = False
+            user.blocked_until = None
+            user.block_reason = None
+            
+            try:
+                bot.send_message(user.telegram_id, "✅ Ваша блокировка автоматически снята!")
+            except Exception as e:
+                print(f"Ошибка отправки сообщения пользователю {user.id}: {str(e)}")
+        
+        db.commit()
+
+def calculate_payment_amount(amount: float) -> tuple[Decimal, Decimal]:
     amount_dec = Decimal(str(amount)).quantize(Decimal('0.01'))
     
     with SessionLocal() as db:
@@ -58,10 +88,8 @@ def calculate_payment_amount(amount: float) -> tuple[Decimal, Decimal]:
             return (amount_dec, Decimal('0.00'))
         
         if setting.commission_type == 'percentage':
-            
             commission = (amount_dec) * (setting.value / Decimal('100'))
             commission = commission.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            
             
             if setting.min_amount is not None and commission < setting.min_amount:
                 commission = setting.min_amount
@@ -78,7 +106,6 @@ def calculate_payment_amount(amount: float) -> tuple[Decimal, Decimal]:
 
 def initialize_settings():
     with SessionLocal() as db:
-        
         welcome = db.query(BotSetting).filter(BotSetting.key == "welcome_message").first()
         if not welcome:
             default_welcome = (
@@ -86,7 +113,6 @@ def initialize_settings():
             )
             db.add(BotSetting(key="welcome_message", value=default_welcome))
             db.commit()
-        
         
         if db.query(CommissionSetting).count() == 0:
             default_commission = CommissionSetting(
@@ -103,18 +129,33 @@ initialize_settings()
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     with SessionLocal() as db:
+        
+        if is_user_blocked(db, message.from_user.id):
+            user = get_user_by_telegram_id(db, message.from_user.id)
+            msg = f"⛔ Ваш аккаунт заблокирован до {user.blocked_until.strftime('%d.%m.%Y %H:%M')} по московскому времени."
+            if user.block_reason:
+                msg += f"\nПричина: {user.block_reason}"
+            bot.send_message(message.chat.id, msg)
+            return
+        
         welcome_message = get_setting(db, "welcome_message")
     
     markup = telebot.types.InlineKeyboardMarkup(row_width=1)
-    btn_app = telebot.types.InlineKeyboardButton(
-        text="Открыть приложение",
-        web_app=telebot.types.WebAppInfo(url=WEB_APP_URL)
-    )
+    
+    
+    with SessionLocal() as db:
+        if not is_user_blocked(db, message.from_user.id):
+            btn_app = telebot.types.InlineKeyboardButton(
+                text="Открыть приложение",
+                web_app=telebot.types.WebAppInfo(url=WEB_APP_URL)
+            )
+            markup.add(btn_app)
+    
     btn_pay = telebot.types.InlineKeyboardButton(
         text="Пополнить баланс",
         callback_data="pay_balance"
     )
-    markup.add(btn_app, btn_pay)
+    markup.add(btn_pay)
     
     bot.send_message(
         message.chat.id,
@@ -124,7 +165,15 @@ def send_welcome(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == "pay_balance")
 def handle_pay_callback(call):
-    """Обработчик кнопки пополнения баланса"""
+    with SessionLocal() as db:
+        if is_user_blocked(db, call.from_user.id):
+            user = get_user_by_telegram_id(db, call.from_user.id)
+            msg = f"⛔ Ваш аккаунт заблокирован до {user.blocked_until.strftime('%d.%m.%Y %H:%M')}."
+            if user.block_reason:
+                msg += f"\nПричина: {user.block_reason}"
+            bot.send_message(call.message.chat.id, msg)
+            return
+    
     bot.send_message(call.message.chat.id, "💰 Введите сумму пополнения в рублях (например: 1000):")
     payment_states[call.from_user.id] = {"state": "waiting_pay_amount"}
 
@@ -143,15 +192,12 @@ def handle_pay_amount(message):
             bot.send_message(message.chat.id, "❌ Сумма должна быть положительной.")
             return
 
-        
         total_amount, commission = calculate_payment_amount(amount)
-        
         
         description = f"Пополнение баланса на {amount} руб."
         if commission > 0:
             description += f" (комиссия {commission:.2f} руб.)"
 
-        
         prices = [telebot.types.LabeledPrice(
             label="Пополнение баланса", 
             amount=int(total_amount * 100)  
@@ -168,7 +214,6 @@ def handle_pay_amount(message):
             start_parameter="balance_topup"
         )
         
-        
         del payment_states[user_id]
         
     except ValueError:
@@ -177,6 +222,15 @@ def handle_pay_amount(message):
 @bot.message_handler(commands=['pay'])
 def handle_pay_command(message):
     """Обработчик команды пополнения баланса"""
+    with SessionLocal() as db:
+        if is_user_blocked(db, message.from_user.id):
+            user = get_user_by_telegram_id(db, message.from_user.id)
+            msg = f"⛔ Ваш аккаунт заблокирован до {user.blocked_until.strftime('%d.%m.%Y %H:%M')}."
+            if user.block_reason:
+                msg += f"\nПричина: {user.block_reason}"
+            bot.reply_to(message, msg)
+            return
+            
     try:
         parts = message.text.split()
         if len(parts) < 2:
@@ -188,21 +242,17 @@ def handle_pay_command(message):
             bot.reply_to(message, "❌ Сумма должна быть положительной.")
             return
 
-        
         total_amount, commission = calculate_payment_amount(amount)
-        
         
         description = f"Пополнение баланса на {amount} руб."
         if commission > 0:
             description += f" (комиссия {commission:.2f} руб.)"
 
-        
         prices = [telebot.types.LabeledPrice(
             label="Пополнение баланса", 
             amount=int(total_amount * 100)
         )]
 
-        
         bot.send_invoice(
             message.chat.id,
             title="Пополнение баланса",
@@ -228,9 +278,7 @@ def successful_payment_handler(message):
     payload = payment_info.invoice_payload
     
     try:
-        
         total_amount = Decimal(str(payment_info.total_amount / 100)).quantize(Decimal('0.01'))
-        
         
         if payload.startswith("balance_topup_"):
             amount = Decimal(payload.split('_')[2]).quantize(Decimal('0.01'))
@@ -244,10 +292,8 @@ def successful_payment_handler(message):
             bot.reply_to(message, "⚠️ Пользователь не найден.")
             return
 
-        
         _, commission = calculate_payment_amount(float(amount))
 
-        
         payment = Payment(
             user_id=user.id,
             amount=amount,
@@ -258,7 +304,6 @@ def successful_payment_handler(message):
         )
         db.add(payment)
 
-        
         user.balance += amount
         db.commit()
 
@@ -306,8 +351,11 @@ def block_user_start(message):
         if not is_admin(db, message.from_user.id):
             return
     
-    admin_states[message.from_user.id] = {"state": "waiting_block_email"}
-    bot.send_message(message.chat.id, "✉️ Введите email пользователя для блокировки:")
+    admin_states[message.from_user.id] = {
+        "state": "waiting_block_email",
+        "step": 1  
+    }
+    bot.send_message(message.chat.id, "✉️ Введите email пользователя:")
 
 @bot.message_handler(func=lambda message: message.text == "Разблокировать пользователя")
 def unblock_user_start(message):
@@ -483,30 +531,77 @@ def handle_admin_actions(message):
                 del admin_states[user_id]
             
             elif state == "waiting_block_email":
-                user = get_user_by_email(db, text)
+                email = text
+                state_data["email"] = email
+                state_data["state"] = "waiting_block_duration"
+                state_data["step"] = 2  
+                bot.send_message(message.chat.id, "⏳ Введите срок блокировки в днях (0 для бессрочной):")
+            
+            elif state == "waiting_block_duration":
+                try:
+                    days = int(text)
+                    email = state_data["email"]
+                    
+                    with SessionLocal() as db:
+                        user = get_user_by_email(db, email)
+                        if not user:
+                            bot.send_message(message.chat.id, "❌ Пользователь не найден")
+                        else:
+                            
+                            if days > 0:
+                                blocked_until = datetime.utcnow() + timedelta(days=days)
+                                duration_msg = f"до {blocked_until.strftime('%d.%m.%Y %H:%M')}"
+                            else:
+                                blocked_until = None
+                                duration_msg = "бессрочно"
+                            
+                            user.is_blocked = True
+                            user.blocked_until = blocked_until
+                            
+                            
+                            state_data["state"] = "waiting_block_reason"
+                            state_data["step"] = 3  
+                            state_data["blocked_until"] = blocked_until
+                            bot.send_message(message.chat.id, f"📝 Введите причину блокировки (или 'нет' если не нужно):")
+                            
+                except ValueError:
+                    bot.send_message(message.chat.id, "❌ Неверный формат числа. Введите целое число дней.")
+            
+            elif state == "waiting_block_reason":
+                reason = text if text.lower() != "нет" else None
+                email = state_data["email"]
+                blocked_until = state_data["blocked_until"]
                 
-                if not user:
-                    bot.send_message(message.chat.id, "❌ Пользователь не найден")
-                elif user.is_blocked:
-                    bot.send_message(message.chat.id, "ℹ️ Пользователь уже заблокирован")
-                else:
-                    user.is_blocked = True
-                    db.commit()
-                    bot.send_message(message.chat.id, "✅ Пользователь заблокирован")
+                with SessionLocal() as db:
+                    user = get_user_by_email(db, email)
+                    if user:
+                        user.block_reason = reason
+                        db.commit()
+                        
+                        duration_msg = "бессрочно" if blocked_until is None else f"до {blocked_until.strftime('%d.%m.%Y %H:%M')}"
+                        msg = f"✅ Пользователь {email} заблокирован {duration_msg}."
+                        if reason:
+                            msg += f"\nПричина: {reason}"
+                        
+                        bot.send_message(message.chat.id, msg)
                 
                 del admin_states[user_id]
             
             elif state == "waiting_unblock_email":
-                user = get_user_by_email(db, text)
-                
-                if not user:
-                    bot.send_message(message.chat.id, "❌ Пользователь не найден")
-                elif not user.is_blocked:
-                    bot.send_message(message.chat.id, "ℹ️ Пользователь не заблокирован")
-                else:
-                    user.is_blocked = False
-                    db.commit()
-                    bot.send_message(message.chat.id, "✅ Пользователь разблокирован")
+                email = text
+                with SessionLocal() as db:
+                    user = get_user_by_email(db, email)
+                    if not user:
+                        bot.send_message(message.chat.id, "❌ Пользователь не найден")
+                    elif not user.is_blocked:
+                        bot.send_message(message.chat.id, "ℹ️ Пользователь не заблокирован")
+                    else:
+                        
+                        user.is_blocked = False
+                        user.blocked_until = None
+                        user.block_reason = None
+                        db.commit()
+                        bot.send_message(message.chat.id, "✅ Пользователь разблокирован")
                 
                 del admin_states[user_id]
                 
@@ -546,6 +641,19 @@ def handle_admin_actions(message):
             db.rollback()
             bot.send_message(message.chat.id, f"⚠️ Ошибка: {str(e)}")
 
+
+
+
+
+scheduler = BackgroundScheduler()
+
+scheduler.add_job(check_and_unblock_users, 'interval', minutes=180)
+scheduler.start()
+
 if __name__ == "__main__":
     print("Бот запущен...")
+    
+    check_and_unblock_users()
     bot.polling()
+
+
