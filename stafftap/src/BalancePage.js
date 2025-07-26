@@ -63,7 +63,7 @@ const BalancePage = ({ user, updateUser }) => {
 
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(`${API_BASE_URL}/api/payments`, {
+        const response = await axios.get(`${API_BASE_URL}/api/payments/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setPaymentHistory(response.data);

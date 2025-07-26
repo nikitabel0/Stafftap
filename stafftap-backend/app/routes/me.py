@@ -22,7 +22,11 @@ def me(db: Session = Depends(get_db), user = Depends(get_current_user)):
 
 
 
-@router.patch("/me/complete-registration")
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@router.patch("/me/complete-registration", response_model=UserOut)
 async def complete_registration(
     registration_data: UserCompleteRegistration,
     db: Session = Depends(get_db),
@@ -37,29 +41,37 @@ async def complete_registration(
             ).first()
             
             if existing_user:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Email уже используется другим пользователем"
-                )
+                detail = {
+                    "code": "email_exists",
+                    "message": "Email уже зарегистрирован"
+                }
+                if existing_user.password_hash:
+                    detail["code"] = "email_exists_with_password"
+                raise HTTPException(status_code=400, detail=detail)
+
+        # Хешируем пароль
+        hashed_password = pwd_context.hash(registration_data.password)
 
         # Обновление данных пользователя
-        current_user.birth_date = registration_data.birth_date
-        current_user.role = registration_data.role
-        current_user.email = registration_data.email
+        update_data = {
+            "birth_date": registration_data.birth_date,
+            "role": registration_data.role,
+            "email": registration_data.email,
+            "password_hash": hashed_password,
+            "is_registration_complete": True
+        }
         
         if registration_data.role == UserRole.employer:
-            current_user.company_name = registration_data.company_name
+            update_data["company_name"] = registration_data.company_name
         
-        current_user.is_registration_complete = True
-        
+        db.query(User).filter(User.id == current_user.id).update(update_data)
         db.commit()
         db.refresh(current_user)
         
-        return {"status": "registration_complete"}
+        return current_user
     
-    except exc.IntegrityError as e:
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except exc.IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=400,
-            detail="Ошибка при обновлении данных пользователя"
-        )
+        raise HTTPException(status_code=400, detail="Ошибка при обновлении данных")

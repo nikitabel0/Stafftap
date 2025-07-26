@@ -16,7 +16,7 @@ const ChatsPage = ({ user }) => {
     const fetchChats = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(`${API_BASE_URL}/api/chats`, {
+        const response = await axios.get(`${API_BASE_URL}/api/chats/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

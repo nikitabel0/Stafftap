@@ -1,0 +1,194 @@
+.skills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 15px;
+  background: var(--secondary);
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-medium);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.skill-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.remove-skill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  transition: var(--transition);
+}
+
+.remove-skill:hover {
+  color: var(--error);
+  background: rgba(255, 107, 107, 0.1);
+  transform: rotate(90deg);
+}
+
+.add-skill-form {
+  margin-top: 15px;
+  width: 100%;
+}
+
+.skill-selection {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.skill-selection select {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: white;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.skill-selection select:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.15);
+}
+
+.add-custom-btn, 
+.add-skill-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: white;
+  color: var(--primary);
+  border: 1px solid var(--primary-light);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.add-custom-btn:hover, 
+.add-skill-btn:hover {
+  background: rgba(44, 129, 97, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.custom-skill-input {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+  margin-top: 10px;
+}
+
+.custom-skill-input input {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.custom-skill-input input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.15);
+}
+
+.skill-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-skill-btn,
+.cancel-skill-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.confirm-skill-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(44, 129, 97, 0.2);
+}
+
+.confirm-skill-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 129, 97, 0.25);
+}
+
+.confirm-skill-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.cancel-skill-btn {
+  background: white;
+  color: var(--text-medium);
+  border: 1px solid var(--border);
+}
+
+.cancel-skill-btn:hover {
+  background: #f5f7fa;
+  border-color: var(--text-light);
+}
+
+/* Анимация */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .skill-selection {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .add-custom-btn, 
+  .add-skill-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .skill-selection select {
+    min-width: 100%;
+  }
+}

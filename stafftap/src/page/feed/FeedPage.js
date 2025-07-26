@@ -61,7 +61,7 @@ const FeedPage = ({ user }) => {
         search: query || undefined,
       };
 
-      const response = await axios.get(`${API_BASE_URL}/api/jobs`, {
+      const response = await axios.get(`${API_BASE_URL}/api/jobs/`, {
         params,
         headers: { Authorization: `Bearer ${token}` },
       });

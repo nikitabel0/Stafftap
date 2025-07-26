@@ -1,3 +1,5 @@
+import styles from "./BalanceDepositModal.module.css";
+
 const BalanceDepositModal = ({ user, updateUser, onClose, onDepositSuccess }) => {
   const [amount, setAmount] = useState(100);
   const [commission, setCommission] = useState(0);

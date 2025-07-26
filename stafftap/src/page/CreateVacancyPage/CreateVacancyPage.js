@@ -161,7 +161,7 @@ const CreateVacancyPage = () => {
 
     const fetchSkills = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/skills`);
+        const response = await axios.get(`${API_BASE_URL}/api/skills/`);
         setSkills(response.data);
       } catch (error) {
         console.error("Ошибка при загрузке навыков:", error);
@@ -395,7 +395,7 @@ const CreateVacancyPage = () => {
 
     setIsSubmitting(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/jobs`, payload, {
+      await axios.post(`${API_BASE_URL}/api/jobs/`, payload, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },

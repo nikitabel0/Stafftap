@@ -10,8 +10,23 @@ const CompleteRegistration = ({ user, onComplete }) => {
   const [birthDate, setBirthDate] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState(user.email || "");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [mergeMode, setMergeMode] = useState(false);
   const navigate = useNavigate();
+
+  const validatePassword = () => {
+    if (password.length < 8) {
+      setError("Пароль должен содержать минимум 8 символов");
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError("Пароли не совпадают");
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async () => {
     if (!role || !birthDate || !email) {
@@ -24,6 +39,10 @@ const CompleteRegistration = ({ user, onComplete }) => {
       return;
     }
 
+    if (!validatePassword()) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
@@ -32,6 +51,7 @@ const CompleteRegistration = ({ user, onComplete }) => {
           role, 
           birth_date: birthDate,
           email,
+          password,
           ...(role === "employer" && { company_name: companyName })
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -40,95 +60,189 @@ const CompleteRegistration = ({ user, onComplete }) => {
       onComplete();
       navigate("/profile");
     } catch (error) {
-      setError("Ошибка при завершении регистрации: " + 
+      const errorData = error.response?.data?.detail;
+      
+      if (errorData?.code === "email_exists_with_password") {
+        setMergeMode(true);
+        setError("");
+      } else {
+        setError(errorData?.message || "Ошибка при завершении регистрации");
+      }
+    }
+  };
+
+  const handleMerge = async () => {
+    if (!password) {
+      setError("Введите пароль");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/auth/merge-account`,
+        { email, password },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      onComplete();
+      navigate("/profile");
+    } catch (error) {
+      setError("Ошибка при переносе данных: " + 
         (error.response?.data?.detail || error.message));
     }
   };
 
+  const cancelMerge = () => {
+    setMergeMode(false);
+    setPassword("");
+    setError("");
+  };
+
   return (
-      <div className={styles.pageContainer}>
+    <div className={styles.pageContainer}>
       <div className={styles.roleSelectionContainer}>
-        {/* Заголовок изменен на идентичный регистрации */}
         <h1 className={styles.roleHeading}>Выберите вашу роль:</h1>
         
-        <div className={styles.roleCards}>
-          <div 
-            className={`${styles.roleCard} ${role === "worker" ? styles.selectedCard : ''}`}
-            onClick={() => setRole("worker")}
-          >
-            <img 
-              src="/barista.svg" 
-              alt="Работник"
-              className={styles.roleImage}
-            />
-            <span className={styles.roleText}>
-              Я хочу найти работу!
-            </span>
-          </div>
-          
-          <div 
-            className={`${styles.roleCard} ${role === "employer" ? styles.selectedCard : ''}`}
-            onClick={() => setRole("employer")}
-          >
-            <img 
-              src="/raboradatel.svg"
-              alt="Работодатель"
-              className={styles.roleImage}
-            />
-            <span className={styles.roleText}>
-              Я хочу найти сотрудника!
-            </span>
-          </div>
-        </div>
-        
-        {/* Форма появляется только после выбора роли */}
-        {role && (
-          <div className={styles.registrationContainer}>
+        {mergeMode ? (
+          <div className={styles.mergeContainer}>
+            <p className={styles.mergeMessage}>
+              Этот email уже зарегистрирован. Введите пароль для переноса данных
+            </p>
+            
             <div className={styles.formGroup}>
-              <label className={styles.label}>Дата рождения</label>
+              <label className={styles.label}>Пароль</label>
               <input
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className={styles.input}
-                max={new Date().toISOString().split('T')[0]}
+                placeholder="Введите пароль"
               />
             </div>
             
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={styles.input}
-                placeholder="example@mail.com"
-              />
+            <div className={styles.buttonContainer}>
+              <button 
+                className={styles.cancelButton}
+                onClick={cancelMerge}
+              >
+                Отмена
+              </button>
+              <GradientButton onClick={handleMerge}>
+                Перенести данные
+              </GradientButton>
             </div>
-            
-            {role === "employer" && (
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Название компании</label>
-                <input
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className={styles.input}
-                  placeholder="Введите официальное название"
+          </div>
+        ) : (
+          <>
+            <div className={styles.roleCards}>
+              <div 
+                className={`${styles.roleCard} ${role === "worker" ? styles.selectedCard : ''}`}
+                onClick={() => setRole("worker")}
+              >
+                <img 
+                  src="/barista.svg" 
+                  alt="Работник"
+                  className={styles.roleImage}
                 />
+                <span className={styles.roleText}>
+                  Я хочу найти работу!
+                </span>
+              </div>
+              
+              <div 
+                className={`${styles.roleCard} ${role === "employer" ? styles.selectedCard : ''}`}
+                onClick={() => setRole("employer")}
+              >
+                <img 
+                  src="/raboradatel.svg"
+                  alt="Работодатель"
+                  className={styles.roleImage}
+                />
+                <span className={styles.roleText}>
+                  Я хочу найти сотрудника!
+                </span>
+              </div>
+            </div>
+            
+            {role && (
+              <div className={styles.registrationContainer}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Дата рождения</label>
+                  <input
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    className={styles.input}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={styles.input}
+                    placeholder="example@mail.com"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Пароль</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={styles.input}
+                    placeholder="Не менее 8 символов"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Подтвердите пароль</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={styles.input}
+                    placeholder="Повторите пароль"
+                  />
+                </div>
+                
+                {role === "employer" && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Название компании</label>
+                    <input
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className={styles.input}
+                      placeholder="Введите официальное название"
+                    />
+                  </div>
+                )}
               </div>
             )}
-          </div>
+            
+            <div className={styles.buttonContainer}>
+              <GradientButton 
+                onClick={handleSubmit} 
+                disabled={
+                  !role || 
+                  !birthDate || 
+                  !email || 
+                  !password || 
+                  !confirmPassword ||
+                  (role === "employer" && !companyName)
+                }
+              >
+                Завершить регистрацию
+              </GradientButton>
+            </div>
+          </>
         )}
-        
-        <div className={styles.buttonContainer}>
-          <GradientButton 
-            onClick={handleSubmit} 
-            disabled={!role || !birthDate || !email || (role === "employer" && !companyName)}
-          >
-            Завершить регистрацию
-          </GradientButton>
-        </div>
         
         {error && <p className={styles.error}>{error}</p>}
       </div>

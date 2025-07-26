@@ -6,8 +6,8 @@ class FavoriteJob(Base):
     __tablename__ = "favorite_jobs"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    job_id = Column(Integer, ForeignKey("jobs.id"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))  # Изменено
+    job_id = Column(Integer, ForeignKey("jobs.id", ondelete="CASCADE")) 
     created_at = Column(DateTime, server_default=func.now())
     
     # Используем строковые ссылки для отношений

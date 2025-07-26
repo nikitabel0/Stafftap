@@ -24,6 +24,7 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    is_archived = Column(Boolean, default=False) 
     company_name = Column(String, nullable=True)
     experience_months = Column(Integer, nullable=True)
     rate_per_shift = Column(Numeric(10, 2), nullable=True)

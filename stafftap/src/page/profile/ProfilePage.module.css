@@ -16,6 +16,590 @@
   --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   --transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+.balancePage {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  color: #333;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pageTitle {
+  text-align: center;
+  color: #1a5d46;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.balanceInfo {
+  background: #f5f7fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.2rem;
+  border: 1px solid #e0e6ed;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.balanceInfo strong {
+  color: #2c8161;
+  font-size: 1.4rem;
+}
+
+.depositForm {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 40px;
+}
+
+.formGroup {
+  margin-bottom: 25px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #4a6572;
+  font-size: 1.1rem;
+}
+
+.amountInput {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #e0e6ed;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  transition: all 0.3s;
+  box-sizing: border-box;
+}
+
+.amountInput:focus {
+  border-color: #3a9d7c;
+  box-shadow: 0 0 0 3px rgba(58, 157, 124, 0.2);
+  outline: none;
+}
+
+.commissionDetails {
+  background: #f9fbfd;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 30px 0;
+  border: 1px solid #e6edf4;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+}
+
+.totalRow {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #1a5d46;
+  padding-top: 15px;
+  margin-top: 10px;
+  border-top: 2px solid #e6edf4;
+}
+
+.depositButton {
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #2c8161 0%, #3a9d7c 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(44, 129, 97, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.depositButton:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 129, 97, 0.4);
+}
+
+.depositButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.depositButton:after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(30deg);
+  transition: all 0.8s;
+}
+
+.depositButton:hover:after {
+  left: 140%;
+}
+
+.errorMessage {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 20px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 15px;
+  background: #fff5f5;
+  border-radius: 8px;
+  border: 1px solid #ffd9d9;
+}
+
+.successMessage {
+  background: #e8f9f2;
+  color: #1a5d46;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  border: 1px solid #b8e6d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.testCardInfo {
+  margin-top: 35px;
+  padding: 25px;
+  background: #f0f8ff;
+  border-radius: 10px;
+  border: 1px solid #c2e0ff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.testCardInfo h3 {
+  color: #1a5480;
+  margin-top: 0;
+  font-size: 1.3rem;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.testCardDetails {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 15px;
+  border: 1px solid #e0e6ed;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.testCardDetails p {
+  margin: 10px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.testCardDetails p:last-child {
+  border-bottom: none;
+}
+
+.paymentHistory {
+  margin-top: 50px;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  border: 1px solid #eaeff5;
+}
+
+.historyTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.historyTable th,
+.historyTable td {
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 1px solid #eaeff5;
+}
+
+.historyTable th {
+  background: #f5f9fc;
+  font-weight: 600;
+  color: #4a6572;
+  font-size: 1.1rem;
+}
+
+.historyTable tbody tr {
+  transition: background-color 0.2s;
+}
+
+.historyTable tbody tr:hover {
+  background-color: #fafcfd;
+}
+
+.status {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-succeeded {
+  color: #2c8161;
+}
+
+.status-pending {
+  color: #ffa07a;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .balancePage {
+    padding: 20px 15px;
+  }
+  
+  .depositForm {
+    padding: 20px;
+  }
+  
+  .balanceInfo {
+    font-size: 1rem;
+    padding: 15px;
+  }
+  
+  .balanceInfo strong {
+    font-size: 1.2rem;
+  }
+  
+  .historyTable th,
+  .historyTable td {
+    padding: 12px 15px;
+    font-size: 0.9rem;
+  }
+  
+  .testCardInfo {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pageTitle {
+    font-size: 1.6rem;
+  }
+  
+  .depositForm {
+    padding: 15px;
+  }
+  
+  .commissionDetails {
+    padding: 15px;
+  }
+  
+  .detailRow {
+    font-size: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .detailRow span:last-child {
+    margin-top: 5px;
+    font-weight: 500;
+  }
+  
+  .depositButton {
+    padding: 15px;
+    font-size: 1.1rem;
+  }
+  
+  .testCardInfo {
+    padding: 15px;
+  }
+  
+  .testCardDetails {
+    padding: 15px;
+  }
+  
+  .historyTable th,
+  .historyTable td {
+    padding: 10px 12px;
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.depositModal {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  animation: modalIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(50px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #E0E6ED;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1A5D46;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #4A6572;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.closeBtn:hover {
+  color: #FF6B6B;
+  transform: scale(1.1);
+}
+
+.balanceInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background: #F5F7FA;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #E0E6ED;
+}
+
+.icon {
+  font-size: 1.5rem;
+  color: #2C8161;
+}
+
+.depositForm {
+  margin-top: 20px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  font-weight: 600;
+  color: #4A6572;
+  margin-bottom: 8px;
+}
+
+.amountInput {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #E0E6ED;
+  font-size: 1rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.amountInput:focus {
+  outline: none;
+  border-color: #3A9D7C;
+  box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.15);
+}
+
+.commissionDetails {
+  background: #f9fbfd;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #e6edf4;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+}
+
+.totalRow {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #1a5d46;
+  padding-top: 15px;
+  margin-top: 10px;
+  border-top: 2px solid #e6edf4;
+}
+
+.depositButton {
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #2c8161 0%, #3a9d7c 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(44, 129, 97, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.depositButton:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 129, 97, 0.4);
+}
+
+.depositButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.depositButton:after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(30deg);
+  transition: all 0.8s;
+}
+
+.depositButton:hover:after {
+  left: 140%;
+}
+
+.errorMessage {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 20px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 15px;
+  background: #fff5f5;
+  border-radius: 8px;
+  border: 1px solid #ffd9d9;
+}
+
+.testCardInfo {
+  margin-top: 35px;
+  padding: 25px;
+  background: #f0f8ff;
+  border-radius: 10px;
+  border: 1px solid #c2e0ff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.testCardInfo h3 {
+  color: #1a5480;
+  margin-top: 0;
+  font-size: 1.3rem;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.testCardDetails {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 15px;
+  border: 1px solid #e0e6ed;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.testCardDetails p {
+  margin: 10px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.testCardDetails p:last-child {
+  border-bottom: none;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .depositModal {
+    padding: 20px;
+    margin: 0 15px;
+  }
+  
+  .modalHeader h2 {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .detailRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .detailRow span:last-child {
+    margin-top: 5px;
+    font-weight: 500;
+  }
+}
+
 
 /* Общие стили */
 .profilePage {
@@ -570,6 +1154,10 @@
   color: var(--text-light);
 }
 
+
+
+
+
 .createVacancyBtn {
   background: var(--primary);
   color: white;
@@ -597,6 +1185,7 @@
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
 }
+
 
 .ratingValue {
   font-size: 2.5rem;

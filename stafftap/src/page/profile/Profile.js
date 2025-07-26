@@ -52,12 +52,19 @@ import AdminDocumentsModeration from "../../components/AdminDocumentsModeration/
 import DocumentsList from "../../components/DocumentsSection/DocumentsList";
 import DocumentUploadModal from "../../components/DocumentsSection/DocumentUploadModal";
 
+
+
+
+
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
   return isNaN(num)
     ? defaultValue.toLocaleString("ru-RU")
     : num.toLocaleString("ru-RU");
 };
+
+
+
 
 const transformUser = (userData) => {
   if (!userData) return null;
@@ -101,6 +108,7 @@ const transformUser = (userData) => {
     
   };
 };
+
 
 const BalanceDepositModal = ({
   user,
@@ -554,7 +562,7 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
   useEffect(() => {
     const fetchSkills = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/skills`);
+        const response = await axios.get(`${API_BASE_URL}/api/skills/`);
         setAllSkills(response.data);
       } catch (error) {
         console.error("Ошибка загрузки навыков:", error);

@@ -66,6 +66,15 @@ class UserCompleteRegistration(BaseModel):
     birth_date: date
     company_name: str = None  # Только для работодателя
     email:str
+    password: str
+
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("Пароль должен содержать минимум 8 символов")
+        return v
+
 
 class TelegramUserComplete(BaseModel):
     role: UserRole

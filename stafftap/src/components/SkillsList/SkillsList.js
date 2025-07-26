@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiPlus, FiX } from 'react-icons/fi';
-
+import  "./SkillsList.css";
 const SkillsList = ({ 
   skills, 
   isEditing, 
