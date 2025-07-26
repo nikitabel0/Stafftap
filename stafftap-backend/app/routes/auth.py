@@ -101,7 +101,7 @@ async def telegram_auth(
     telegram_data = {k: v[0] for k, v in parsed_data.items()}
     
     # Проверяем подпись
-    bot_token = "8480935613:AAGcb3jUKYI4qmFbFHvduHQrs-1xfD4ioRI"
+    bot_token = "8084921632:AAEjh-NdL7wu_5Mpc7owSCporhQ01fgKpB4"
     data_check_string = "\n".join(
         f"{k}={telegram_data[k]}" 
         for k in sorted(telegram_data.keys()) 
