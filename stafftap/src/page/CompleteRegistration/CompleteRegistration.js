@@ -57,7 +57,8 @@ const CompleteRegistration = ({ user, onComplete }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      onComplete();
+      // Ждем завершения обновления данных перед навигацией
+      await onComplete();
       navigate("/profile");
     } catch (error) {
       const errorData = error.response?.data?.detail;
@@ -85,7 +86,8 @@ const CompleteRegistration = ({ user, onComplete }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      onComplete();
+      // Ждем завершения обновления данных перед навигацией
+      await onComplete();
       navigate("/profile");
     } catch (error) {
       setError("Ошибка при переносе данных: " + 

@@ -24,7 +24,6 @@ import JobDetailPage from "./page/JobDetailPage/JobDetailPage";
 import FinanceHistory from "./components/FinanceHistory/FinanceHistory";
 import CompleteRegistration from "./page/CompleteRegistration/CompleteRegistration";
 
-
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,8 +53,6 @@ function App() {
       await fetchProfile();
     } catch (error) {
       console.error("Telegram auth error:", error);
-      
-      
       if (error.response?.status === 404) {
         setUser({ requiresRegistration: true });
       }
@@ -77,7 +74,6 @@ function App() {
         },
       });
       
-      
       if (res.data.telegram_id && !res.data.is_registration_complete) {
         setUser({...res.data, requiresRegistration: true});
       } else {
@@ -95,8 +91,6 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
-    
-    
     if (isTelegramApp && tg) {
       tg.close();
     }
@@ -138,20 +132,16 @@ function App() {
       throw error;
     }
   };
-  
+
+  const handleRegistrationComplete = async () => {
+    // Обновляем данные пользователя после завершения регистрации
+    await fetchProfile();
+  };
 
   const appStyle = {
     minHeight: "100vh",
     background: '#f7efed url("/back.svg") no-repeat right bottom fixed',
     backgroundSize: "400px",
-  };
-  const handleRegistrationComplete = () => {
-    
-    setUser(prev => ({
-      ...prev, 
-      requiresRegistration: false,
-      is_registration_complete: true
-    }));
   };
 
   if (loading) {
@@ -163,8 +153,6 @@ function App() {
   }
 
   return (
-
-  
     <div style={appStyle} className={isTelegramApp ? "telegram-app" : "web-app"}>
       {!isTelegramApp && <Header user={user} onLogout={handleLogout} />}
       
@@ -179,11 +167,6 @@ function App() {
           } />
         )}
 
-          <Route
-    path="/complete-registration"
-    element={<CompleteRegistration/>}
-  />
-     
         <Route path="/chats" element={<ChatsPage user={user} />} />
         <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
         <Route path="/job/:jobId" element={<JobDetailPage user={user} />} />
@@ -263,21 +246,16 @@ function App() {
           element={<Navigate to={user ? "/profile" : "/login"} />}
         />
       </Routes>
-    
     </div>
- 
   );
 }
 
-
 function AppWrapper() {
   return (
-
     <Router>
-      <Header></Header>
+      <Header />
       <App />
     </Router>
-  
   );
 }
 

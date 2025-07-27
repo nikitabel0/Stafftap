@@ -2,3 +2,4 @@ pyTelegramBotAPI
 sqlalchemy
 psycopg2-binary
 python-dotenv
+APScheduler
