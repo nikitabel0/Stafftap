@@ -83,14 +83,23 @@ def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    
     offset = (page - 1) * page_size
     
     
-    query = db.query(User)
+    query = db.query(
+        User.id,
+        User.first_name,
+        User.last_name,
+        User.email,
+        User.role,
+        User.company_name,
+        User.is_verified,
+        User.is_blocked,
+        User.avatar_url,
+        User.telegram_username
+    )
     
     if search:
-        
         search_pattern = f"%{search}%"
         query = query.filter(
             User.email.ilike(search_pattern) |
@@ -105,7 +114,18 @@ def get_users(
     users = query.offset(offset).limit(page_size).all()
     
     return {
-        "users": users,
+        "users": [{
+            "id": u.id,
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "email": u.email,
+            "role": u.role,
+            "company_name": u.company_name,
+            "is_verified": u.is_verified,
+            "is_blocked": u.is_blocked,
+            "avatar_url": u.avatar_url,
+            "telegram_username": u.telegram_username   
+        } for u in users],
         "total_pages": total_pages
     }
 
@@ -493,22 +513,22 @@ def update_withdrawal_request_status(
         raise HTTPException(status_code=404, detail="Заявка не найдена")
 
     user = withdrawal_request.user
-    amount_decimal = withdrawal_request.amount  # Уже Decimal
+    amount_decimal = withdrawal_request.amount  
     
-    # Обновляем статус
+    
     withdrawal_request.status = status
     withdrawal_request.admin_comment = admin_comment
     withdrawal_request.processed_at = datetime.utcnow()
 
     if status == "paid":
-        # Списание замороженных средств
+        
         user.frozen_balance -= amount_decimal
     elif status == "rejected":
-        # Возврат средств на баланс
+        
         user.frozen_balance -= amount_decimal
         user.balance += amount_decimal
 
-    # Создаем уведомление пользователю
+    
     notification = Notification(
         user_id=withdrawal_request.user_id,
         type="withdrawal_status",
@@ -658,7 +678,7 @@ def get_financial_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    # Запрос для расчета статистики
+    
     query = db.query(
         func.coalesce(func.sum(Payment.amount), 0).label("total_amount"),
         func.coalesce(func.sum(Payment.commission), 0).label("total_commission"),
@@ -672,7 +692,7 @@ def get_financial_summary(
     
     stats = query.first()
     
-    # Расчет по дням
+    
     daily_stats = db.query(
         func.date_trunc('day', Payment.created_at).label("date"),
         func.coalesce(func.sum(Payment.amount), 0).label("daily_amount"),

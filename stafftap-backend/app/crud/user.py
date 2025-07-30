@@ -54,20 +54,25 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_user_by_telegram_id(db: Session, telegram_id: int):
     return db.query(User).filter(User.telegram_id == telegram_id).first()
 
-def create_user_via_telegram(db: Session, telegram_id: int, user_data: dict):
-    
-    phone = user_data.get('phone', '')
-    if phone == '':
-        phone = None  
 
+
+def get_user_by_telegram_username(db: Session, telegram_username: str) -> User | None:
+    return db.query(User).filter(User.telegram_username == telegram_username).first()
+
+
+def create_user_via_telegram(db: Session, telegram_id: int, user_data: dict):
+    # Извлекаем username из данных Telegram
+    telegram_username = user_data.get('username')
+    
     user = User(
         telegram_id=telegram_id,
+        telegram_username=telegram_username,  # Сохраняем username
         first_name=user_data.get('first_name', ''),
         last_name=user_data.get('last_name', ''),
-        phone=phone,  
+        phone=user_data.get('phone', '') or None,
         birth_date=None,
         email=None,
-        password_hash="",  
+        password_hash="",
         role=None,
         avatar_url=user_data.get('photo_url', ''),
         is_verified=False,
@@ -77,7 +82,7 @@ def create_user_via_telegram(db: Session, telegram_id: int, user_data: dict):
         company_name=None,
         experience_months=None,
         rate_per_shift=None,
-        is_registration_complete=False  
+        is_registration_complete=False
     )
     db.add(user)
     db.commit()

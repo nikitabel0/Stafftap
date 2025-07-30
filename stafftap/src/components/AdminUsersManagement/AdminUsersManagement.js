@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import API_BASE_URL from "../../apiConfig";
-import { FiSearch, FiRefreshCw, FiCheck, FiLock, FiUnlock, FiX, FiFilter, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { 
+  FiSearch, 
+  FiRefreshCw, 
+  FiCheck, 
+  FiLock, 
+  FiUnlock, 
+  FiX, 
+  FiFilter, 
+  FiChevronLeft, 
+  FiChevronRight,
+  FiSend 
+} from "react-icons/fi";
 import styles from "./AdminUsersManagement.module.css";
 
 const AdminUsersManagement = () => {
@@ -316,8 +327,24 @@ const AdminUsersManagement = () => {
                 )}
               </div>
               <div className={styles.userInfo}>
-                <div className={styles.userName}>
+                <div 
+                  className={styles.userName}
+                  onClick={() => {
+                    if (user.telegram_username) {
+                      window.open(`https://t.me/${user.telegram_username}`, '_blank');
+                    }
+                  }}
+                  style={{
+                    cursor: user.telegram_username ? 'pointer' : 'default',
+                    textDecoration: user.telegram_username ? 'underline' : 'none'
+                  }}
+                >
                   {user.first_name} {user.last_name}
+                  {user.telegram_username && (
+                    <span className={styles.telegramHint} title="Открыть в Telegram">
+                      <FiSend className={styles.telegramIcon} />
+                    </span>
+                  )}
                 </div>
                 <div className={styles.userDetails}>
                   <div className={styles.userEmail}>{user.email}</div>

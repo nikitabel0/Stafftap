@@ -6,7 +6,7 @@ from urllib.parse import parse_qs
 import hashlib
 from app.database import get_db
 from app.schemas.user import UserCreate, UserOut
-from app.crud.user import get_user_by_email, create_user, verify_password, get_user_by_telegram_id,create_user_via_telegram
+from app.crud.user import get_user_by_email, create_user, verify_password, get_user_by_telegram_id,create_user_via_telegram,get_user_by_telegram_username
 from app.auth.jwt import create_access_token
 from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies import get_current_user
@@ -121,14 +121,50 @@ async def telegram_auth(
     # Извлекаем данные пользователя
     user_data = json.loads(telegram_data.get("user"))
     telegram_id = user_data.get("id")
+    telegram_username = user_data.get("username")  # Получаем username
     
-    if not telegram_id:
-        raise HTTPException(status_code=400, detail="Telegram ID not provided")
+    # Поиск пользователя
+    user = None
     
-    # Поиск или создание пользователя
-    user = get_user_by_telegram_id(db, telegram_id)
+    # 1. Поиск по telegram_id
+    if telegram_id:
+        user = get_user_by_telegram_id(db, telegram_id)
+    
+    # 2. Если не найден по ID, ищем по username
+    if not user and telegram_username:
+        user = get_user_by_telegram_username(db, telegram_username)
+    
+    # 3. Если пользователь не найден, создаем нового
     if not user:
         user = create_user_via_telegram(db, telegram_id, user_data)
+    else:
+        # Обновляем данные существующего пользователя
+        update_fields = False
+        
+        # Обновляем username если он изменился
+        if telegram_username and user.telegram_username != telegram_username:
+            user.telegram_username = telegram_username
+            update_fields = True
+        
+        # Обновляем имя, если его не было
+        if not user.first_name and 'first_name' in user_data:
+            user.first_name = user_data['first_name']
+            update_fields = True
+        
+        # Обновляем фамилию, если ее не было
+        if not user.last_name and 'last_name' in user_data:
+            user.last_name = user_data['last_name']
+            update_fields = True
+        
+        # Обновляем аватар, если его не было
+        if not user.avatar_url and 'photo_url' in user_data:
+            user.avatar_url = user_data['photo_url']
+            update_fields = True
+        
+        # Сохраняем изменения, если были обновления
+        if update_fields:
+            db.commit()
+            db.refresh(user)
     
     # Генерация JWT токена
     access_token = create_access_token({"sub": str(user.id)})
