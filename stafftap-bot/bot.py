@@ -8,6 +8,9 @@ from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta
 from datetime import datetime, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
+import threading
+import time
+
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 WEB_APP_URL = os.getenv("WEB_APP_URL")
@@ -18,6 +21,7 @@ init_db()
 
 admin_states = {}
 payment_states = {}
+broadcast_states = {}
 
 def get_setting(db: Session, key: str, default: str = None) -> str:
     setting = db.query(BotSetting).filter(BotSetting.key == key).first()
@@ -54,7 +58,6 @@ def is_user_blocked(db: Session, telegram_id: int) -> bool:
     if not user:
         return False
         
-    
     if user.blocked_until and user.blocked_until > datetime.utcnow():
         return True
     return False
@@ -112,7 +115,10 @@ def initialize_settings():
                 "StaffTap — твой быстрый способ найти проверенных сотрудников или работу на день!"
             )
             db.add(BotSetting(key="welcome_message", value=default_welcome))
-            db.commit()
+        
+        contact = db.query(BotSetting).filter(BotSetting.key == "admin_contact").first()
+        if not contact:
+            db.add(BotSetting(key="admin_contact", value="@staff_support"))
         
         if db.query(CommissionSetting).count() == 0:
             default_commission = CommissionSetting(
@@ -122,14 +128,14 @@ def initialize_settings():
                 min_amount=0.0
             )
             db.add(default_commission)
-            db.commit()
+        
+        db.commit()
 
 initialize_settings()
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     with SessionLocal() as db:
-        
         if is_user_blocked(db, message.from_user.id):
             user = get_user_by_telegram_id(db, message.from_user.id)
             msg = f"⛔ Ваш аккаунт заблокирован до {user.blocked_until.strftime('%d.%m.%Y %H:%M')} по московскому времени."
@@ -140,28 +146,124 @@ def send_welcome(message):
         
         welcome_message = get_setting(db, "welcome_message")
     
-    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     
-    
-    with SessionLocal() as db:
-        if not is_user_blocked(db, message.from_user.id):
-            btn_app = telebot.types.InlineKeyboardButton(
-                text="Открыть приложение",
-                web_app=telebot.types.WebAppInfo(url=WEB_APP_URL)
-            )
-            markup.add(btn_app)
-    
+    btn_app = telebot.types.InlineKeyboardButton(
+        text="📱 Открыть приложение",
+        web_app=telebot.types.WebAppInfo(url=WEB_APP_URL)
+    )
     btn_pay = telebot.types.InlineKeyboardButton(
-        text="Пополнить баланс",
+        text="💳 Пополнить баланс",
         callback_data="pay_balance"
     )
-    markup.add(btn_pay)
+    
+    btn_help = telebot.types.InlineKeyboardButton(
+        text="❓ Помощь",
+        callback_data="show_help"
+    )
+    btn_contact = telebot.types.InlineKeyboardButton(
+        text="📞 Поддержка",
+        callback_data="show_contact"
+    )
+    
+    
+    markup.add(btn_app, btn_pay, btn_help, btn_contact)
     
     bot.send_message(
         message.chat.id,
         welcome_message,
         reply_markup=markup
     )
+
+@bot.message_handler(commands=['help'])
+def show_help(message):
+    help_text = (
+        "📚 Доступные команды:\n\n"
+        "/start - Начать работу с ботом\n"
+        "/help - Показать эту справку\n"
+        "/balance - Показать текущий баланс\n"
+        "/pay - Пополнить баланс\n"
+        "/history - История платежей\n"
+        "/contact - Связаться с поддержкой\n\n"
+        "⚙️ Для администраторов:\n"
+        "/admin - Открыть админ-панель"
+    )
+    bot.reply_to(message, help_text)
+
+@bot.message_handler(commands=['contact'])
+def show_contact(message):
+    with SessionLocal() as db:
+        contact = get_setting(db, "admin_contact", "@staff_support")
+    bot.reply_to(message, f"📞 Контакт поддержки: {contact}")
+
+@bot.message_handler(commands=['balance'])
+def show_balance(message):
+    with SessionLocal() as db:
+        if is_user_blocked(db, message.from_user.id):
+            user = get_user_by_telegram_id(db, message.from_user.id)
+            msg = f"⛔ Ваш аккаунт заблокирован до {user.blocked_until.strftime('%d.%m.%Y %H:%M')}."
+            if user.block_reason:
+                msg += f"\nПричина: {user.block_reason}"
+            bot.reply_to(message, msg)
+            return
+        
+        user = get_user_by_telegram_id(db, message.from_user.id)
+        if user:
+            bot.reply_to(message, f"💰 Ваш текущий баланс: {user.balance:.2f} руб.")
+        else:
+            bot.reply_to(message, "❌ Ваш аккаунт не найден в системе")
+
+@bot.message_handler(commands=['history'])
+def show_payment_history(message):
+    """Показывает историю платежей пользователя"""
+    with SessionLocal() as db:
+        if is_user_blocked(db, message.from_user.id):
+            user = get_user_by_telegram_id(db, message.from_user.id)
+            msg = f"⛔ Ваш аккаунт заблокирован до {user.blocked_until.strftime('%d.%m.%Y %H:%M')}."
+            if user.block_reason:
+                msg += f"\nПричина: {user.block_reason}"
+            bot.reply_to(message, msg)
+            return
+        
+        user = get_user_by_telegram_id(db, message.from_user.id)
+        if not user:
+            bot.reply_to(message, "❌ Ваш аккаунт не найден в системе")
+            return
+        
+        payments = db.query(Payment).filter(
+            Payment.user_id == user.id
+        ).order_by(Payment.created_at.desc()).limit(10).all()
+        
+        if not payments:
+            bot.reply_to(message, "📭 У вас пока нет платежей")
+            return
+        
+        history = "📋 История ваших платежей:\n\n"
+        for payment in payments:
+            status_icon = "✅" if payment.status == "succeeded" else "❌"
+            history += (
+                f"{status_icon} {payment.created_at.strftime('%d.%m.%Y %H:%M')}\n"
+                f"Сумма: {payment.amount:.2f} руб.\n"
+                f"Комиссия: {payment.commission:.2f} руб.\n"
+                f"Статус: {payment.status}\n\n"
+            )
+        
+        bot.reply_to(message, history)
+
+@bot.callback_query_handler(func=lambda call: call.data == "show_help")
+def callback_show_help(call):
+    show_help(call.message)
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data == "show_contact")
+def callback_show_contact(call):
+    show_contact(call.message)
+    bot.answer_callback_query(call.id)
+
+@bot.callback_query_handler(func=lambda call: call.data == "payment_history")
+def callback_payment_history(call):
+    show_payment_history(call.message)
+    bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "pay_balance")
 def handle_pay_callback(call):
@@ -179,7 +281,6 @@ def handle_pay_callback(call):
 
 @bot.message_handler(func=lambda message: message.from_user.id in payment_states)
 def handle_pay_amount(message):
-    """Обработка введенной суммы для пополнения"""
     user_id = message.from_user.id
     state_data = payment_states.get(user_id)
     
@@ -221,7 +322,6 @@ def handle_pay_amount(message):
 
 @bot.message_handler(commands=['pay'])
 def handle_pay_command(message):
-    """Обработчик команды пополнения баланса"""
     with SessionLocal() as db:
         if is_user_blocked(db, message.from_user.id):
             user = get_user_by_telegram_id(db, message.from_user.id)
@@ -268,12 +368,10 @@ def handle_pay_command(message):
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def pre_checkout_handler(pre_checkout_query):
-    """Подтверждение платежа"""
     bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 @bot.message_handler(content_types=['successful_payment'])
 def successful_payment_handler(message):
-    """Обработка успешного платежа"""
     payment_info = message.successful_payment
     payload = payment_info.invoice_payload
     
@@ -322,8 +420,10 @@ def admin_panel(message):
     btn3 = telebot.types.KeyboardButton("Заблокировать пользователя")
     btn4 = telebot.types.KeyboardButton("Разблокировать пользователя")
     btn5 = telebot.types.KeyboardButton("Статистика")
-    btn6 = telebot.types.KeyboardButton("Настройки комиссии")  
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
+    btn6 = telebot.types.KeyboardButton("Настройки комиссии")
+    btn7 = telebot.types.KeyboardButton("Изменить контакт поддержки")
+    btn8 = telebot.types.KeyboardButton("Сделать рассылку")
+    markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8)
     
     bot.send_message(message.chat.id, "⚙️ Админ-панель:", reply_markup=markup)
 
@@ -378,13 +478,21 @@ def show_stats(message):
         admins = db.query(User).filter(User.role == UserRole.admin).count()
         blocked = db.query(User).filter(User.is_blocked == True).count()
         
+        # Статистика платежей
+        total_payments = db.query(Payment).count()
+        total_amount = db.query(Payment.amount).filter(Payment.status == "succeeded").all()
+        total_amount = sum([p[0] for p in total_amount]) if total_amount else 0
+        
         stats = (
             "📊 Статистика системы:\n\n"
             f"👥 Всего пользователей: {total_users}\n"
             f"👔 Работодателей: {employers}\n"
             f"👷 Работников: {workers}\n"
             f"👑 Администраторов: {admins}\n"
-            f"🚫 Заблокированных: {blocked}"
+            f"🚫 Заблокированных: {blocked}\n\n"
+            f"💳 Платежи:\n"
+            f"Всего операций: {total_payments}\n"
+            f"Общая сумма: {total_amount:.2f} руб."
         )
         
         bot.send_message(message.chat.id, stats)
@@ -414,7 +522,7 @@ def commission_settings(message):
         
         markup = telebot.types.InlineKeyboardMarkup()
         btn_toggle = telebot.types.InlineKeyboardButton(
-            text="Включить/выключить" if not commission.is_active else "Включить/выключить",
+            text="Включить/выключить",
             callback_data="toggle_commission"
         )
         btn_edit = telebot.types.InlineKeyboardButton(
@@ -424,6 +532,73 @@ def commission_settings(message):
         markup.add(btn_toggle, btn_edit)
         
         bot.send_message(message.chat.id, info, reply_markup=markup)
+
+@bot.message_handler(func=lambda message: message.text == "Изменить контакт поддержки")
+def change_contact_start(message):
+    with SessionLocal() as db:
+        if not is_admin(db, message.from_user.id):
+            return
+    
+    admin_states[message.from_user.id] = {"state": "waiting_contact_text"}
+    bot.send_message(message.chat.id, "✏️ Введите новый контакт поддержки (телеграм, email или телефон):")
+
+@bot.message_handler(func=lambda message: message.text == "Сделать рассылку")
+def start_broadcast(message):
+    with SessionLocal() as db:
+        if not is_admin(db, message.from_user.id):
+            return
+    
+    admin_states[message.from_user.id] = {"state": "waiting_broadcast_message"}
+    broadcast_states[message.from_user.id] = {"total": 0, "success": 0, "failed": 0}
+    bot.send_message(message.chat.id, "📢 Введите сообщение для рассылки:")
+
+def broadcast_message(admin_id, message_text):
+    """Выполняет рассылку сообщения всем пользователям"""
+    with SessionLocal() as db:
+        users = db.query(User).all()
+        total = len(users)
+        success = 0
+        failed = 0
+        
+        broadcast_states[admin_id] = {"total": total, "success": 0, "failed": 0}
+        
+        for user in users:
+            try:
+                bot.send_message(user.telegram_id, message_text)
+                success += 1
+            except Exception as e:
+                failed += 1
+                print(f"Ошибка отправки пользователю {user.id}: {str(e)}")
+            
+            # Обновляем статистику каждые 10 отправок
+            if (success + failed) % 10 == 0:
+                broadcast_states[admin_id] = {"total": total, "success": success, "failed": failed}
+                try:
+                    bot.send_message(
+                        admin_id,
+                        f"📤 Рассылка: {success + failed}/{total}\n"
+                        f"✅ Успешно: {success}\n"
+                        f"❌ Ошибок: {failed}"
+                    )
+                except:
+                    pass
+            
+            # Небольшая задержка, чтобы не перегружать сервер
+            time.sleep(0.1)
+        
+        # Финальное обновление
+        broadcast_states[admin_id] = {"total": total, "success": success, "failed": failed}
+        bot.send_message(
+            admin_id,
+            f"✅ Рассылка завершена!\n"
+            f"Всего пользователей: {total}\n"
+            f"✅ Успешно: {success}\n"
+            f"❌ Ошибок: {failed}"
+        )
+        
+        # Удаляем состояние
+        del admin_states[admin_id]
+        del broadcast_states[admin_id]
 
 @bot.callback_query_handler(func=lambda call: call.data == "toggle_commission")
 def toggle_commission(call):
@@ -547,7 +722,6 @@ def handle_admin_actions(message):
                         if not user:
                             bot.send_message(message.chat.id, "❌ Пользователь не найден")
                         else:
-                            
                             if days > 0:
                                 blocked_until = datetime.utcnow() + timedelta(days=days)
                                 duration_msg = f"до {blocked_until.strftime('%d.%m.%Y %H:%M')}"
@@ -557,7 +731,6 @@ def handle_admin_actions(message):
                             
                             user.is_blocked = True
                             user.blocked_until = blocked_until
-                            
                             
                             state_data["state"] = "waiting_block_reason"
                             state_data["step"] = 3  
@@ -584,6 +757,16 @@ def handle_admin_actions(message):
                             msg += f"\nПричина: {reason}"
                         
                         bot.send_message(message.chat.id, msg)
+                        
+                        # Отправляем уведомление пользователю
+                        try:
+                            user_msg = f"⛔ Ваш аккаунт заблокирован {duration_msg}."
+                            if reason:
+                                user_msg += f"\nПричина: {reason}"
+                            user_msg += "\n\nДля разблокировки свяжитесь с поддержкой: /contact"
+                            bot.send_message(user.telegram_id, user_msg)
+                        except Exception as e:
+                            print(f"Не удалось отправить сообщение пользователю: {str(e)}")
                 
                 del admin_states[user_id]
             
@@ -596,12 +779,17 @@ def handle_admin_actions(message):
                     elif not user.is_blocked:
                         bot.send_message(message.chat.id, "ℹ️ Пользователь не заблокирован")
                     else:
-                        
                         user.is_blocked = False
                         user.blocked_until = None
                         user.block_reason = None
                         db.commit()
                         bot.send_message(message.chat.id, "✅ Пользователь разблокирован")
+                        
+                        # Отправляем уведомление пользователю
+                        try:
+                            bot.send_message(user.telegram_id, "✅ Ваш аккаунт разблокирован администратором")
+                        except Exception as e:
+                            print(f"Не удалось отправить сообщение пользователю: {str(e)}")
                 
                 del admin_states[user_id]
                 
@@ -618,7 +806,6 @@ def handle_admin_actions(message):
                 
                 del admin_states[user_id]
                 
-                
                 if state_data["type"] == "percentage":
                     admin_states[user_id] = {"state": "waiting_min_commission"}
                     bot.send_message(message.chat.id, "Введите минимальную сумму комиссии (руб.) или 0, если не нужна:")
@@ -634,6 +821,19 @@ def handle_admin_actions(message):
                     bot.send_message(message.chat.id, "⚠️ Настройки комиссии не найдены")
                 
                 del admin_states[user_id]
+                
+            elif state == "waiting_contact_text":
+                update_setting(db, "admin_contact", text)
+                bot.send_message(message.chat.id, f"✅ Контакт поддержки обновлен: {text}")
+                del admin_states[user_id]
+                
+            elif state == "waiting_broadcast_message":
+                # Запускаем рассылку в отдельном потоке
+                bot.send_message(message.chat.id, "⏳ Начинаю рассылку...")
+                threading.Thread(
+                    target=broadcast_message,
+                    args=(user_id, text)
+                ).start()
         
         except ValueError:
             bot.send_message(message.chat.id, "❌ Неверный формат числа")
@@ -641,19 +841,11 @@ def handle_admin_actions(message):
             db.rollback()
             bot.send_message(message.chat.id, f"⚠️ Ошибка: {str(e)}")
 
-
-
-
-
 scheduler = BackgroundScheduler()
-
 scheduler.add_job(check_and_unblock_users, 'interval', minutes=180)
 scheduler.start()
 
 if __name__ == "__main__":
     print("Бот запущен...")
-    
     check_and_unblock_users()
     bot.polling()
-
-

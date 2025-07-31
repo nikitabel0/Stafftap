@@ -173,8 +173,7 @@ const WithdrawModal = ({ user, onClose, onWithdrawSuccess }) => {
               <option value="bank_card">Банковская карта</option>
               <option value="sbp">СБП (Система быстрых платежей)</option>
               <option value="yoomoney">ЮMoney</option>
-              <option value="qiwi">QIWI Кошелек</option>
-              <option value="crypto">Криптовалюта</option>
+   
             </select>
           </div>
           
