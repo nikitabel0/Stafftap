@@ -67,6 +67,53 @@ async def websocket_endpoint(
 
 
 # Остальные эндпоинты
+
+async def create_admin_notification(
+    db: Session,
+    title: str,
+    message: str,
+    related_id: int,
+    notification_type: str = "vacancy_on_moderation"
+):
+    try:
+        # Находим всех администраторов
+        admins = db.query(User).filter(User.role == "admin").all()
+        
+        if not admins:
+            logger.warning("No admins found for notification")
+            return
+        
+        notifications = []
+        # Создаем уведомления для каждого администратора
+        for admin in admins:
+            notification = Notification(
+                user_id=admin.id,
+                type=notification_type,
+                title=title,
+                message=message,
+                related_id=related_id
+            )
+            db.add(notification)
+            notifications.append(notification)
+        
+        # Фиксируем изменения, чтобы получить ID и created_at
+        db.commit()
+        
+        # Теперь объекты имеют заполненные поля
+        for notification in notifications:
+            await manager.send_personal_message({
+                "type": "new_notification",
+                "title": title,
+                "message": message,
+                "id": notification.id,
+                "created_at": notification.created_at.isoformat()
+            }, admin.id)
+        
+        logger.info(f"Admin notification created for {len(admins)} admins")
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating admin notification: {str(e)}", exc_info=True)
 @router.get("/", response_model=List[NotificationOut])
 async def get_user_notifications(
     db: Session = Depends(get_db),

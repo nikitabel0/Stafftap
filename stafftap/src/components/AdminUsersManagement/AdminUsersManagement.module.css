@@ -1,4 +1,3 @@
-/* AdminUsersManagement.module.css */
 .adminUsersManagement {
   max-width: 1200px;
   margin: 0 auto;
@@ -296,6 +295,30 @@
 .userCompany {
   font-size: 0.9rem;
   color: var(--text-medium);
+  margin-bottom: 3px;
+}
+
+.userTelegram {
+  margin-top: 5px;
+}
+
+.telegramLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #0088cc;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.telegramLink:hover {
+  color: #006699;
+  text-decoration: underline;
+}
+
+.telegramIcon {
+  font-size: 0.95rem;
 }
 
 .userId {

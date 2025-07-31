@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import UploadFile, File
 from datetime import datetime
 import uuid
+import requests
 from app.database import get_db
 from app.schemas.review import ReviewCreate 
 from app.models import Job, Skill, Booking, User, Review, FrozenFunds, Notification, FavoriteJob,Chat
@@ -25,6 +26,7 @@ from sqlalchemy import func, or_
 import logging
 from datetime import date, datetime, time
 from sqlalchemy import and_, or_
+from app.routes.notifications import create_admin_notification
 
 
 BASEBACK = os.getenv("BASEBACKEND_URL")
@@ -80,6 +82,70 @@ def release_funds(db: Session, booking_id: int):
         logger.error(f"Ошибка при разморозке средств: {str(e)}", exc_info=True)
         raise
 
+
+TG_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TG_CHANNEL_ID = os.getenv("TG_VACANCIES_CHANNEL_ID")
+
+
+import requests
+from sqlalchemy.orm import joinedload
+
+def send_telegram_notification(job: Job, db: Session):
+    """Отправляет уведомление о новой вакансии в Telegram-канал"""
+    if not all([TG_BOT_TOKEN, TG_CHANNEL_ID]):
+        logger.error("Telegram notification settings not configured")
+        return
+
+    try:
+        # Перезагружаем job с явной загрузкой связанных данных
+        job = db.query(Job).options(
+            joinedload(Job.required_skill),
+            joinedload(Job.employer)
+        ).filter(Job.id == job.id).first()
+        
+        if not job:
+            logger.error(f"Job not found in database: {job.id}")
+            return
+
+        # Получаем информацию о работодателе
+        company_name = job.employer.company_name if job.employer else "Неизвестная компания"
+        
+        # Формируем название навыка
+        skill_name = (
+            job.required_skill.name if job.required_skill 
+            else job.custom_skill or "Не указан"
+        )
+        
+        # Добавляем ссылку на вакансию
+      
+        
+        message = (
+            "🚀 *Новая вакансия на модерации!*\n\n"
+            f"*Компания:* {company_name}\n"
+            f"*Название:* {job.title}\n"
+            f"*Навык:* {skill_name}\n"
+            f"*Дата:* {job.work_date}\n"
+            f"*Адрес:* {job.address}\n"
+            f"*Ставка:* {job.rate} руб.\n"
+            f"*Количество работников:* {job.workers_needed}\n\n"
+ 
+        )
+        
+        # Отправляем сообщение в Telegram
+        url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": "@StaffTap_Notifications",
+            "text": message,
+            "parse_mode": "Markdown",
+            "disable_web_page_preview": True
+        }
+        
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        logger.info(f"Telegram notification sent for job {job.id}")
+        
+    except Exception as e:
+        logger.error(f"Error sending Telegram notification: {str(e)}", exc_info=True)
 @router.get("/", response_model=List[JobOut])
 def get_jobs(
     skill: Optional[str] = Query(None, alias="skill"),
@@ -183,9 +249,11 @@ def get_jobs(
 @router.post("/", status_code=201)
 def create_job(
     job_data: JobCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Проверка прав и верификации пользователя
     if current_user.role != "employer":
         raise HTTPException(
             status_code=403,
@@ -197,7 +265,7 @@ def create_job(
             detail="Только верифицированные работодатели могут создавать вакансии"
         )
     
-    # Проверяем, что указан либо ID навыка, либо кастомный навык, но не оба сразу
+    # Проверка навыков
     if job_data.required_skill_id and job_data.custom_skill:
         raise HTTPException(
             status_code=400,
@@ -212,6 +280,7 @@ def create_job(
                 detail="Указан несуществующий навык"
             )
     
+    # Создание вакансии
     new_job = Job(
         employer_id=current_user.id,
         title=job_data.title,
@@ -232,6 +301,26 @@ def create_job(
     db.add(new_job)
     db.commit()
     db.refresh(new_job)
+    
+    # Отправка уведомления в Telegram
+    background_tasks.add_task(send_telegram_notification, new_job, db)
+    
+    # Создание уведомления для администраторов
+    title = "Новая вакансия на модерации"
+    message = (
+        f"Вакансия: {new_job.title}\n"
+        f"Компания: {current_user.company_name or 'Без названия'}\n"
+        f"Дата: {new_job.work_date}\n"
+        f"Кол-во работников: {new_job.workers_needed}\n\n"
+    )
+    
+    background_tasks.add_task(
+        create_admin_notification,
+        db,
+        title,
+        message,
+        new_job.id
+    )
     
     return {"id": new_job.id, "status": "created"}
     

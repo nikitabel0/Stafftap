@@ -327,30 +327,27 @@ const AdminUsersManagement = () => {
                 )}
               </div>
               <div className={styles.userInfo}>
-                <div 
-                  className={styles.userName}
-                  onClick={() => {
-                    if (user.telegram_username) {
-                      window.open(`https://t.me/${user.telegram_username}`, '_blank');
-                    }
-                  }}
-                  style={{
-                    cursor: user.telegram_username ? 'pointer' : 'default',
-                    textDecoration: user.telegram_username ? 'underline' : 'none'
-                  }}
-                >
+                <div className={styles.userName}>
                   {user.first_name} {user.last_name}
-                  {user.telegram_username && (
-                    <span className={styles.telegramHint} title="Открыть в Telegram">
-                      <FiSend className={styles.telegramIcon} />
-                    </span>
-                  )}
                 </div>
                 <div className={styles.userDetails}>
                   <div className={styles.userEmail}>{user.email}</div>
                   <div className={styles.userCompany}>
                     {user.company_name || "Без компании"}
                   </div>
+                  {user.telegram_username && (
+                    <div className={styles.userTelegram}>
+                      <a 
+                        href={`https://t.me/${user.telegram_username}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={styles.telegramLink}
+                      >
+                        <FiSend className={styles.telegramIcon} />
+                        @{user.telegram_username}
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className={styles.userId}>ID: {user.id}</div>
