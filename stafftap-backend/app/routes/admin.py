@@ -80,11 +80,14 @@ def get_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     search: str = Query(None),
+    role: Optional[str] = Query(None),  # Добавляем параметры фильтров
+    is_verified: Optional[bool] = Query(None),
+    is_blocked: Optional[bool] = Query(None),
+    sort: Optional[str] = Query("newest"),  # Добавляем сортировку
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
     offset = (page - 1) * page_size
-    
     
     query = db.query(
         User.id,
@@ -99,6 +102,17 @@ def get_users(
         User.telegram_username
     )
     
+    # Применяем фильтры
+    if role and role != "all":
+        query = query.filter(User.role == role)
+    
+    if is_verified is not None:
+        query = query.filter(User.is_verified == is_verified)
+    
+    if is_blocked is not None:
+        query = query.filter(User.is_blocked == is_blocked)
+    
+    # Применяем поиск
     if search:
         search_pattern = f"%{search}%"
         query = query.filter(
@@ -107,6 +121,16 @@ def get_users(
             User.last_name.ilike(search_pattern) |
             User.company_name.ilike(search_pattern)
         )
+    
+    # Применяем сортировку
+    if sort == "oldest":
+        query = query.order_by(User.created_at.asc())
+    elif sort == "name_asc":
+        query = query.order_by(User.first_name.asc(), User.last_name.asc())
+    elif sort == "name_desc":
+        query = query.order_by(User.first_name.desc(), User.last_name.desc())
+    else:  # newest (default)
+        query = query.order_by(User.created_at.desc())
     
     total_users = query.count()
     total_pages = (total_users + page_size - 1) // page_size

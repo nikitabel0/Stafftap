@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import API_BASE_URL from "../../apiConfig";
-import { 
-  FiSearch, 
-  FiRefreshCw, 
-  FiCheck, 
-  FiLock, 
-  FiUnlock, 
-  FiX, 
-  FiFilter, 
-  FiChevronLeft, 
+import {
+  FiSearch,
+  FiRefreshCw,
+  FiCheck,
+  FiLock,
+  FiUnlock,
+  FiX,
+  FiFilter,
+  FiChevronLeft,
   FiChevronRight,
-  FiSend 
+  FiSend,
 } from "react-icons/fi";
 import styles from "./AdminUsersManagement.module.css";
 
@@ -243,14 +243,18 @@ const AdminUsersManagement = () => {
           )}
         </div>
 
-        <button 
+        <button
           className={styles.mobileFilterToggle}
           onClick={() => setShowFilters(!showFilters)}
         >
           <FiFilter /> Фильтры
         </button>
 
-        <div className={`${styles.filterControls} ${showFilters ? styles.showFilters : ''}`}>
+        <div
+          className={`${styles.filterControls} ${
+            showFilters ? styles.showFilters : ""
+          }`}
+        >
           <div className={styles.filterGroup}>
             <label>Роль:</label>
             <select
@@ -311,9 +315,11 @@ const AdminUsersManagement = () => {
 
       <div className={styles.usersList}>
         {users.map((user) => (
-          <div 
-            key={user.id} 
-            className={`${styles.userCard} ${user.is_blocked ? styles.blocked : ""}`}
+          <div
+            key={user.id}
+            className={`${styles.userCard} ${
+              user.is_blocked ? styles.blocked : ""
+            }`}
           >
             <div className={styles.cardHeader}>
               <div className={styles.userAvatar}>
@@ -337,15 +343,9 @@ const AdminUsersManagement = () => {
                   </div>
                   {user.telegram_username && (
                     <div className={styles.userTelegram}>
-                      <a 
-                        href={`https://t.me/${user.telegram_username}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className={styles.telegramLink}
-                      >
-                        <FiSend className={styles.telegramIcon} />
-                        @{user.telegram_username}
-                      </a>
+                      <FiSend className={styles.telegramIcon} />@
+                      {user.telegram_username}{" "}
+                      {/* Просто текст вместо ссылки */}
                     </div>
                   )}
                 </div>
