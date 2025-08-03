@@ -52,19 +52,12 @@ import AdminDocumentsModeration from "../../components/AdminDocumentsModeration/
 import DocumentsList from "../../components/DocumentsSection/DocumentsList";
 import DocumentUploadModal from "../../components/DocumentsSection/DocumentUploadModal";
 
-
-
-
-
 const safeFormatNumber = (value, defaultValue = 0) => {
   const num = Number(value);
   return isNaN(num)
     ? defaultValue.toLocaleString("ru-RU")
     : num.toLocaleString("ru-RU");
 };
-
-
-
 
 const transformUser = (userData) => {
   if (!userData) return null;
@@ -105,10 +98,8 @@ const transformUser = (userData) => {
     company_name: userData.company_name || "",
     rate_per_shift: userData.rate_per_shift || 0,
     experience_months: userData.experience_months || 0,
-    
   };
 };
-
 
 const BalanceDepositModal = ({
   user,
@@ -126,7 +117,6 @@ const BalanceDepositModal = ({
   const [successMessage, setSuccessMessage] = useState("");
   const location = useLocation();
 
-  // Расчет комиссии при изменении суммы
   useEffect(() => {
     const calculateCommission = async () => {
       if (amount < 10) {
@@ -146,7 +136,6 @@ const BalanceDepositModal = ({
           }
         );
 
-        // Защита от отсутствующих значений в ответе
         const safeCommission = response.data.commission || 0;
         const safeTotal = response.data.total || amount;
 
@@ -162,13 +151,11 @@ const BalanceDepositModal = ({
     calculateCommission();
   }, [amount]);
 
-  // Вспомогательная функция для безопасного форматирования чисел
   const safeToFixed = (value, decimals = 2) => {
     const num = parseFloat(value);
     return isNaN(num) ? "0.00" : num.toFixed(decimals);
   };
 
-  // Создание платежа
   const handleDeposit = async () => {
     if (amount < 10) {
       setError("Минимальная сумма пополнения - 10 рублей");
@@ -197,14 +184,12 @@ const BalanceDepositModal = ({
       setPaymentUrl(response.data.confirmation_url);
       setTestCardInfo(true);
 
-      // Открываем страницу оплаты
       const paymentWindow = window.open(
         response.data.confirmation_url,
         "_blank",
         "width=600,height=800"
       );
 
-      // Проверка статуса платежа
       const checkInterval = setInterval(async () => {
         if (paymentWindow.closed) {
           clearInterval(checkInterval);
@@ -227,7 +212,6 @@ const BalanceDepositModal = ({
             clearInterval(checkInterval);
             paymentWindow.close();
 
-            // Безопасное форматирование значений
             const safeAmount = paymentData.amount || 0;
             const safeCommission = paymentData.commission || 0;
 
@@ -239,7 +223,6 @@ const BalanceDepositModal = ({
               )} руб.) успешно завершен!`
             );
 
-            // Обновление данных пользователя
             const userResponse = await axios.get(
               `${API_BASE_URL}/api/users/me`,
               {
@@ -520,7 +503,8 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       }
     }
 
-    if (editingProfile.role === "worker") {
+    // Проверки для работника (только если не админ)
+    if (editingProfile.role === "worker" && !isAdmin) {
       if (!editingProfile.rate_per_shift) {
         newErrors.rate_per_shift = "Ставка обязательна";
         isValid = false;
@@ -544,7 +528,8 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
       }
     }
 
-    if (editingProfile.role === "employer") {
+    // Проверки для работодателя (только если не админ)
+    if (editingProfile.role === "employer" && !isAdmin) {
       if (!editingProfile.company_name?.trim()) {
         newErrors.company_name = "Название компании обязательно";
         isValid = false;
@@ -596,27 +581,25 @@ const ProfilePage = ({ user, onSave, onLogout }) => {
     }
   };
 
-const handleAvatarChange = (e) => {
+  const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Проверка типа файла
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-        toast.error('Недопустимый формат файла. Разрешены: JPG, PNG, WEBP');
-        return;
+      toast.error('Недопустимый формат файла. Разрешены: JPG, PNG, WEBP');
+      return;
     }
 
-    // Проверка размера файла (5MB)
     if (file.size > 5 * 1024 * 1024) {
-        toast.error('Файл слишком большой. Максимальный размер 5MB');
-        return;
+      toast.error('Файл слишком большой. Максимальный размер 5MB');
+      return;
     }
 
     setAvatarFile(file);
     const previewUrl = URL.createObjectURL(file);
     setAvatarPreview(previewUrl);
-};
+  };
 
   const handleSaveClick = async () => {
     if (!onSave || !editingProfile) {
@@ -640,7 +623,8 @@ const handleAvatarChange = (e) => {
         birth_date: editingProfile.birth_date || "",
       };
 
-      if (editingProfile.role === "worker") {
+      // Для работника (не админа)
+      if (editingProfile.role === "worker" && !isAdmin) {
         updateData.rate_per_shift = Number(editingProfile.rate_per_shift) || 0;
         updateData.experience_months =
           Number(editingProfile.experience_months) || 0;
@@ -655,7 +639,9 @@ const handleAvatarChange = (e) => {
         }
 
         updateData.skills = editingProfile.skills.map((skill) => skill.id);
-      } else if (editingProfile.role === "employer") {
+      } 
+      // Для работодателя (не админа)
+      else if (editingProfile.role === "employer" && !isAdmin) {
         updateData.company_name = editingProfile.company_name || "";
       }
 
@@ -841,9 +827,9 @@ const handleAvatarChange = (e) => {
         <div className={styles.profileAvatar}>
           <div
             className={`${styles.avatarPlaceholder} ${
-              isEditing && !isAdmin ? styles.editable : ""
+              isEditing ? styles.editable : ""
             }`}
-            onClick={isEditing && !isAdmin ? handleAvatarClick : undefined}
+            onClick={isEditing ? handleAvatarClick : undefined}
           >
             {avatarPreview ? (
               <img
@@ -861,7 +847,7 @@ const handleAvatarChange = (e) => {
               <div className={styles.avatarInitials}>{getInitials()}</div>
             )}
 
-            {isEditing && !isAdmin && (
+            {isEditing && (
               <div className={styles.avatarOverlay}>
                 <FiCamera className={styles.cameraIcon} />
                 <span>Изменить фото</span>
@@ -869,7 +855,7 @@ const handleAvatarChange = (e) => {
             )}
           </div>
 
-          {isEditing && !isAdmin && (
+          {isEditing && (
             <input
               type="file"
               ref={fileInputRef}
@@ -1144,7 +1130,7 @@ const handleAvatarChange = (e) => {
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
                   <label>Имя</label>
-                  {isEditing && !isAdmin ? (
+                  {isEditing ? (
                     <div>
                       <input
                         type="text"
@@ -1170,7 +1156,7 @@ const handleAvatarChange = (e) => {
 
                 <div className={styles.infoItem}>
                   <label>Фамилия</label>
-                  {isEditing && !isAdmin ? (
+                  {isEditing ? (
                     <div>
                       <input
                         type="text"
@@ -1201,7 +1187,7 @@ const handleAvatarChange = (e) => {
 
                 <div className={styles.infoItem}>
                   <label>Email</label>
-                  {isEditing && !isAdmin ? (
+                  {isEditing ? (
                     <div>
                       <input
                         type="email"
@@ -1227,7 +1213,7 @@ const handleAvatarChange = (e) => {
 
                 <div className={styles.infoItem}>
                   <label>Дата рождения</label>
-                  {isEditing && !isAdmin ? (
+                  {isEditing ? (
                     <div>
                       <input
                         type="date"
