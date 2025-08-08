@@ -4,7 +4,6 @@
   margin: 80px auto 0;
   padding: 30px 20px;
   min-height: calc(100vh - 80px);
-
 }
 
 /* Заголовок страницы */
@@ -35,12 +34,12 @@
   left: 0;
   width: 150px;
   height: 4px;
-  background: linear-gradient(90deg, #2C8161, #56BD66);
+  background: linear-gradient(90deg, #2c8161, #56bd66);
   border-radius: 4px;
 }
 
 .header-icon {
-  color: #2C8161;
+  color: #2c8161;
   font-size: 36px;
   background: rgba(44, 129, 97, 0.1);
   width: 60px;
@@ -67,14 +66,14 @@
 
 .notifications-loading p {
   margin-top: 25px;
-  color: #2C8161;
+  color: #2c8161;
   font-size: 20px;
   font-weight: 500;
 }
 
 .loader {
   border: 5px solid rgba(44, 129, 97, 0.1);
-  border-top: 5px solid #2C8161;
+  border-top: 5px solid #2c8161;
   border-radius: 50%;
   width: 60px;
   height: 60px;
@@ -82,8 +81,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Пустой список */
@@ -104,7 +107,7 @@
 
 .empty-notifications p {
   font-size: 22px;
-  color: #2C8161;
+  color: #2c8161;
   font-weight: 500;
   margin: 0;
 }
@@ -133,7 +136,7 @@
 }
 
 .notification-card.unread {
-  border-left: 5px solid #2C8161;
+  border-left: 5px solid #2c8161;
   background: linear-gradient(to right, #ffffff 0%, #f8fdfa 100%);
 }
 
@@ -144,7 +147,7 @@
   right: 10px;
   width: 12px;
   height: 12px;
-  background: #2C8161;
+  background: #2c8161;
   border-radius: 50%;
   box-shadow: 0 0 0 4px rgba(44, 129, 97, 0.2);
 }
@@ -181,17 +184,17 @@
 
 .notification-icon.booking-request {
   background: linear-gradient(135deg, #e1f0e9 0%, #d1eae1 100%);
-  color: #2C8161;
+  color: #2c8161;
 }
 
 .notification-icon.booking-confirmed {
   background: linear-gradient(135deg, #e1f0e9 0%, #d1eae1 100%);
-  color: #2C8161;
+  color: #2c8161;
 }
 
 .notification-icon.employer-booking {
   background: linear-gradient(135deg, #f0e1f0 0%, #ead1ea 100%);
-  color: #9C27B0;
+  color: #9c27b0;
 }
 
 .notification-icon.job-canceled {
@@ -206,27 +209,32 @@
 
 .notification-icon.job-completed {
   background: linear-gradient(135deg, #e8f0f2 0%, #dbe7eb 100%);
-  color: #607D8B;
+  color: #607d8b;
+}
+
+.notification-icon.worker-job-completed {
+  background: linear-gradient(135deg, #e8f0f2 0%, #dbe7eb 100%);
+  color: #607d8b;
 }
 
 .notification-icon.dispute-created {
   background: linear-gradient(135deg, #fff2e6 0%, #ffe9d6 100%);
-  color: #FF5722;
+  color: #ff5722;
 }
 
 .notification-icon.payment-released {
   background: linear-gradient(135deg, #e8f5e9 0%, #dbf0de 100%);
-  color: #8BC34A;
+  color: #8bc34a;
 }
 
 .notification-icon.worker-rejected {
   background: linear-gradient(135deg, #fce4ec 0%, #fadbe8 100%);
-  color: #E91E63;
+  color: #e91e63;
 }
 
 .notification-icon.review-request {
   background: linear-gradient(135deg, #fff8e1 0%, #fff2cc 100%);
-  color: #FFC107;
+  color: #ffc107;
 }
 
 .notification-header h3 {
@@ -287,7 +295,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
   transform: translateX(-100%);
   transition: transform 0.6s ease;
 }
@@ -306,7 +319,7 @@
 }
 
 .confirm-button {
-  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  background: linear-gradient(to right, #2c8161, #3a9d7c);
   color: white;
 }
 
@@ -321,22 +334,22 @@
 }
 
 .view-job-button {
-  background: linear-gradient(to right, #9C27B0, #8E44AD);
+  background: linear-gradient(to right, #9c27b0, #8e44ad);
   color: white;
 }
 
 .dispute-button {
-  background: linear-gradient(to right, #FF9800, #F57C00);
+  background: linear-gradient(to right, #ff9800, #f57c00);
   color: white;
 }
 
 .feedback-button {
-  background: linear-gradient(to right, #607D8B, #546E7A);
+  background: linear-gradient(to right, #607d8b, #546e7a);
   color: white;
 }
 
 .review-button {
-  background: linear-gradient(to right, #FFC107, #FFA000);
+  background: linear-gradient(to right, #ffc107, #ffa000);
   color: white;
 }
 
@@ -362,7 +375,7 @@
 }
 
 .mark-read-button:hover {
-  color: #2C8161;
+  color: #2c8161;
   transform: translateX(5px);
 }
 
@@ -421,7 +434,7 @@
 }
 
 .positive-option:hover {
-  border-color: #4CAF50;
+  border-color: #4caf50;
 }
 
 .problem-option {
@@ -429,7 +442,7 @@
 }
 
 .problem-option:hover {
-  border-color: #F44336;
+  border-color: #f44336;
 }
 
 .option-icon {
@@ -451,12 +464,12 @@
 }
 
 .positive-option .option-icon {
-  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
   color: white;
 }
 
 .problem-option .option-icon {
-  background: linear-gradient(135deg, #F44336, #EF5350);
+  background: linear-gradient(135deg, #f44336, #ef5350);
   color: white;
 }
 
@@ -520,7 +533,7 @@
 }
 
 .worker-card.selected {
-  border-color: #2C8161;
+  border-color: #2c8161;
   background: rgba(44, 129, 97, 0.05);
   box-shadow: 0 4px 15px rgba(44, 129, 97, 0.15);
 }
@@ -536,7 +549,7 @@
   height: 60px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #2C8161, #56BD66);
+  background: linear-gradient(135deg, #2c8161, #56bd66);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -568,7 +581,7 @@
 }
 
 .worker-check .checked {
-  color: #2C8161;
+  color: #2c8161;
   font-size: 24px;
 }
 
@@ -592,7 +605,7 @@
 
 .problem-description textarea:focus {
   outline: none;
-  border-color: #2C8161;
+  border-color: #2c8161;
   box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.1);
 }
 
@@ -622,7 +635,7 @@
 
 .submit-button {
   padding: 14px 30px;
-  background: linear-gradient(to right, #2C8161, #3A9D7C);
+  background: linear-gradient(to right, #2c8161, #3a9d7c);
   color: white;
   border: none;
   border-radius: 15px;
@@ -644,105 +657,6 @@
   box-shadow: none;
 }
 
-/* Адаптивность */
-@media (max-width: 992px) {
-  .notifications-page {
-    padding: 25px 15px;
-  }
-}
-
-@media (max-width: 768px) {
-  .notifications-header h1 {
-    font-size: 28px;
-  }
-  
-  .notification-header {
-    flex-wrap: wrap;
-  }
-  
-  .notification-time {
-    width: 100%;
-    padding-left: 80px;
-    margin-top: 10px;
-  }
-  
-  .feedback-options {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .notifications-page {
-    margin-top: 70px;
-    padding: 20px 10px;
-  }
-  
-  .notification-card {
-    padding: 20px;
-  }
-  
-  .notification-actions {
-    flex-direction: column;
-  }
-  
-  .notification-actions button {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .notification-header h3 {
-    font-size: 20px;
-  }
-  
-  .notification-body p {
-    font-size: 16px;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .cancel-button,
-  .submit-button {
-    width: 100%;
-  }
-}
-
-/* Анимации для кнопок */
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(44, 129, 97, 0.4); }
-  70% { box-shadow: 0 0 0 15px rgba(44, 129, 97, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(44, 129, 97, 0); }
-}
-
-.unread .notification-icon {
-  animation: pulse 2s infinite;
-}
-
-/* Эффект параллакса */
-.notification-card {
-  perspective: 1000px;
-}
-
-.notification-card-inner {
-  transition: transform 0.5s;
-  transform-style: preserve-3d;
-}
-
-.notification-card:hover .notification-card-inner {
-  transform: rotateY(5deg) rotateX(2deg);
-}
-
-/* Микровзаимодействия */
-.confirm-button:active,
-.reject-button:active,
-.chat-button:active,
-.view-job-button:active,
-.submit-button:active {
-  transform: translateY(2px) !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1) !important;
-}
-
 /* Блок ошибок */
 .error-banner {
   display: flex;
@@ -757,8 +671,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .error-icon {
@@ -815,8 +735,14 @@
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .modal-content h3 {
@@ -845,7 +771,7 @@
 
 .modal-content textarea:focus {
   outline: none;
-  border-color: #2C8161;
+  border-color: #2c8161;
   box-shadow: 0 0 0 3px rgba(44, 129, 97, 0.1);
 }
 
@@ -868,7 +794,7 @@
 }
 
 .star-filled {
-  color: #FFC107;
+  color: #ffc107;
   cursor: pointer;
 }
 
@@ -879,7 +805,7 @@
 }
 
 .star-empty:hover {
-  color: #FFC107;
+  color: #ffc107;
 }
 
 .comment-section textarea {
@@ -909,4 +835,183 @@
 
 .workers-loading p {
   color: #5a7c6c;
+}
+
+/* Адаптивность */
+@media (max-width: 992px) {
+  .notifications-page {
+    padding: 25px 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .notifications-header h1 {
+    font-size: 28px;
+  }
+
+  .notification-header {
+    flex-wrap: wrap;
+  }
+
+  .notification-time {
+    width: 100%;
+    padding-left: 80px;
+    margin-top: 10px;
+  }
+
+  .feedback-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Уменьшаем размеры для мобильных устройств */
+  .notifications-page {
+    margin-top: 70px;
+    padding: 20px 10px;
+  }
+
+  /* Заголовок */
+  .notifications-header h1 {
+    font-size: 24px;
+  }
+
+  .header-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
+  /* Иконки уведомлений */
+  .notification-icon {
+    min-width: 40px;
+    height: 40px;
+    font-size: 20px;
+    border-radius: 12px;
+  }
+
+  .notification-header h3 {
+    font-size: 18px;
+  }
+
+  .notification-time {
+    font-size: 14px;
+  }
+
+  .notification-body p {
+    font-size: 16px;
+  }
+
+  /* Карточки */
+  .notification-card {
+    padding: 20px 15px;
+  }
+
+  .notification-header {
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+
+  /* Кнопки */
+  .notification-actions button {
+    padding: 12px 15px;
+    font-size: 14px;
+    gap: 6px;
+  }
+
+  .notification-actions button svg {
+    font-size: 18px;
+  }
+
+  /* Форма обратной связи */
+  .feedback-option {
+    padding: 20px;
+  }
+
+  .option-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+  }
+
+  .option-content h4 {
+    font-size: 18px;
+  }
+
+  .option-content p {
+    font-size: 14px;
+  }
+
+  /* Список работников */
+  .worker-card {
+    padding: 15px;
+  }
+
+  .worker-avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .worker-info-content h5 {
+    font-size: 16px;
+  }
+
+  /* Модальные окна */
+  .modal-content h3 {
+    font-size: 20px;
+  }
+
+  .modal-content p {
+    font-size: 16px;
+  }
+
+  .modal-content textarea {
+    font-size: 14px;
+  }
+
+  /* Ошибки */
+  .error-message {
+    font-size: 14px;
+  }
+}
+
+/* Анимации для кнопок */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(44, 129, 97, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(44, 129, 97, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(44, 129, 97, 0);
+  }
+}
+
+.unread .notification-icon {
+  animation: pulse 2s infinite;
+}
+
+/* Эффект параллакса */
+.notification-card {
+  perspective: 1000px;
+}
+
+.notification-card-inner {
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+
+.notification-card:hover .notification-card-inner {
+  transform: rotateY(5deg) rotateX(2deg);
+}
+
+/* Микровзаимодействия */
+.confirm-button:active,
+.reject-button:active,
+.chat-button:active,
+.view-job-button:active,
+.submit-button:active {
+  transform: translateY(2px) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1) !important;
 }
