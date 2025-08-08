@@ -305,6 +305,16 @@ function Register({ onRegister }) {
       {currentStep === 2 && (
         <RegistrationStep selectedRole={selectedRole} onRegister={onRegister} />
       )}
+      
+      {/* Добавленный блок с реквизитами */}
+      <div className={styles.footerInfo}>
+        <p>Расчётный счёт: 40802810020000714563</p>
+        <p>Название банка: ООО "Банк Точка"</p>
+        <p>БИК: 044525104</p>
+        <p>Корреспондентский счёт: 30101810745374525104</p>
+        <p>Наименование: Индивидуальный предприниматель Филатов Сергей Юрьевич</p>
+        <p>ИНН: 711614034305</p>
+      </div>
     </div>
   );
 }

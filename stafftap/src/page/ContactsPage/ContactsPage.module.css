@@ -1,0 +1,115 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  max-width: 700px;
+  width: 100%;
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.title {
+  color: #2C8161;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 28px;
+  border-bottom: 2px solid #eaeaea;
+  padding-bottom: 15px;
+}
+
+.infoSection {
+  margin-bottom: 30px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f9fbfd;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.sectionTitle {
+  color: #3A9D7C;
+  margin-bottom: 20px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.sectionTitle::before {
+  content: "•";
+  margin-right: 10px;
+  color: #3A9D7C;
+  font-size: 24px;
+}
+
+.detailRow {
+  display: flex;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #eaeaea;
+}
+
+.detailLabel {
+  font-weight: 600;
+  color: #555;
+  min-width: 220px;
+  font-size: 16px;
+}
+
+.detailValue {
+  color: #333;
+  font-size: 16px;
+  word-break: break-word;
+  flex: 1;
+}
+
+.backButton {
+  background: linear-gradient(145deg, #2C8161, #3A9D7C);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: block;
+  margin: 30px auto 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(44, 129, 97, 0.3);
+}
+
+.backButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 20px rgba(44, 129, 97, 0.4);
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 25px;
+  }
+  
+  .detailRow {
+    flex-direction: column;
+  }
+  
+  .detailLabel {
+    margin-bottom: 5px;
+    min-width: auto;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+}

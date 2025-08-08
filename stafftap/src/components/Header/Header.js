@@ -10,6 +10,8 @@ import {
   FiX,
   FiLogOut,
   FiDollarSign,
+  FiBookOpen,
+  FiFileText
 } from "react-icons/fi";
 import styles from "./Header.module.css";
 import API_BASE_URL from "../../apiConfig";
@@ -24,15 +26,17 @@ const Header = ({ user, onLogout }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [notificationCount, setNotificationCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [isDocsMenuOpen, setIsDocsMenuOpen] = useState(false);
 
   const wsRef = useRef(null);
   const isMountedRef = useRef(true);
+  const docsMenuRef = useRef(null);
 
   const shouldHideHeader =
     location.pathname.startsWith("/chats/") ||
     location.pathname === "/login" ||
     location.pathname === "/register" ||
-    location.pathname === "/complete-registration";;
+    location.pathname === "/complete-registration";
 
   const isHomePage = location.pathname === "/";
 
@@ -61,7 +65,21 @@ const Header = ({ user, onLogout }) => {
     else if (path.includes("/profile")) setActiveTab("profile");
     else if (path.includes("/notifications")) setActiveTab("notifications");
     else if (path.includes("/balance")) setActiveTab("finance");
+    else if (path.includes("/contacts")) setActiveTab("contacts");
   }, [location]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (docsMenuRef.current && !docsMenuRef.current.contains(event.target)) {
+        setIsDocsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const getCurrentUserId = useCallback(() => {
     const token = localStorage.getItem("token");
@@ -116,41 +134,32 @@ const Header = ({ user, onLogout }) => {
     };
   }, [getCurrentUserId]);
 
-const fetchCounts = useCallback(async () => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+  const fetchCounts = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
-    const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${token}` };
 
-    const [notifications, chats] = await Promise.all([
-      axios.get(`${API_BASE_URL}/api/notifications/unread-count`, { headers }),
-      axios.get(`${API_BASE_URL}/api/chats/unread-total`, { headers }),
-    ]);
+      const [notifications, chats] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/notifications/unread-count`, { headers }),
+        axios.get(`${API_BASE_URL}/api/chats/unread-total`, { headers }),
+      ]);
 
-    if (isMountedRef.current) {
-      setNotificationCount(Number(notifications.data.count));
-      // Исправлено: обращение к правильному полю
-      setChatUnreadCount(chats.data.total_unread);
+      if (isMountedRef.current) {
+        setNotificationCount(Number(notifications.data.count));
+        setChatUnreadCount(chats.data.total_unread);
+      }
+    } catch (error) {
+      console.error("Ошибка при загрузке данных:", error);
+      if (error.response?.status === 401) {
+        // Обработка ошибки авторизации
+      } else {
+        setNotificationCount(0);
+        setChatUnreadCount(0);
+      }
     }
-  } catch (error) {
-    console.error("Ошибка при загрузке данных:", error);
-    
-    // Добавлено подробное логирование
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-      console.error("Status code:", error.response.status);
-    }
-    
-    if (error.response?.status === 401) {
-  
-    } else {
-      // Сбрасываем счетчики при ошибке
-      setNotificationCount(0);
-      setChatUnreadCount(0);
-    }
-  }
-}, []);  // Добавлена зависимость
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -176,6 +185,7 @@ const fetchCounts = useCallback(async () => {
       navigate(path);
       setActiveTab(path.split("/")[1] || "");
       if (isMobile) setIsMenuOpen(false);
+      setIsDocsMenuOpen(false);
     },
     [navigate, isMobile]
   );
@@ -196,9 +206,15 @@ const fetchCounts = useCallback(async () => {
     setIsMenuOpen(false);
   }, []);
 
+  const toggleDocsMenu = useCallback((e) => {
+    e.stopPropagation();
+    setIsDocsMenuOpen(prev => !prev);
+  }, []);
+
   if (shouldHideHeader) {
     return null;
   }
+
   return (
     <>
       <header
@@ -278,6 +294,44 @@ const fetchCounts = useCallback(async () => {
               <span className={styles.navLabel}>Финансы</span>
             </div>
           )}
+
+          {/* Кнопка Контакты */}
+          <div
+            className={`${styles.navItem} ${
+              activeTab === "contacts" ? styles.active : ""
+            }`}
+            onClick={() => navigateTo("/contacts")}
+          >
+            <div className={styles.navIcon}>
+              <FiBookOpen />
+            </div>
+            <span className={styles.navLabel}>Контакты</span>
+          </div>
+
+          {/* Документы - выпадающее меню */}
+          <div 
+            className={styles.docsDropdown} 
+            ref={docsMenuRef}
+            onClick={toggleDocsMenu}
+          >
+            <div className={`${styles.navItem} ${isDocsMenuOpen ? styles.active : ""}`}>
+              <div className={styles.navIcon}>
+                <FiFileText />
+              </div>
+              <span className={styles.navLabel}>Документы</span>
+            </div>
+            
+            {isDocsMenuOpen && (
+              <div className={styles.dropdownMenu}>
+                <div className={styles.dropdownItem} onClick={() => navigateTo("/offer")}>
+                  Оферта
+                </div>
+                <div className={styles.dropdownItem} onClick={() => navigateTo("/terms")}>
+                  Пользовательское соглашение
+                </div>
+              </div>
+            )}
+          </div>
 
           <div
             className={`${styles.notificationIcon} ${
@@ -441,6 +495,45 @@ const fetchCounts = useCallback(async () => {
                 <span className={styles.menuLabel}>Финансы</span>
               </div>
             )}
+
+            {/* Контакты в мобильном меню */}
+            <div
+              className={`${styles.menuItem} ${
+                activeTab === "contacts" ? styles.active : ""
+              }`}
+              onClick={() => navigateTo("/contacts")}
+            >
+              <div className={styles.menuIcon}>
+                <FiBookOpen />
+              </div>
+              <span className={styles.menuLabel}>Контакты</span>
+            </div>
+
+            {/* Оферта в мобильном меню */}
+            <div
+              className={`${styles.menuItem} ${
+                location.pathname === "/offer" ? styles.active : ""
+              }`}
+              onClick={() => navigateTo("/offer")}
+            >
+              <div className={styles.menuIcon}>
+                <FiFileText />
+              </div>
+              <span className={styles.menuLabel}>Оферта</span>
+            </div>
+
+            {/* Пользовательское соглашение в мобильном меню */}
+            <div
+              className={`${styles.menuItem} ${
+                location.pathname === "/terms" ? styles.active : ""
+              }`}
+              onClick={() => navigateTo("/terms")}
+            >
+              <div className={styles.menuIcon}>
+                <FiFileText />
+              </div>
+              <span className={styles.menuLabel}>Пользовательское соглашение</span>
+            </div>
 
             <div className={styles.menuItem} onClick={handleLogout}>
               <div className={styles.menuIcon}>

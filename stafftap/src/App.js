@@ -23,6 +23,9 @@ import API_BASE_URL from "./apiConfig";
 import JobDetailPage from "./page/JobDetailPage/JobDetailPage";
 import FinanceHistory from "./components/FinanceHistory/FinanceHistory";
 import CompleteRegistration from "./page/CompleteRegistration/CompleteRegistration";
+import OfferPage from "./page/OfferPage/OfferPage";
+import TermsPage from "./page/TermsPage/TermsPage";
+import ContactsPage from "./page/ContactsPage/ContactsPage";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -170,6 +173,10 @@ function App() {
         <Route path="/chats" element={<ChatsPage user={user} />} />
         <Route path="/chats/:chatId" element={<ChatPage user={user} />} />
         <Route path="/job/:jobId" element={<JobDetailPage user={user} />} />
+
+         <Route path="/contacts" element={<ContactsPage/>} />
+      <Route path="/offer" element={<OfferPage />} />
+      <Route path="/terms" element={<TermsPage />} />
         <Route
           path="/chats/by-booking/:bookingId"
           element={<ChatPage user={user} />}
